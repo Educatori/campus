@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trasportini Furgone</title>
+    
+    <link rel="stylesheet" href="css/campus-theme.css">
+    <link rel="stylesheet" href="css/cruscotto-style.css">
+
+    <style>
+        #quadroSettimanale {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+        @media (max-width: 900px) {
+            #quadroSettimanale { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            #quadroSettimanale { grid-template-columns: 1fr; }
+        }
+
+        /* Struttura interna delle card orarie */
+        .day-card { align-self: start; }
+        .day-header {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--surface-3);
+        }
+        .time-slot {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .time-slot:last-child { margin-bottom: 0; }
+        
+        /* Variante "Dalla palestra" */
+        .time-slot.gym-slot {
+            border-left: 4px solid var(--lab);
+            background: var(--lab-dim);
+        }
+        
+        /* Variante "Simulimpresa NO" (Toni del rosso del tema) */
+        .time-slot.simula-no-slot {
+            border-left: 4px solid var(--absent);
+            background: var(--absent-dim);
+        }
+
+        /* Variante "Simulimpresa SI" (Toni del verde del tema) */
+        .time-slot.simula-si-slot {
+            border-left: 4px solid var(--ok);
+            background: var(--ok-dim);
+        }
+
+        .slot-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--accent);
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        /* Colori dinamici dei titoli in base allo stato */
+        .gym-slot .slot-title { color: var(--lab); }
+        .simula-no-slot .slot-title { color: var(--absent); }
+        .simula-si-slot .slot-title { color: var(--ok); }
+
+        .slot-data-list {
+            margin: 0;
+            padding-left: 16px;
+            font-size: 0.82rem;
+            color: var(--text-2);
+        }
+        .slot-data-list li { margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                 <h1><a href="index.html"> Piano Trasportini Settimanali</a></h1>
+                <div id="todayDate">-- -- ----</div>
+            </div>
+            <div style="text-align: right;">
+                <div id="digitalClock">--:--:--</div>
+            </div>
+        </header>
+        
+        <div class="note-toolbar-container">
+            <div class="note-content">
+                <span class="note-icon">📌</span>
+                <textarea id="dailyNotes" placeholder="Note offline..." class="note-input" rows="2"></textarea>
+                <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
+            </div>
+        </div>
+        
+        <div id="quadroSettimanale"></div>
+    </div>
+
+    
+    <script>
+        // --- CONFIGURAZIONE DEI DATI ---
+        const programmaDati = {
+            "lunedì": {
+                "14:30": ["3A furgone da Gare x9"],
+                "16:40": ["BUS 1A, 1B, 3B, 4A, 4B", "5A, 5B furgone da Gare x23"]
+            },
+            "martedì": {
+                "14:30": ["3B furgone da Gare x10"],
+                "14:30 simulimpresa NO": ["4B furgone da Gare x6"],
+                "15:50": ["BUS 3A"],
+                "16:40": ["BUS 1A, 1B, 5A, 5B", "4A furgone da Gare x5"],
+                "17:00 simulimpresa SI": ["4B furgone da Gare x6"]
+                
+            },
+            "mercoledì": {
+                "14:30 simulimpresa NO": ["4A furgone da Gare x5"],
+                "16:40": ["BUS 3B"],
+                "17:00 simulimpresa SI": ["4A furgone da Gare x5"],
+                "17:30": ["BUS 1B, 3A, 5A, 5B", "1A, 4B furgone da Gare x11"],
+            },
+            "giovedì": {
+                
+                "14:30": ["5A furgone da Gare x13"],
+                "15:50": ["4C furgone da Gare x9"],
+                "16:40": ["BUS 1A, 1B, 3A, 3B, 4A, 4B"]
+            }
+        };
+
+        const ordineOrari = ["14:30", "14:30 simulimpresa NO", "15:50", "16:40", "17:00 simulimpresa SI", "17:30"];
+
+        function init() {
+            const d = new Date();
+            const dateEl = document.getElementById('todayDate');
+            if (dateEl) dateEl.innerText = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            
+            setInterval(() => {
+                const clockEl = document.getElementById('digitalClock');
+                if (clockEl) clockEl.innerText = new Date().toLocaleTimeString('it-IT');
+            }, 1000);
+
+            // Carica le note salvate nel localStorage all'avvio
+            const noteInput = document.getElementById('dailyNotes');
+            if (noteInput) {
+                const noteSalvate = localStorage.getItem('note_trasportini');
+                if (noteSalvate) {
+                    noteInput.value = noteSalvate;
+                }
+                
+                // Ascolta la digitazione e salva istantaneamente a ogni carattere inserito
+                noteInput.addEventListener('input', () => {
+                    localStorage.setItem('note_trasportini', noteInput.value);
+                });
+            }
+
+            renderTabella();
+        }
+
+        function cancellaNote() {
+            if (confirm("⚠️ Cancellare definitivamente le note?")) {
+                const noteInput = document.getElementById('dailyNotes');
+                if (noteInput) {
+                    noteInput.value = '';
+                    localStorage.removeItem('note_trasportini');
+                }
+            }
+        }
+
+        function renderTabella() {
+            const container = document.getElementById('quadroSettimanale');
+            if (!container) return;
+            container.innerHTML = "";
+
+            Object.keys(programmaDati).forEach(giorno => {
+                const card = document.createElement('div');
+                card.className = 'day-card student-row'; 
+                
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.innerText = giorno;
+                card.appendChild(header);
+
+                const orariDelGiorno = programmaDati[giorno];
+
+                ordineOrari.forEach(ora => {
+                    if (orariDelGiorno[ora] && orariDelGiorno[ora].length > 0) {
+                        const slot = document.createElement('div');
+                        
+                        // Gestione dinamica delle classi di stile per gli slot speciali
+                        let varianteClasse = '';
+                        if (ora === '15:50 dalla palestra') {
+                            varianteClasse = 'gym-slot';
+                        } else if (ora === '14:30 simulimpresa NO') {
+                            varianteClasse = 'simula-no-slot';
+                        } else if (ora === '17:00 simulimpresa SI') {
+                            varianteClasse = 'simula-si-slot';
+                        }
+
+                        slot.className = `time-slot ${varianteClasse}`;
+
+                        const elementiLista = orariDelGiorno[ora].map(info => `<li>${info}</li>`).join('');
+
+                        slot.innerHTML = `
+                            <span class="slot-title">${ora}</span>
+                            <ul class="slot-data-list">
+                                ${elementiLista}
+                            </ul>
+                        `;
+                        card.appendChild(slot);
+                    }
+                });
+
+                if (card.children.length > 1) {
+                    container.appendChild(card);
+                }
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
