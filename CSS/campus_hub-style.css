@@ -1,0 +1,216 @@
+/* campus_hub-style.css — Layout a card per la gestione presenze giornaliere */
+/* Dipende da campus-theme.css */
+
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+}
+
+header {
+    background: #fe8b0e9e;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 16px 28px;
+    border-radius: var(--radius-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    gap: 16px;
+}
+header h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+#todayDate {
+    font-size: 0.78rem;
+    color: var(--text-2);
+    font-family: var(--font-mono);
+    margin-top: 3px;
+}
+#digitalClock {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 20px var(--accent-dim);
+}
+header button {
+    background: var(--surface-2);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-family: var(--font);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--t);
+}
+header button:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+#listaStudenti {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    animation: fadeIn 0.3s ease;
+}
+
+.student-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    border-bottom: 4px solid var(--ok);
+    transition: all var(--t);
+    box-shadow: var(--shadow-sm);
+}
+.student-row:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--border-2);
+}
+.student-row.dinner-no { border-bottom-color: var(--accent); background: var(--accent-dim); }
+.student-row.assente { border-bottom-color: var(--absent); background: var(--absent-dim); opacity: 0.8; }
+.student-row.highlight-lab {
+    background: var(--lab-dim) !important;
+    border-bottom-color: var(--lab) !important;
+    border-color: var(--lab-dim) !important;
+}
+
+.st-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    align-items: center;
+}
+.room-badge {
+    background: var(--surface-2);
+    color: var(--text-2);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+}
+.lab-badge {
+    color: var(--lab);
+    font-weight: 700;
+    font-size: 0.72rem;
+    animation: pulse 3s infinite;
+}
+.student-row .st-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+.student-row .st-class {
+    font-size: 0.72rem;
+    color: var(--text-2);
+    font-family: var(--font-mono);
+}
+
+.inputs {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0;
+}
+.inputs input {
+    width: 50%;
+    padding: 7px 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    outline: none;
+}
+.inputs input:focus { border-color: var(--accent); }
+
+.btns { display: flex; gap: 6px; }
+.btns button {
+    flex: 1;
+    padding: 7px 5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    font-family: var(--font);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--t);
+}
+.btns button:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+.active-ass {
+    background: var(--absent) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 10px var(--absent-dim) !important;
+}
+.active-din {
+    background: var(--accent) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 10px var(--accent-dim) !important;
+}
+
+.btn-switch {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--t);
+    font-size: 0.85rem;
+}
+.btn-switch:hover { background: var(--surface-3); }
+.btn-switch.modificato {
+    background: var(--switched) !important;
+    border-color: transparent !important;
+    color: white;
+    box-shadow: 0 2px 10px var(--switched-dim) !important;
+}
+
+#connection-status {
+    font-size: 0.68rem;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--ok-dim);
+    color: var(--ok);
+    border: 1px solid var(--ok-dim);
+}
+.permesso-tag {
+    color: var(--pp);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    #listaStudenti { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+@media (max-width: 600px) {
+    #listaStudenti { grid-template-columns: 1fr 1fr; }
+    header { flex-direction: column; text-align: center; gap: 10px; }
+}
