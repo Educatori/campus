@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cruscotto Operativo — SyncPanel</title>
+<link rel="stylesheet" href="css/campus-theme.css">
+<link rel="stylesheet" href="css/campus_hub-style.css">
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1><a href="index.html">Campus hub</a></h1>
+            <div id="todayDate" class="header-meta"><i>giovedì 4 giugno 2026</i></div>
+        </div>
+        <div id="digitalClock" class="header-clock">15:55:38</div>
+        <div class="header-actions">
+            <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
+        </div>
+    </header>
+
+    <!-- Note -->
+    <div class="note-toolbar-container">
+        <div class="note-content">
+            <span class="note-icon">📌</span>
+            <textarea id="dailyNotes" placeholder="Inserisci note..." class="note-input" rows="2"></textarea>
+            <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
+        </div>
+    </div>
+
+    <div id="info-reset" style="text-align:right;font-size:0.7em;color:var(--absent);margin-top:-10px;margin-bottom:16px;">
+        Ultimo aggiornamento: MAI
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="btn-toolbar" style="background:var(--accent);" onclick="togglePanel()">P ⚡ PP</button>
+        <input type="text" id="search" placeholder="Cerca studente..." onkeyup="applicaFiltri()">
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span class="room-label">ROOM</span>
+            <input type="number" id="roomInput" placeholder="n°" min="101" max="221"
+                   onfocus="this.oldValue=this.value;"
+                   oninput="gestisciSaltoStanze(this);validaERicerca();">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span class="room-label">CLASSE</span>
+            <select id="classeFilter" onchange="filtraPerClasse(this.value)"
+                    style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font);font-size:0.78rem;outline:none;min-width:100px;">
+                <option value="">Tutte</option>
+            </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span class="room-label">📅 simula DATA</span>
+            <input type="date" id="simulateDate"
+                   style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font);font-size:0.78rem;outline:none;width:140px;"
+                   onchange="simulaData(this.value)">
+            <button class="btn-toolbar" style="background:var(--btn-t4);padding:7px 12px;font-size:0.7rem;"
+                    onclick="resetSimulazione()">↺ Oggi</button>
+        </div>
+        <button class="btn-reset" onclick="resetDati('soloManuali')" title="Reset Giornaliero">🗑️ Reset Day</button>
+        <button class="btn-reset-complete" onclick="resetDati('completo')" title="Reset Completo">⚠️ Reset Full</button>
+    </div>
+
+    <!-- Turni -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">1° TURNO (18:30)</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">2° TURNO (19:15)</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO riepilogo</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER riepilogo</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">BUS DOMATTINA</div>
+
+        <div class="dropdown-moduli" style="position: relative; display: inline-block;">
+            <div class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface); color: var(--btn-t4); cursor: pointer; font-weight: bold;">
+                📋 MODULISTICA ▾
+            </div>
+            <div class="dropdown-content">
+                <a href="#" onclick="generaPopUpStampaBusGenerico(); return false;">BUS CONVITTORI ALFABETICO</a>
+                <a href="#" onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS CONVITTORI CLASSE</a>
+                <a href="#" onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
+                <a href="#" onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
+                <a href="#" onclick="generaPopUpStampaPresDin(); return false;">PRESENZE DINNER</a>
+                <a href="#" onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .dropdown-moduli:hover .dropdown-content { display: block; }
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: #1a1d26;
+        min-width: 200px;
+        box-shadow: 0px 8px 16px rgba(0,0,0,0.4);
+        border: 1px solid var(--border-2);
+        border-radius: 12px;
+        z-index: 10;
+        margin-top: 2px;
+        overflow: hidden;
+    }
+    .dropdown-content a {
+        color: var(--text-2);
+        padding: 10px 16px;
+        text-decoration: none;
+        display: block;
+        font-family: var(--font);
+        font-size: 0.75rem;
+        letter-spacing: 0.03em;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        transition: background 0.2s;
+    }
+    .dropdown-content a:hover {
+        background-color: var(--bg-3);
+        color: var(--accent);
+    }
+    </style>
+
+    <div id="listaStudenti"></div>
+</div>
+
+<!-- Side Panel -->
+<div id="sidePanel" style="position:fixed;top:0;right:-350px;width:320px;height:100%;transition:0.3s;z-index:1000;padding:24px;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+        <h3 style="margin:0;">Gestione Permessi</h3>
+        <button onclick="togglePanel()" style="border:none;background:rgba(255,255,255,0.07);color:var(--text-2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1.2em;display:flex;align-items:center;justify-content:center;">&times;</button>
+    </div>
+    <hr>
+    <h3 style="margin-top:10px;">Programmazione Assenze</h3>
+    <select id="selectStudente" style="margin-bottom:8px;"><option value="">-- Seleziona Nome --</option></select>
+    <select id="selectClasse" style="margin-bottom:8px;"><option value="">-- Seleziona Classe --</option></select>
+    <input type="date" id="dataDal" style="margin-bottom:8px;">
+    <input type="date" id="dataAl" style="margin-bottom:12px;">
+    <button onclick="aggiungiAssenza()" style="width:100%;background:var(--absent);color:white;border:none;padding:10px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font);font-weight:700;font-size:0.85rem;">➕ Aggiungi Assenza</button>
+    <hr style="margin:20px 0;">
+    <h3>Lista Assenze</h3>
+    <div id="listaAssenze" style="margin-bottom:20px;"></div>
+    <hr>
+    <h3>Permessi Permanenti</h3>
+    <div id="listaPermessiContent"></div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<!-- 1. Script classici (NON module): definiscono tutte le funzioni globali -->
+<script src="js/studenti_26_DEMO.js"></script>
+<script src="js/permessi_26_DEMO.js"></script>
+<script src="js/campus_hub-script.js"></script>
+
+<!-- 2. Loader Firebase (MODULE: usa import) - espone window.caricaDatiFirebase -->
+<script type="module" src="js/data-loader.js"></script>
+
+<!-- 3. Bootstrap: UN SOLO listener, aspetta Firebase, poi init -->
+<script>
+window.addEventListener('load', async function () {
+    const badge = document.getElementById('connection-status');
+
+    let datiCaricati = false;
+
+    // Tentativo 1: Firebase (se disponibile)
+    if (typeof window.caricaDatiFirebase === 'function') {
+        try {
+            datiCaricati = await window.caricaDatiFirebase();
+        } catch (err) {
+            console.error('❌ Errore durante il caricamento Firebase:', err);
+            datiCaricati = false;
+        }
+    } else {
+        console.warn('⚠️ caricaDatiFirebase non disponibile — uso dati DEMO locali');
+    }
+
+    // Fallback: dati DEMO locali già caricati nel DOM (studenti_26_DEMO.js)
+    if (!datiCaricati) {
+        console.warn('🔁 Fallback: utilizzo dati DEMO locali');
+
+        // Se il loader Firebase è fallito ma i DEMO sono caricati, ricostruisci i convittori
+        if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
+            (!Array.isArray(window.studenticonvittori) || window.studenticonvittori.length === 0)) {
+            window.studenticonvittori = window.tuttiStudenti.filter(s => {
+                const n = parseInt(s.room, 10);
+                return !isNaN(n) && n >= 101 && n <= 221;
+            });
+            console.log(`🔁 Fallback: ${window.studenticonvittori.length} convittori ricostruiti dai DEMO`);
+        }
+
+        if (badge) {
+            badge.textContent = '🟠 Demo';
+            badge.classList.remove('connected');
+            badge.classList.add('disconnected');
+            badge.style.background = 'rgba(234, 88, 12, 0.15)';
+            badge.style.color = '#ea580c';
+            badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
+        }
+    } else {
+        if (badge) {
+            badge.textContent = '🟢 Firebase';
+            badge.classList.add('connected');
+            badge.classList.remove('disconnected');
+        }
+    }
+
+    // --- INIZIALIZZAZIONE APPLICAZIONE (dati pronti) ---
+    if (typeof init === 'function') init();
+    if (typeof caricaDatiLocale === 'function') caricaDatiLocale();
+    if (typeof popolaListaPermessi === 'function') popolaListaPermessi();
+    if (typeof renderListaAssenze === 'function') renderListaAssenze();
+    if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+    if (typeof popolaSelectClassi === 'function') popolaSelectClassi();
+
+    console.log('✅ Inizializzazione completata');
+});
+</script>
+
+</body>
+</html>
