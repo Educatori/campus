@@ -1933,22 +1933,60 @@ function rimuoviAssenza(cognome, index) {
 // --- 7. PERMESSI E UTILITY ---
 function popolaListaPermessi() {
     const container = document.getElementById("listaPermessiContent");
+    if (!container) return;
+
     const giorniSettimana = ["", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
-    const studentiPP = Object.keys(ORARI_PP).sort();
+    const studentiPP = Object.keys(ORARI_PP || {}).sort();
+
     if (studentiPP.length === 0) {
         container.innerHTML = "<p>Nessun orario PP.</p>";
         return;
     }
+
     container.innerHTML = studentiPP
         .map((cognome) => {
             const orari = ORARI_PP[cognome];
-            let dettagli = Object.keys(orari)
-                .map(
-                    (g) =>
-                        `<div style="font-size:0.8em; margin-left:10px;"><b style="color:var(--p)">${giorniSettimana[g].substring(0, 2)}:</b> ${orari[g].out} > ${orari[g].in}</div>`
-                )
-                .join("");
-            return `<div style="margin-bottom:12px; border-bottom:1px solid #eee;"><b>${cognome}</b>${dettagli}</div>`;
+            if (!orari) return "";
+
+            // ── NORMALIZZAZIONE ──
+            // Firebase converte { "1": {...}, "2": {...} } in [null, {...}, {...}]
+            // Dobbiamo gestire entrambi i formati.
+            let dettagli = "";
+
+            if (Array.isArray(orari)) {
+                // Array: itera da indice 1 in poi (indice 0 è sempre null/vuoto)
+                dettagli = orari
+                    .map((v, i) => {
+                        if (i === 0 || !v || typeof v !== "object") return "";
+                        const giornoNome = giorniSettimana[i] || `G${i}`;
+                        const out = v.out || "-";
+                        const inn = v.in || "-";
+                        return `<div style="font-size:0.8em; margin-left:10px;">
+                            <b style="color:var(--pp)">${giornoNome.substring(0, 2)}:</b>
+                            ${out} &gt; ${inn}
+                        </div>`;
+                    })
+                    .join("");
+            } else if (typeof orari === "object") {
+                // Oggetto: comportamento originale, ma ordinato numericamente
+                dettagli = Object.keys(orari)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map((g) => {
+                        const giornoNome = giorniSettimana[Number(g)] || `G${g}`;
+                        const o = orari[g] || {};
+                        const out = o.out || "-";
+                        const inn = o.in || "-";
+                        return `<div style="font-size:0.8em; margin-left:10px;">
+                            <b style="color:var(--pp)">${giornoNome.substring(0, 2)}:</b>
+                            ${out} &gt; ${inn}
+                        </div>`;
+                    })
+                    .join("");
+            }
+
+            return `<div style="margin-bottom:12px; border-bottom:1px solid #eee;">
+                <b>${cognome}</b>${dettagli}
+            </div>`;
         })
         .join("");
 }
