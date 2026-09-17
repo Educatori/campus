@@ -257,3 +257,50 @@ window.salvaDatiFirebase  = salvaDatiFirebase;
 window.dataKeyFirebase    = dataKeyFirebase;
 
 console.log('🔧 data-loader.js pronto');
+
+// ─────────────────────────────────────────────────────────────
+// 8. NORMALIZZAZIONE ORARI_PP
+//    Firebase converte oggetti con chiavi numeriche sequenziali
+//    in array [null, {1}, {2}, {3}, {4}]. Li riconvertiamo in
+//    oggetto { "1": {...}, "2": {...}, ... } per compatibilità.
+// ─────────────────────────────────────────────────────────────
+function normalizzaPP(ppData) {
+    const risultato = {};
+    for (const [cognome, orari] of Object.entries(ppData || {})) {
+        if (Array.isArray(orari)) {
+            const obj = {};
+            orari.forEach((v, i) => {
+                if (i > 0 && v && typeof v === 'object') {
+                    obj[String(i)] = v;
+                }
+            });
+            risultato[cognome] = obj;
+        } else if (orari && typeof orari === 'object') {
+            risultato[cognome] = orari;
+        }
+    }
+    return risultato;
+}
+
+// Avvolgi caricaDatiFirebase per normalizzare dopo il caricamento
+const _caricaDatiFirebaseOrig = window.caricaDatiFirebase;
+window.caricaDatiFirebase = async function () {
+    const ok = await _caricaDatiFirebaseOrig();
+    if (ok && window.ORARI_PP) {
+        window.ORARI_PP = normalizzaPP(window.ORARI_PP);
+        console.log(`🧹 ORARI_PP normalizzato: ${Object.keys(window.ORARI_PP).length}`);
+    }
+    return ok;
+};
+
+// ─────────────────────────────────────────────────────────────
+// 9. RE-RENDER pannello permessi dopo Firebase (fix timing)
+// ─────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof window.popolaListaPermessi === 'function') {
+            window.popolaListaPermessi();
+            console.log('🔄 Pannello permessi ri-renderizzato');
+        }
+    }, 1000);
+});
