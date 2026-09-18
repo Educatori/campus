@@ -116,28 +116,28 @@
                 "16:40": ["BUS 1A, 1B, 3B, 4A, 4B", "5A, 5B furgone da Gare x23"]
             },
             "martedì": {
-                "14:30 simulimpresa NO": ["4B furgone da Gare x6"],
                 "14:30": ["3B furgone da Gare x10"],
-                "15:50": ["BUS 3A da StV"],
+                "14:30 simulimpresa NO": ["4B furgone da Gare x6"],
+                "15:50": ["BUS 3A"],
                 "16:40": ["BUS 1A, 1B, 5A, 5B", "4A furgone da Gare x5"],
                 "17:00 simulimpresa SI": ["4B furgone da Gare x6"]
                 
             },
             "mercoledì": {
                 "14:30 simulimpresa NO": ["4A furgone da Gare x5"],
-                "16:40": ["BUS 3B da StV", "4B furgone da Gare x6"],
+                "16:40": ["BUS 3B"],
                 "17:00 simulimpresa SI": ["4A furgone da Gare x5"],
-                "17:30": ["BUS 1B, 3A, 5A, 5B", "1A furgone da Gare x6"],
+                "17:30": ["BUS 1B, 3A, 5A, 5B", "1A, 4B furgone da Gare x11"],
             },
             "giovedì": {
                 
-                "14:30": ["5A furgone da Gare x13"],
+                "14:00": ["5A furgone da Gare x13"],
                 "15:50": ["4C furgone da Gare x9"],
-                "16:40": ["BUS 1A, 3A, 3B, 4A, 4B", "1B furgone da Gare x9"]
+                "16:40": ["BUS 1A, 1B, 3A, 3B, 4A, 4B"]
             }
         };
 
-        const ordineOrari = ["14:30", "14:30 simulimpresa NO", "15:50", "16:40", "17:00 simulimpresa SI", "17:30"];
+        const ordineOrari = ["14:00", "14:30", "14:30 simulimpresa NO", "15:50", "16:40", "17:00 simulimpresa SI", "17:30"];
 
         function init() {
             const d = new Date();
@@ -200,6 +200,8 @@
                         let varianteClasse = '';
                         if (ora === '15:50 dalla palestra') {
                             varianteClasse = 'gym-slot';
+                         } else if (ora === '14:00') {
+                            varianteClasse = 'gym-slot';   
                         } else if (ora === '14:30 simulimpresa NO') {
                             varianteClasse = 'simula-no-slot';
                         } else if (ora === '17:00 simulimpresa SI') {
