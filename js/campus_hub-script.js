@@ -1524,9 +1524,12 @@ validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
     }
 
     // 3. DISTRIBUZIONE IN 3 COLONNE
-    const totaleElementi = validi.length;
-    const itemsPerColonna = Math.ceil(totaleElementi / 3);
-    const colonneHtml = ["", "", ""];
+const totaleElementi = validi.length;
+const itemsPerColonna = Math.ceil(totaleElementi / 3);
+const colonneHtml = ["", "", ""];
+
+// Testo della nota da mettere in cima alla prima colonna
+const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A 🍹 GIO 4C+1B";
 
     function generaRigaStudente(s) {
         let bgStyle = "";
@@ -1564,9 +1567,20 @@ validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
     }
 
     validi.forEach((s, idx) => {
-        const colonnaIdx = Math.floor(idx / itemsPerColonna);
-        colonneHtml[colonnaIdx] += generaRigaStudente(s);
-    });
+    const colonnaIdx = Math.floor(idx / itemsPerColonna);
+    colonneHtml[colonnaIdx] += generaRigaStudente(s);
+});
+
+// Aggiungi la riga di nota in FONDO alla TERZA colonna
+colonneHtml[2] += `
+    <div class="bus-row nota-colonna" style="background:#f0f0f0; font-weight:bold; font-style:italic; justify-content:center;">
+        <div class="b-cell" style="width:100%; text-align:center; justify-content:center;">
+            ${notaInTesta}
+        </div>
+    </div>
+`;
+    
+    
 
     // Calcolo presenti (senza stand-by) e totale bus
     const totaleBus = validi.length;
@@ -1577,10 +1591,9 @@ validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
     }).length;
 
     
+    
     // 4. POPUP
-    const titolo = ordinamento === 'perClasse'
-        ? "BUS DOMATTINA — per classe"
-        : "BUS DOMATTINA - alfabetico";
+    const titolo = ordinamento === 'perClasse' ? "BUS DOMATTINA — per classe"   : "BUS DOMATTINA - alfabetico";
 
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
@@ -1614,6 +1627,14 @@ validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
             .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.6rem; text-transform: uppercase; border: 1px solid #000; height: 18px; }
 
             .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
+            
+            .nota-colonna {
+    font-size: 0.7rem;
+    height: auto;
+    min-height: 22px;
+    border: 1px solid #000;
+    border-bottom: 2px solid #000;
+}
 
             .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
 
@@ -1678,8 +1699,6 @@ validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
     `);
     popup.document.close();
 }
-
-
 
 //-- bus generico
 function generaPopUpStampaBusGenerico() {
