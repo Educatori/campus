@@ -10,7 +10,7 @@
 <body>
 
 <!-- ============================================================
-     LOGIN OVERLAY — copre tutto finché non si è autenticati
+     LOGIN OVERLAY
      ============================================================ -->
 <div id="loginScreen" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);
      background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);">
@@ -44,7 +44,7 @@
 </div>
 
 <!-- ============================================================
-     CONTENUTO APP (nascosto finché non loggato)
+     CONTENUTO APP (nascosto finché non autenticato + autorizzato)
      ============================================================ -->
 <div id="appContent" style="display:none;">
 
@@ -202,12 +202,21 @@
 <!-- 2. Loader Firebase (MODULE) -->
 <script type="module" src="js/data-loader.js"></script>
 
-<!-- 3. Bootstrap: LOGIN + INIT -->
+<!-- 3. Bootstrap: LOGIN + AUTORIZZAZIONE + INIT -->
 <script type="module">
-import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-    from './js/firebase-campus_hub-config.js';
+import {
+    auth,
+    db,
+    ref,
+    get,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+} from './js/firebase-campus_hub-config.js';
 
-// --- LOGIN ---
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
 window.effettuaLogin = async function () {
     const email = document.getElementById('loginEmail').value.trim();
     const pwd   = document.getElementById('loginPassword').value;
@@ -233,7 +242,8 @@ window.effettuaLogin = async function () {
             'auth/user-not-found':       'Utente non trovato',
             'auth/wrong-password':       'Password errata',
             'auth/invalid-credential':   'Credenziali errate',
-            'auth/too-many-requests':    'Troppi tentativi. Riprova più tardi.'
+            'auth/too-many-requests':    'Troppi tentativi. Riprova più tardi.',
+            'auth/network-request-failed':'Errore di rete'
         };
         errEl.textContent = messaggi[e.code] || 'Errore di accesso';
         btn.disabled = false;
@@ -241,13 +251,17 @@ window.effettuaLogin = async function () {
     }
 };
 
-// --- LOGOUT ---
+// ═══════════════════════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════════════════════
 window.effettuaLogout = async function () {
     if (!confirm('Vuoi uscire?')) return;
     try { await signOut(auth); } catch (e) { console.error(e); }
 };
 
-// --- ENTER key per il login ---
+// ═══════════════════════════════════════════════════════════
+// INVIO CON ENTER
+// ═══════════════════════════════════════════════════════════
 document.getElementById('loginPassword').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') window.effettuaLogin();
 });
@@ -255,32 +269,84 @@ document.getElementById('loginEmail').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('loginPassword').focus();
 });
 
-// --- GESTIONE STATO AUTH ---
+// ═══════════════════════════════════════════════════════════
+// CONTROLLO AUTORIZZAZIONE
+// Legge authorizedUsers/{uid} da Firebase.
+// Ritorna true se l'utente è autorizzato, false altrimenti.
+// ═══════════════════════════════════════════════════════════
+async function isUtenteAutorizzato(uid) {
+    try {
+        const snap = await get(ref(db, `authorizedUsers/${uid}`));
+        return snap.exists() && snap.val() === true;
+    } catch (e) {
+        console.error('Errore verifica autorizzazione:', e);
+        return false;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// GESTIONE STATO AUTH — UNICO PUNTO DI AVVIO
+// ═══════════════════════════════════════════════════════════
 let appInizializzata = false;
 
 onAuthStateChanged(auth, async (user) => {
     const loginScreen = document.getElementById('loginScreen');
     const appContent  = document.getElementById('appContent');
+    const errEl       = document.getElementById('loginError');
+    const btn         = document.getElementById('loginBtn');
 
+    // ─────────────────────────────────────────────────
+    // CASO 1: NON AUTENTICATO
+    // ─────────────────────────────────────────────────
     if (!user) {
-        // Non autenticato → mostra login, nascondi app
         loginScreen.style.display = 'flex';
         appContent.style.display  = 'none';
-        const btn = document.getElementById('loginBtn');
         if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+        appInizializzata = false;
         return;
     }
 
-    // Autenticato
-    console.log('✅ Utente autenticato:', user.email);
+    // ─────────────────────────────────────────────────
+    // CASO 2: AUTENTICATO — verifica autorizzazione
+    // ─────────────────────────────────────────────────
+    console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
+
+    loginScreen.style.display = 'flex';   // resta visibile durante il check
+    appContent.style.display  = 'none';
+    if (errEl) errEl.textContent = 'Verifica autorizzazione…';
+    if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
+
+    const autorizzato = await isUtenteAutorizzato(user.uid);
+
+    if (!autorizzato) {
+        console.warn('⛔ Utente non autorizzato:', user.uid);
+        if (errEl) errEl.textContent = 'Utente non autorizzato. Contatta l\'amministratore.';
+        // Forza logout dopo 2 secondi per far leggere il messaggio
+        setTimeout(async () => {
+            try { await signOut(auth); } catch (e) { console.error(e); }
+            if (errEl) errEl.textContent = '';
+            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+        }, 2000);
+        return;
+    }
+
+    // ─────────────────────────────────────────────────
+    // CASO 3: AUTENTICATO E AUTORIZZATO → avvia l'app
+    // ─────────────────────────────────────────────────
+    console.log('✅ Utente autorizzato:', user.uid);
+
     loginScreen.style.display = 'none';
     appContent.style.display  = 'block';
+    if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+    if (errEl) errEl.textContent = '';
 
     // Evita doppia inizializzazione (es. refresh token)
     if (appInizializzata) return;
     appInizializzata = true;
 
-    // --- CARICAMENTO DATI ---
+    // ─────────────────────────────────────────────────
+    // CARICAMENTO DATI
+    // ─────────────────────────────────────────────────
     const badge = document.getElementById('connection-status');
     let datiCaricati = false;
 
@@ -295,6 +361,9 @@ onAuthStateChanged(auth, async (user) => {
         console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
     }
 
+    // ─────────────────────────────────────────────────
+    // FALLBACK DEMO
+    // ─────────────────────────────────────────────────
     if (!datiCaricati) {
         console.warn('🔁 Fallback: dati DEMO locali');
         if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
@@ -320,15 +389,20 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 
-    // --- INIZIALIZZAZIONE APP ---
-    if (typeof init === 'function') init();
-    if (typeof caricaDatiLocale === 'function') caricaDatiLocale();
-    if (typeof popolaListaPermessi === 'function') popolaListaPermessi();
-    if (typeof renderListaAssenze === 'function') renderListaAssenze();
-    if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
-    if (typeof popolaSelectClassi === 'function') popolaSelectClassi();
-
-    console.log('✅ Inizializzazione completata');
+    // ─────────────────────────────────────────────────
+    // INIZIALIZZAZIONE APP
+    // ─────────────────────────────────────────────────
+    try {
+        if (typeof init === 'function') init();
+        if (typeof caricaDatiLocale === 'function') caricaDatiLocale();
+        if (typeof popolaListaPermessi === 'function') popolaListaPermessi();
+        if (typeof renderListaAssenze === 'function') renderListaAssenze();
+        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+        if (typeof popolaSelectClassi === 'function') popolaSelectClassi();
+        console.log('✅ Inizializzazione completata');
+    } catch (e) {
+        console.error('❌ Errore inizializzazione:', e);
+    }
 });
 </script>
 
