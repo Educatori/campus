@@ -9,6 +9,45 @@
 </head>
 <body>
 
+<!-- ============================================================
+     LOGIN OVERLAY — copre tutto finché non si è autenticati
+     ============================================================ -->
+<div id="loginScreen" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);
+     background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);">
+    <div style="background:var(--surface);padding:36px 32px;border-radius:var(--radius-xl);width:340px;
+                box-shadow:var(--shadow-lg);border:1px solid var(--border-2);">
+        <h2 style="margin:0 0 6px 0;text-align:center;font-size:1.3rem;">🔒 Accesso Riservato</h2>
+        <p style="text-align:center;font-size:0.78rem;color:var(--text-2);margin:0 0 22px 0;">
+            Cruscotto Operativo — Campus Hub
+        </p>
+
+        <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"
+               style="width:100%;padding:12px;margin-bottom:10px;border-radius:var(--radius);
+                      border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);
+                      font-family:var(--font);font-size:0.9rem;outline:none;">
+
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"
+               style="width:100%;padding:12px;margin-bottom:16px;border-radius:var(--radius);
+                      border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);
+                      font-family:var(--font);font-size:0.9rem;outline:none;">
+
+        <button id="loginBtn" onclick="effettuaLogin()"
+                style="width:100%;padding:12px;background:var(--accent);color:white;border:none;
+                       border-radius:var(--radius);font-weight:700;cursor:pointer;
+                       font-family:var(--font);font-size:0.9rem;letter-spacing:0.05em;">
+            ACCEDI
+        </button>
+
+        <div id="loginError" style="color:var(--absent);font-size:0.78rem;margin-top:12px;
+                                     text-align:center;min-height:18px;"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     CONTENUTO APP (nascosto finché non loggato)
+     ============================================================ -->
+<div id="appContent" style="display:none;">
+
 <div class="container">
     <header>
         <div>
@@ -18,6 +57,12 @@
         <div id="digitalClock" class="header-clock">15:55:38</div>
         <div class="header-actions">
             <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
+            <button onclick="effettuaLogout()" title="Esci"
+                    style="background:rgba(220,38,38,0.1);color:var(--absent);border:1px solid rgba(220,38,38,0.3);
+                           padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;
+                           font-family:var(--font);font-size:0.72rem;font-weight:700;">
+                🚪 ESCI
+            </button>
         </div>
     </header>
 
@@ -65,15 +110,15 @@
 
     <!-- Turni -->
     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">TURNO 18:30</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">TURNO 19:15</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">DOMATTINA</div>
-        
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">1° TURNO (18:30)</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">2° TURNO (19:15)</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO riepilogo</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER riepilogo</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">BUS DOMATTINA</div>
+
         <div class="dropdown-moduli" style="position: relative; display: inline-block;">
             <div class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface); color: var(--btn-t4); cursor: pointer; font-weight: bold;">
-                📋 MODULI▾
+                📋 MODULISTICA ▾
             </div>
             <div class="dropdown-content">
                 <a href="#" onclick="generaPopUpStampaBusGenerico(); return false;">BUS CONVITTORI ALFABETICO</a>
@@ -143,6 +188,8 @@
     <div id="listaPermessiContent"></div>
 </div>
 
+</div><!-- /#appContent -->
+
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
@@ -152,42 +199,111 @@
 <script src="js/permessi_26_DEMO.js"></script>
 <script src="js/campus_hub-script.js"></script>
 
-<!-- 2. Loader Firebase (MODULE: usa import) - espone window.caricaDatiFirebase -->
+<!-- 2. Loader Firebase (MODULE) -->
 <script type="module" src="js/data-loader.js"></script>
 
-<!-- 3. Bootstrap: UN SOLO listener, aspetta Firebase, poi init -->
-<script>
-window.addEventListener('load', async function () {
-    const badge = document.getElementById('connection-status');
+<!-- 3. Bootstrap: LOGIN + INIT -->
+<script type="module">
+import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from './js/firebase-campus_hub-config.js';
 
+// --- LOGIN ---
+window.effettuaLogin = async function () {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd   = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    const btn   = document.getElementById('loginBtn');
+
+    errEl.textContent = '';
+    if (!email || !pwd) {
+        errEl.textContent = 'Inserisci email e password';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Verifica…';
+
+    try {
+        await signInWithEmailAndPassword(auth, email, pwd);
+        // onAuthStateChanged gestirà il resto
+    } catch (e) {
+        console.error('Login error:', e.code);
+        const messaggi = {
+            'auth/invalid-email':        'Email non valida',
+            'auth/user-not-found':       'Utente non trovato',
+            'auth/wrong-password':       'Password errata',
+            'auth/invalid-credential':   'Credenziali errate',
+            'auth/too-many-requests':    'Troppi tentativi. Riprova più tardi.'
+        };
+        errEl.textContent = messaggi[e.code] || 'Errore di accesso';
+        btn.disabled = false;
+        btn.textContent = 'ACCEDI';
+    }
+};
+
+// --- LOGOUT ---
+window.effettuaLogout = async function () {
+    if (!confirm('Vuoi uscire?')) return;
+    try { await signOut(auth); } catch (e) { console.error(e); }
+};
+
+// --- ENTER key per il login ---
+document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') window.effettuaLogin();
+});
+document.getElementById('loginEmail').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+});
+
+// --- GESTIONE STATO AUTH ---
+let appInizializzata = false;
+
+onAuthStateChanged(auth, async (user) => {
+    const loginScreen = document.getElementById('loginScreen');
+    const appContent  = document.getElementById('appContent');
+
+    if (!user) {
+        // Non autenticato → mostra login, nascondi app
+        loginScreen.style.display = 'flex';
+        appContent.style.display  = 'none';
+        const btn = document.getElementById('loginBtn');
+        if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+        return;
+    }
+
+    // Autenticato
+    console.log('✅ Utente autenticato:', user.email);
+    loginScreen.style.display = 'none';
+    appContent.style.display  = 'block';
+
+    // Evita doppia inizializzazione (es. refresh token)
+    if (appInizializzata) return;
+    appInizializzata = true;
+
+    // --- CARICAMENTO DATI ---
+    const badge = document.getElementById('connection-status');
     let datiCaricati = false;
 
-    // Tentativo 1: Firebase (se disponibile)
     if (typeof window.caricaDatiFirebase === 'function') {
         try {
             datiCaricati = await window.caricaDatiFirebase();
         } catch (err) {
-            console.error('❌ Errore durante il caricamento Firebase:', err);
+            console.error('❌ Errore caricamento Firebase:', err);
             datiCaricati = false;
         }
     } else {
-        console.warn('⚠️ caricaDatiFirebase non disponibile — uso dati DEMO locali');
+        console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
     }
 
-    // Fallback: dati DEMO locali già caricati nel DOM (studenti_26_DEMO.js)
     if (!datiCaricati) {
-        console.warn('🔁 Fallback: utilizzo dati DEMO locali');
-
-        // Se il loader Firebase è fallito ma i DEMO sono caricati, ricostruisci i convittori
+        console.warn('🔁 Fallback: dati DEMO locali');
         if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
             (!Array.isArray(window.studenticonvittori) || window.studenticonvittori.length === 0)) {
             window.studenticonvittori = window.tuttiStudenti.filter(s => {
                 const n = parseInt(s.room, 10);
                 return !isNaN(n) && n >= 101 && n <= 221;
             });
-            console.log(`🔁 Fallback: ${window.studenticonvittori.length} convittori ricostruiti dai DEMO`);
         }
-
         if (badge) {
             badge.textContent = '🟠 Demo';
             badge.classList.remove('connected');
@@ -204,7 +320,7 @@ window.addEventListener('load', async function () {
         }
     }
 
-    // --- INIZIALIZZAZIONE APPLICAZIONE (dati pronti) ---
+    // --- INIZIALIZZAZIONE APP ---
     if (typeof init === 'function') init();
     if (typeof caricaDatiLocale === 'function') caricaDatiLocale();
     if (typeof popolaListaPermessi === 'function') popolaListaPermessi();
