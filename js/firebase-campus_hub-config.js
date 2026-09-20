@@ -1,10 +1,15 @@
-/* FIREBASE-CAMPUS_HUB-CONFIG.JS */
-
-// firebase-campus_hub-config.js
-// Configurazione Firebase per Campus Hub
+/* firebase-campus_hub-config.js */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    setPersistence,
+    browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCujVjW7Aorn0illq_2w50u8oAgWGJEBRY",
@@ -17,7 +22,11 @@ const firebaseConfig = {
   measurementId: "G-BVS9JG6HVC"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const auth = getAuth(app);
 
-export { db, ref, get, child };
+// Sessione limitata al tab corrente (chiudi il browser → logout)
+setPersistence(auth, browserSessionPersistence).catch(console.error);
+
+export { db, ref, get, child, auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
