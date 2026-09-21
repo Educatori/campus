@@ -1052,7 +1052,7 @@ function generaPopUpStampaBusPomeriggio() {
     // 5. GENERAZIONE POP-UP
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
-        <html><head><title>Appello Bus Pomeriggio Settimanale</title><style>
+        <html><head><title>Bus Pomeriggio Appello Settimanale</title><style>
             @page { size: A4 landscape; margin: 0.4cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             h2 { text-align: center; text-transform: uppercase; margin: 5px 0 2px 0; font-size: 1.2rem; }
@@ -1087,7 +1087,7 @@ function generaPopUpStampaBusPomeriggio() {
             @media print { .no-print { display: none; } }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <h2>BUS CONVITTORI CLASSE</h2>
+            <h2>CONVITTORI PER CLASSE</h2>
             <div class="date-subtitle">${dataTestuale} — Elementi totali: <b>${totaleElementi}</b></div>
             
             <div class="no-print">
@@ -1607,12 +1607,13 @@ function generaPopUpStampaBus(ordinamento) {
         });
     } else {
         // alfabetico per cognome (con 5A/5B in fondo, come da logica originale)
-       const classiInFondo = ["5A", "5B", "4C"];
+       const classiInFondo = ["4C", "5A", "5B"];
 
 const resto = validi.filter((s) => !classiInFondo.includes(s.classe));
+        
+const classe4C = validi.filter((s) => s.classe === "4C");
 const classe5A = validi.filter((s) => s.classe === "5A");
 const classe5B = validi.filter((s) => s.classe === "5B");
-const classe4C = validi.filter((s) => s.classe === "4C");
 
 resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
 
@@ -1621,12 +1622,13 @@ const ordinaPerGruppoECognome = (a, b) => {
     const gB = b.gruppo || "";
     return (gA + a.cognome).localeCompare(gB + b.cognome);
 };
+        
+classe4C.sort(ordinaPerGruppoECognome);
 classe5A.sort(ordinaPerGruppoECognome);
 classe5B.sort(ordinaPerGruppoECognome);
-classe4C.sort(ordinaPerGruppoECognome);
 
 validi.length = 0;
-validi.push(...resto, ...classe5A, ...classe5B, ...classe4C);
+validi.push(...resto, ...classe4C, ...classe5A, ...classe5B);
     }
 
     // 3. DISTRIBUZIONE IN 3 COLONNE
@@ -1777,9 +1779,7 @@ colonneHtml[2] += `
     <div class="toolbar-stampa no-print">
 
                 <button class="btn-stampa" onclick="window.print()">•STAMPA</button>
-                <button class="btn-per-classe" onclick="window.opener.generaPopUpStampaBus('${ordinamento === 'perClasse' ? 'alfabetico' : 'perClasse'}'); window.close();">
-                    ⇄ CAMBIA ORDINE
-                </button>
+                
             </div>
 
             <div class="grid-container">
@@ -1934,7 +1934,7 @@ if (s.classe === "5A") {
             
             
             
-            <h2>BUS CONVITTORI ALFABETICO</h2>
+            <h2>BUS CONVITTORI</h2>
             
             <div class="date-subtitle no-print"> — Studenti tot: <b>${listaFinale.length}</b></div>
             
