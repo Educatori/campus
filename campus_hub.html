@@ -18,7 +18,7 @@
                 box-shadow:var(--shadow-lg);border:1px solid var(--border-2);">
         <h2 style="margin:0 0 6px 0;text-align:center;font-size:1.3rem;">🔒 Accesso Riservato</h2>
         <p style="text-align:center;font-size:0.78rem;color:var(--text-2);margin:0 0 22px 0;">
-            Cruscotto Operativo — Campus Hub
+            Campus Hub
         </p>
 
         <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"
@@ -110,10 +110,15 @@
 
     <!-- Turni -->
     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">TURNO 18:30</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">TURNO 19:15</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div> 
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">18:30</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">19:15</div>
+        
+        <div class="day-box" style="border-bottom: 3px solid var(--absent);" onclick="filtraAssenti()">ASSENZE</div>
+    <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">NO CENE</div>
+        
         <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
+        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div> 
+        
        
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">BUS DOMATTINA</div>
 
