@@ -1,7 +1,7 @@
 /* firebase-campus_hub-config.js */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, get, child,  set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import {
     getAuth,
     signInWithEmailAndPassword,
@@ -29,4 +29,4 @@ const auth = getAuth(app);
 // Sessione limitata al tab corrente (chiudi il browser → logout)
 setPersistence(auth, browserSessionPersistence).catch(console.error);
 
-export { db, ref, get, child, auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+export { db, ref, get, child, set,  onValue, auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
