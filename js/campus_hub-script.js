@@ -291,6 +291,112 @@ function setTurno(turno) {
     });
 }
 
+/**
+ * Filtra e mostra solo gli studenti ASSENTI
+ */
+function filtraAssenti() {
+    // Reset di eventuali filtri attivi
+    const searchInput = document.getElementById("search");
+    if (searchInput) searchInput.value = "";
+    const roomInput = document.getElementById("roomInput");
+    if (roomInput) roomInput.value = "";
+    
+    // Rimuovi evidenziazione dai tasti
+    rimuoviEvidenziazioneTasti();
+    
+    // Evidenzia il tasto ASSENTI
+    event.currentTarget.classList.add("tasto-attivo");
+    
+    let count = 0;
+    document.querySelectorAll(".student-row").forEach((r) => {
+        if (r.classList.contains("assente")) {
+            r.style.display = "block";
+            count++;
+        } else {
+            r.style.display = "none";
+        }
+    });
+    
+    // Feedback visivo se non ci sono assenti
+    mostraFeedbackFiltro("ASSENTI", count);
+}
+
+/**
+ * Filtra e mostra solo gli studenti con NON CENA attivo
+ */
+function filtraNoCena() {
+    // Reset di eventuali filtri attivi
+    const searchInput = document.getElementById("search");
+    if (searchInput) searchInput.value = "";
+    const roomInput = document.getElementById("roomInput");
+    if (roomInput) roomInput.value = "";
+    
+    // Rimuovi evidenziazione dai tasti
+    rimuoviEvidenziazioneTasti();
+    
+    // Evidenzia il tasto NO CENE
+    event.currentTarget.classList.add("tasto-attivo");
+    
+    let count = 0;
+    document.querySelectorAll(".student-row").forEach((r) => {
+        const isNoCena = r.dataset.dinnerno === "1" || r.classList.contains("dinner-no");
+        if (isNoCena) {
+            r.style.display = "block";
+            count++;
+        } else {
+            r.style.display = "none";
+        }
+    });
+    
+    // Feedback visivo se non ci sono no cena
+    mostraFeedbackFiltro("NON CENA", count);
+}
+
+/**
+ * Mostra un piccolo feedback con il numero di risultati
+ */
+function mostraFeedbackFiltro(tipo, count) {
+    // Rimuovi feedback precedente
+    const old = document.getElementById("filtroFeedback");
+    if (old) old.remove();
+    
+    const feedback = document.createElement("div");
+    feedback.id = "filtroFeedback";
+    feedback.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        color: var(--text);
+        padding: 10px 20px;
+        border-radius: 30px;
+        border: 1px solid var(--border-2);
+        font-family: var(--font);
+        font-size: 0.85rem;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    feedback.innerHTML = `🔍 <b>${tipo}</b>: ${count} student${count === 1 ? 'e' : 'i'}`;
+    document.body.appendChild(feedback);
+    
+    // Rimuovi dopo 3 secondi
+    setTimeout(() => {
+        if (feedback.parentNode) feedback.remove();
+    }, 3000);
+}
+
+/**
+ * Rimuove l'evidenziazione da tutti i tasti filtro
+ */
+function rimuoviEvidenziazioneTasti() {
+    document.querySelectorAll(".tasto-attivo").forEach(el => {
+        el.classList.remove("tasto-attivo");
+    });
+}
+
+
+
 function toggleSwitchTurno(btn) {
     const r = btn.closest(".student-row");
     const cognome = r.dataset.cognome;
@@ -2180,9 +2286,18 @@ function cancellaNote() {
 function resetDati(tipo) {
     if (tipo === 'soloManuali') {
         if (confirm("Resettare solo le modifiche manuali di oggi?")) {
+            
+            // ✅ AGGIUNGI QUESTA RIGA: rimuove evidenziazione tasti filtro
+            rimuoviEvidenziazioneTasti();
+            
+            // Reset ricerca e room input
+            const searchInput = document.getElementById("search");
+            if (searchInput) searchInput.value = "";
+            const roomInput = document.getElementById("roomInput");
+            if (roomInput) roomInput.value = "";
+            
             // Resetta solo i campi manuali, non le assenze programmate
             document.querySelectorAll(".student-row").forEach((r) => {
-                // Rimuovi override manuali ma mantieni dati PP
                 const cognome = r.dataset.cognome;
                 const d = JSON.parse(localStorage.getItem("datiConvitto") || "{}");
                 if (d[cognome]) {
@@ -2220,7 +2335,7 @@ function resetDati(tipo) {
             location.reload();
         }
     }
-} 
+}
 
 // --- CARICAMENTO INIZIALE ---
 // init() viene chiamato da campus_hub.html DOPO il caricamento dei dati da Firebase
