@@ -81,7 +81,7 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <button class="btn-toolbar" style="background:var(--accent);" onclick="togglePanel()">P ➖ PP</button>
+        <button class="btn-toolbar" style="background:var(--accent);" onclick="togglePanel()">P • PP</button>
         <input type="text" id="search" placeholder="Cerca studente..." onkeyup="applicaFiltri()">
         <div style="display:flex;align-items:center;gap:6px;">
             <span class="room-label">ROOM</span>
@@ -127,11 +127,10 @@
                 📋 MODULI ▾
             </div>
             <div class="dropdown-content">
-                <a href="#" onclick="generaPopUpStampaBusGenerico(); return false;">BUS CONVITTORI ALFABETICO</a>
-                <a href="#" onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS CONVITTORI CLASSE</a>
+                <a href="#" onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
                 <a href="#" onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
                 <a href="#" onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
-                <a href="#" onclick="generaPopUpStampaPresDin(); return false;">PRESENZE DINNER</a>
+                <a href="#" onclick="generaPopUpStampaPresDin(); return false;">APPELLO DINNER</a>
                 <a href="#" onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>
             </div>
         </div>
