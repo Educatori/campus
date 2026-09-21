@@ -43,7 +43,7 @@
         .time-slot:last-child { margin-bottom: 0; }
         
         /* Variante "Dalla palestra" */
-        .time-slot.gym-slot {
+        .time-slot.special-slot {
             border-left: 4px solid var(--lab);
             background: var(--lab-dim);
         }
@@ -70,7 +70,7 @@
         }
         
         /* Colori dinamici dei titoli in base allo stato */
-        .gym-slot .slot-title { color: var(--lab); }
+        .special-slot .slot-title { color: var(--lab); }
         .simula-no-slot .slot-title { color: var(--absent); }
         .simula-si-slot .slot-title { color: var(--ok); }
 
@@ -112,30 +112,29 @@
         // --- CONFIGURAZIONE DEI DATI ---
         const programmaDati = {
             "lunedì": {
-                "14:30": ["3A 🚙 🚙 da Gare x9"],
-                "15:50": ["5A, 5B 🚙 🚙 da Gare x23"],
+                "14:30": ["3A 🚙🚙 da Gare x9"],
+                "15:50": ["5A, 5B 🚙🚙 da Gare x23"],
                 "16:40": ["🚌 1A, 1B, 3B, 4A, 4B"]
             },
             "martedì": {
-                "14:30": ["3B 🚙 🚙 da Gare x10"],
-                "14:30 simulimpresa NO": ["4B 🚙 🚙 da Gare x6"],
-                "15:50": ["🚌 3A da StVi"],
-                "16:40": ["🚌 1A, 1B, 5A, 5B", "🚙 🚙 4A 🚙 🚙 da Gare x5"],
-                "17:00 simulimpresa SI": ["4B 🚙 🚙 da Gare? x6"]
+                "14:30": ["3B 🚙🚙 da Gare x10"],
+                "14:30 simulimpresa NO": ["4B 🚙🚙 da Gare x6"],
+                "15:50": ["🚌 3A"],
+                "16:40": ["🚌 1A, 1B, 5A, 5B", "4A 🚙🚙 da Gare x5"],
+                "17:00 simulimpresa SI": ["4B 🚙🚙 da Gare x6"]
                 
             },
             "mercoledì": {
-                "14:30 simulimpresa NO": ["4A 🚙 🚙 da Gare x5"],
-                "16:40": ["🚌 3B da StVi"],
-                "17:00": ["1A 🚙 🚙 da Gare x5"],
-                "17:00 simulimpresa SI": ["4A 🚙 🚙 da Gare? x5"],
-                "17:30": ["🚌 1B, 3A, 5A, 5B", "4B 🚙 🚙 da Gare x6"],
+                "14:30 simulimpresa NO": ["4A 🚙🚙 da Gare x5"],
+                "16:40": ["🚌 3B", "4B 🚙🚙 da Gare x6"],
+                "17:00 simulimpresa SI": ["4A 🚙🚙 da Gare x5"], 
+                "17:00": ["1A 🚙🚙 da Gare x5"],
+                "17:30": ["🚌 1B, 3A, 5A, 5B"]
             },
             "giovedì": {
-                
-                "14:00": ["5A 🚙 🚙 da Gare x13"],
-                "15:10": ["4C 🚙 🚙 da Gare x9"],
-                "16:10": ["1B 🚙 🚙 da Gare x10"],
+                "14:00": ["5A 🚙🚙 da Gare x13"],
+                "15:10": ["4C 🚙🚙 da Gare x9"],
+                "16:10": ["1B 🚙🚙 da Gare x9"],
                 "16:40": ["🚌 1A, 3A, 3B, 4A, 4B"]
             }
         };
@@ -201,10 +200,10 @@
                         
                         // Gestione dinamica delle classi di stile per gli slot speciali
                         let varianteClasse = '';
-                        if (ora === '15:50 dalla palestra') {
-                            varianteClasse = 'gym-slot';
-                         } else if (ora === '14:00') {
-                            varianteClasse = 'gym-slot';   
+                        if (ora === '00:00') {
+                            varianteClasse = 'special-slot';
+                        } else if (ora === '00:10') {
+                            varianteClasse = 'special-slot';    
                         } else if (ora === '14:30 simulimpresa NO') {
                             varianteClasse = 'simula-no-slot';
                         } else if (ora === '17:00 simulimpresa SI') {
