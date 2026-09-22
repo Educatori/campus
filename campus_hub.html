@@ -209,14 +209,7 @@
 
 <!-- 3. Bootstrap: LOGIN + AUTORIZZAZIONE + INIT -->
 <script type="module">
-import {
-    auth,
-    db,
-    ref,
-    get,
-    signInWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged
+import {auth, db, ref, get, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from './js/firebase-campus_hub-config.js';
 
 // ═══════════════════════════════════════════════════════════
@@ -407,6 +400,19 @@ onAuthStateChanged(auth, async (user) => {
         console.log('✅ Inizializzazione completata');
     } catch (e) {
         console.error('❌ Errore inizializzazione:', e);
+    }
+    
+  // ─────────────────────────────────────────────────
+    // ATTIVA NOTE CONDIVISE (realtime, solo dopo auth+autorizzazione)
+    // ─────────────────────────────────────────────────
+    try {
+        if (typeof window.attivaNoteCondivise === 'function') {
+            window.attivaNoteCondivise();
+        } else {
+            console.warn('⚠️ attivaNoteCondivise non disponibile');
+        }
+    } catch (e) {
+        console.error('❌ Errore attivazione note condivise:', e);
     }
 });
 </script>
