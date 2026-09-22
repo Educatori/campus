@@ -5,7 +5,7 @@
 // Salva automaticamente le modifiche giornaliere su Firebase.
 // ─────────────────────────────────────────────────────────────
 
-import { db, ref, get } from './firebase-campus_hub-config.js';
+import { db, ref, get, onValue, set } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
 // 0. BACKUP dei dati DEMO
@@ -228,6 +228,17 @@ async function salvaDatiFirebase() {
         return false;
     }
 }
+// ─────────────────────────────────────────────────────────────
+// 5b. SALVATAGGIO NOTE (realtime)
+// ─────────────────────────────────────────────────────────────
+async function salvaNoteFirebase(testo) {
+    try {
+        await set(ref(db, 'convitto/note'), testo ?? "");
+    } catch (e) {
+        console.error('❌ Errore salvataggio note:', e);
+    }
+}
+window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
 // 6. WRAPPER salvataggio locale → Firebase
@@ -287,3 +298,73 @@ window.dataKeyFirebase    = dataKeyFirebase;
 window.normalizzaPP       = normalizzaPP;
 
 console.log('🔧 data-loader.js pronto');
+
+// ─────────────────────────────────────────────────────────────
+// 9. NOTE CONDIVISE (realtime)
+// ─────────────────────────────────────────────────────────────
+import { onValue, set } from './firebase-campus_hub-config.js';
+// ⚠️ in cima al file importa: onValue, set
+
+let noteListenerAttivo = false;
+let noteRemoteInCorso = false; // evita loop: remoto → input → salva
+
+/**
+ * Attiva il listener realtime sulle note.
+ * Va chiamata DOPO che l'utente è autorizzato e l'app è visibile.
+ */
+function attivaNoteCondivise() {
+    if (noteListenerAttivo) return;
+    noteListenerAttivo = true;
+
+    const noteRef = ref(db, 'convitto/note');
+
+    // 1) Ascolta i cambiamenti remoti
+    onValue(noteRef, (snap) => {
+        const testo = snap.exists() ? (snap.val() || "") : "";
+        const ta = document.getElementById('dailyNotes');
+        if (!ta) return;
+
+        // Non sovrascrivere mentre l'utente sta scrivendo (se ha il focus)
+        // ma aggiorna comunque se il testo è diverso e non sta editando
+        if (document.activeElement === ta) {
+            // Salva la posizione del cursore solo se proprio devi aggiornare
+            if (ta.value === testo) return;
+            // Se l'utente sta scrivendo, salta l'aggiornamento remoto
+            // per non disturbare (verrà riallineato al blur)
+            return;
+        }
+
+        noteRemoteInCorso = true;
+        ta.value = testo;
+        noteRemoteInCorso = false;
+    });
+
+    // 2) Salva su Firebase con debounce quando l'utente scrive
+    const ta = document.getElementById('dailyNotes');
+    if (ta) {
+        let debounceTimer = null;
+
+        ta.addEventListener('input', () => {
+            if (noteRemoteInCorso) return;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                try {
+                    await set(noteRef, ta.value);
+                    console.log('☁️ Note salvate su Firebase');
+                } catch (e) {
+                    console.error('❌ Errore salvataggio note:', e);
+                }
+            }, 600); // 600ms di debounce
+        });
+
+        // Al blur, forza l'allineamento finale
+        ta.addEventListener('blur', async () => {
+            try { await set(noteRef, ta.value); } catch (e) {}
+        });
+    }
+
+    console.log('📝 Note condivise attive (realtime)');
+}
+
+window.attivaNoteCondivise = attivaNoteCondivise;
+
