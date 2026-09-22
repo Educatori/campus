@@ -1,11 +1,11 @@
-// data-loader.js 
+// data-loader.js
 // ─────────────────────────────────────────────────────────────
 // Carica i dati sensibili (studenti, permessi, assenze) da
 // Firebase Realtime Database, con fallback ai DEMO locali.
 // Salva automaticamente le modifiche giornaliere su Firebase.
 // ─────────────────────────────────────────────────────────────
 
-import { db, ref, get, onValue, set } from './firebase-campus_hub-config.js';
+import { db, ref, get, set, onValue } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
 // 0. BACKUP dei dati DEMO
@@ -302,7 +302,7 @@ console.log('🔧 data-loader.js pronto');
 // ─────────────────────────────────────────────────────────────
 // 9. NOTE CONDIVISE (realtime)
 // ─────────────────────────────────────────────────────────────
-import { onValue, set } from './firebase-campus_hub-config.js';
+
 // ⚠️ in cima al file importa: onValue, set
 
 let noteListenerAttivo = false;
