@@ -8,7 +8,7 @@
 }
 
 header {
-    background: #fe8b0e9e;
+    background: #45d7544c; <--! #fe8b0e9e; -->
     border: 1px solid var(--border);
     color: var(--text);
     padding: 16px 28px;
