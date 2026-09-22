@@ -2273,11 +2273,14 @@ function mostraDataReset() {
 }
 
 function cancellaNote() {
-    if (confirm("Vuoi cancellare definitivamente tutte le note?")) {
+    if (confirm("Vuoi cancellare definitivamente tutte le note per TUTTI gli utenti?")) {
         const noteInput = document.getElementById("dailyNotes");
         if (noteInput) {
             noteInput.value = "";
-            localStorage.setItem("note_convitto", "");
+            // Scrivi su Firebase → tutti gli utenti connessi lo vedranno
+            if (typeof window.salvaNoteFirebase === 'function') {
+                window.salvaNoteFirebase("");
+            }
         }
     }
 }
