@@ -1,5 +1,5 @@
 /**
- * CAMPUS_HUB-SCRIPT.JS - Versione su Firebase
+ * CAMPUS_HUB-SCRIPT.JS - Versione su Firebase 
  */
 
 let cambiTurnoManuali = {};
