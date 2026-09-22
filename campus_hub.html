@@ -101,18 +101,17 @@
             <input type="date" id="simulateDate"
                    style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font);font-size:0.78rem;outline:none;width:140px;"
                    onchange="simulaData(this.value)">
-            <button class="btn-toolbar" style="background:var(--btn-t4);padding:7px 12px;font-size:0.7rem;"
-                    onclick="resetSimulazione()">↺ Oggi</button>
         </div>
         <button class="btn-reset" onclick="resetDati('soloManuali')" title="Reset Giornaliero">🗑️ Reset Day</button>
-        <button class="btn-reset-complete" onclick="resetDati('completo')" title="Reset Completo">⚠️ Reset Full</button>
+        <button class="btn-reset-complete" style="background:var(--btn-t4);" onclick="resetSimulazione()">↺ Oggi</button>
     </div>
 
     <!-- Turni -->
     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
+         <!--
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">18:30</div>
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">19:15</div>
-        
+        -->
         <div class="day-box" style="border-bottom: 3px solid var(--absent);" onclick="filtraAssenti()">ASSENZE</div>
     <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">NO CENE</div>
         
