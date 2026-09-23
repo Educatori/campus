@@ -83,7 +83,7 @@
     <div class="toolbar">
          <div class="dropdown-moduli" style="position: relative; display: inline-block;">
             <div class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface); color: var(--btn-t4); cursor: pointer; font-weight: bold;">
-                📋 MODULI ▾
+                📋 ▾ MODULI ▾
             </div>
             <div class="dropdown-content">
                 <a href="#" onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
@@ -212,7 +212,7 @@
 
 <!-- 3. Bootstrap: LOGIN + AUTORIZZAZIONE + INIT -->
 <script type="module">
-import {auth, db, ref, get, set, signInWithEmailAndPassword, signOut, onAuthStateChanged
+import {auth, db, ref, get, set, update, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from './js/firebase-campus_hub-config.js';
 
 // ═══════════════════════════════════════════════════════════
@@ -292,9 +292,21 @@ async function isUtenteAutorizzato(uid) {
 // ═══════════════════════════════════════════════════════════
 window.salvaPermessiFirebase = async function (permessi) {
     if (!db) throw new Error("Firebase DB non inizializzato");
-    // Path scelto: 'permessi_PP' — allineare con data-loader.js se diverso
-    await set(ref(db, 'permessi_pp'), permessi);
-    console.log('✅ Permessi salvati su Firebase (permessi/ORARI_PP)');
+    if (!permessi || typeof permessi !== "object") {
+        throw new Error("Permessi non validi");
+    }
+    
+    try {
+        // update() fa MERGE: aggiunge/sovrascrive solo i cognomi presenti,
+        // NON tocca quelli che non sono nell'oggetto.
+        await update(ref(db, 'permessi_pp'), permessi);
+        
+        const num = Object.keys(permessi).length;
+        console.log(`✅ Permessi aggiornati (${num} cognomi processati)`);
+    } catch (err) {
+        console.error("❌ Errore scrittura Firebase:", err);
+        throw err;
+    }
 };
 
 // ═══════════════════════════════════════════════════════════
