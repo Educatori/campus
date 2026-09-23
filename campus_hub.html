@@ -292,8 +292,8 @@ async function isUtenteAutorizzato(uid) {
 // ═══════════════════════════════════════════════════════════
 window.salvaPermessiFirebase = async function (permessi) {
     if (!db) throw new Error("Firebase DB non inizializzato");
-    // Path scelto: 'permessi/ORARI_PP' — allineare con data-loader.js se diverso
-    await set(ref(db, 'permessi/ORARI_PP'), permessi);
+    // Path scelto: 'permessi_PP' — allineare con data-loader.js se diverso
+    await set(ref(db, 'permessi_pp'), permessi);
     console.log('✅ Permessi salvati su Firebase (permessi/ORARI_PP)');
 };
 
