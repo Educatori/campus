@@ -212,7 +212,7 @@
 
 <!-- 3. Bootstrap: LOGIN + AUTORIZZAZIONE + INIT -->
 <script type="module">
-import {auth, db, ref, get, signInWithEmailAndPassword, signOut, onAuthStateChanged
+import {auth, db, ref, get, set, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from './js/firebase-campus_hub-config.js';
 
 // ═══════════════════════════════════════════════════════════
@@ -284,6 +284,18 @@ async function isUtenteAutorizzato(uid) {
         return false;
     }
 }
+
+// ═══════════════════════════════════════════════════════════
+// SALVATAGGIO PERMESSI SU FIREBASE
+// Espone una funzione globale usata da importaPermessiJSON()
+// nel file campus_hub-script.js
+// ═══════════════════════════════════════════════════════════
+window.salvaPermessiFirebase = async function (permessi) {
+    if (!db) throw new Error("Firebase DB non inizializzato");
+    // Path scelto: 'permessi/ORARI_PP' — allineare con data-loader.js se diverso
+    await set(ref(db, 'permessi/ORARI_PP'), permessi);
+    console.log('✅ Permessi salvati su Firebase (permessi/ORARI_PP)');
+};
 
 // ═══════════════════════════════════════════════════════════
 // GESTIONE STATO AUTH — UNICO PUNTO DI AVVIO
