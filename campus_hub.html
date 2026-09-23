@@ -114,8 +114,13 @@
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">18:30</div>
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">19:15</div>
         -->
-        <div class="day-box" style="border-bottom: 3px solid var(--absent);" onclick="filtraAssenti()">ASSENZE</div>
-    <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">NO CENE</div>
+      <!-- NUOVI TASTI -->
+        <button class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface);
+            color: var(--btn-t4); cursor: pointer; font-weight: bold;" onclick="resetSimulazione()">GLOBALE</button>
+    
+    <div class="day-box" style="border-bottom: 3px solid var(--absent);" onclick="filtraAssenti()">ASSENTI</div>
+    <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">NO-CENE</div>
+    <!-- FINE NUOVI TASTI -->
         
         <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
         <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div> 
