@@ -2138,12 +2138,32 @@ function popolaListaPermessi() {
     const giorniSettimana = ["", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
     const studentiPP = Object.keys(ORARI_PP || {}).sort();
 
+    // ─────────────────────────────────────────────────────────────
+    // BLOCCO IMPORT/EXPORT — sempre visibile in cima alla sezione
+    // ─────────────────────────────────────────────────────────────
+    const bloccoImportExport = `
+        <div style="display:flex; gap:8px; margin:10px 0 15px 0; padding:10px; background:#f8f9fa; border-radius:6px; border:1px solid #ddd;">
+            <button onclick="esportaPermessiJSON()" 
+                    style="flex:1; padding:8px 6px; background:#3498db; color:white; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                📤 Esporta
+            </button>
+            
+            <label style="flex:1; padding:8px 6px; background:#27ae60; color:white; font-weight:bold; border-radius:6px; cursor:pointer; font-size:0.8rem; text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;">
+                📥 Importa
+                <input type="file" accept=".json,application/json" 
+                       onchange="importaPermessiJSON(event)" 
+                       style="display:none;">
+            </label>
+        </div>
+    `;
+
+    // Se non ci sono permessi, mostra comunque il blocco import/export
     if (studentiPP.length === 0) {
-        container.innerHTML = "<p>Nessun orario PP.</p>";
+        container.innerHTML = bloccoImportExport + "<p style='font-size:0.85em; color:#666;'><i>Nessun orario PP registrato.</i></p>";
         return;
     }
 
-    container.innerHTML = studentiPP
+    const listaHtml = studentiPP
         .map((cognome) => {
             const orari = ORARI_PP[cognome];
             if (!orari) return "";
@@ -2189,6 +2209,9 @@ function popolaListaPermessi() {
             </div>`;
         })
         .join("");
+
+    // Blocco import/export + lista permessi
+    container.innerHTML = bloccoImportExport + listaHtml;
 }
 
 function popolaSelectStudenti() {
@@ -2409,6 +2432,131 @@ function resetDati(tipo) {
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// IMPORT / EXPORT PERMESSI PERMANENTI (ORARI_PP)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Esporta ORARI_PP in un file JSON scaricabile
+ */
+function esportaPermessiJSON() {
+    if (typeof ORARI_PP === "undefined" || !ORARI_PP) {
+        alert("⚠️ Nessun permesso da esportare");
+        return;
+    }
+
+    const numPermessi = Object.keys(ORARI_PP).length;
+    if (numPermessi === 0) {
+        alert("⚠️ Non ci sono permessi da esportare");
+        return;
+    }
+
+    const dataFile = new Date().toISOString().split('T')[0];
+    const blob = new Blob([JSON.stringify(ORARI_PP, null, 2)], {
+        type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `permessi_${dataFile}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log(`📤 Esportati ${numPermessi} permessi`);
+}
+
+/**
+ * Importa un file JSON e fa il merge con ORARI_PP esistente.
+ * Salva su Firebase se la funzione è disponibile.
+ */
+async function importaPermessiJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Reset input per permettere di ricaricare lo stesso file
+    event.target.value = "";
+
+    try {
+        const text = await file.text();
+        let nuoviPermessi;
+
+        try {
+            nuoviPermessi = JSON.parse(text);
+        } catch (e) {
+            alert("❌ Il file non è un JSON valido:\n" + e.message);
+            return;
+        }
+
+        // Validazione struttura
+        if (typeof nuoviPermessi !== "object" || Array.isArray(nuoviPermessi)) {
+            alert("❌ Formato non valido: atteso un oggetto { COGNOME: { giorno: {out, in} } }");
+            return;
+        }
+
+        const numNuovi = Object.keys(nuoviPermessi).length;
+        const numEsistenti = (typeof ORARI_PP !== "undefined" && ORARI_PP)
+            ? Object.keys(ORARI_PP).length
+            : 0;
+
+        const conferma = confirm(
+            `📥 Importazione permessi\n\n` +
+            `File: ${file.name}\n` +
+            `Permessi nel file: ${numNuovi}\n` +
+            `Permessi attuali: ${numEsistenti}\n\n` +
+            `I permessi con lo stesso cognome verranno SOVRASCRITTI.\n` +
+            `Procedere?`
+        );
+
+        if (!conferma) {
+            console.log("Importazione annullata dall'utente");
+            return;
+        }
+
+        // Merge: i nuovi sovrascrivono gli esistenti per cognome
+        if (typeof ORARI_PP === "undefined" || !ORARI_PP) {
+            window.ORARI_PP = {};
+        }
+
+        Object.keys(nuoviPermessi).forEach(cognome => {
+            ORARI_PP[cognome.toUpperCase()] = nuoviPermessi[cognome];
+        });
+
+        // Salvataggio su Firebase
+        if (typeof window.salvaPermessiFirebase === "function") {
+            try {
+                await window.salvaPermessiFirebase(ORARI_PP);
+                console.log("✅ Permessi salvati su Firebase");
+            } catch (err) {
+                console.error("❌ Errore salvataggio Firebase:", err);
+                alert("⚠️ Permessi aggiornati in memoria ma errore nel salvataggio Firebase:\n" + err.message);
+                return;
+            }
+        } else {
+            // Fallback: salva in localStorage
+            localStorage.setItem("ORARI_PP", JSON.stringify(ORARI_PP));
+            console.warn("⚠️ salvaPermessiFirebase non disponibile, salvato in localStorage");
+        }
+
+        // Aggiorna la lista nella tendina
+        popolaListaPermessi();
+
+        // Ricarica le righe studenti per applicare i nuovi PP (out/in)
+        ricaricaListaStudenti();
+
+        alert(`✅ Importati ${numNuovi} permessi con successo!`);
+        console.log("📥 Import completato:", nuoviPermessi);
+
+    } catch (err) {
+        console.error("❌ Errore importazione:", err);
+        alert("❌ Errore durante l'importazione:\n" + err.message);
+    }
+}
+
+
 
 // --- CARICAMENTO INIZIALE ---
 // init() viene chiamato da campus_hub.html DOPO il caricamento dei dati da Firebase
