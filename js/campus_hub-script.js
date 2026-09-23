@@ -2378,48 +2378,37 @@ function cancellaNote() {
     }
 }
 
+
 // --- FUNZIONI DI RESET (da implementare se necessarie) ---
 function resetDati(tipo) {
     if (tipo === 'soloManuali') {
         if (confirm("Resettare solo le modifiche manuali di oggi?")) {
-            
-            // ✅ AGGIUNGI QUESTA RIGA: rimuove evidenziazione tasti filtro
+
+         
             rimuoviEvidenziazioneTasti();
-            
-            // Reset ricerca e room input
+
+            // Reset ricerca, room input e filtro classe
             const searchInput = document.getElementById("search");
             if (searchInput) searchInput.value = "";
             const roomInput = document.getElementById("roomInput");
             if (roomInput) roomInput.value = "";
-            
-            // Resetta solo i campi manuali, non le assenze programmate
-            document.querySelectorAll(".student-row").forEach((r) => {
-                const cognome = r.dataset.cognome;
-                const d = JSON.parse(localStorage.getItem("datiConvitto") || "{}");
-                if (d[cognome]) {
-                    delete d[cognome];
-                }
-                localStorage.setItem("datiConvitto", JSON.stringify(d));
-                r.querySelector(".in-u").value = "";
-                r.querySelector(".in-i").value = "";
-                r.classList.remove("assente");
-                r.classList.remove("dinner-no");
-                r.dataset.dinnerno = "0";
-                const btnAss = r.querySelector(".btn-ass");
-                if (btnAss) btnAss.classList.remove("active-ass");
-                const btnDin = r.querySelector(".btn-din");
-                if (btnDin) btnDin.classList.remove("active-din");
-                // Rimuovi switch manuali
-                if (cambiTurnoManuali[cognome]) {
-                    delete cambiTurnoManuali[cognome];
-                    const btnSwitch = r.querySelector(".btn-switch");
-                    if (btnSwitch) btnSwitch.classList.remove("modificato");
-                }
-                controllaDinnerAutomatico(r);
-            });
+            const classeFilter = document.getElementById("classeFilter");
+            if (classeFilter) classeFilter.value = "";
+
+            // 1. Pulisci i dati manuali da localStorage
+            localStorage.removeItem("datiConvitto");
+
+            // 2. Resetta i cambi turno manuali
+            cambiTurnoManuali = {};
+
+            // 3. Ricostruisci le card: ricaricaListaStudenti() riapplica
+            //    automaticamente le assenze programmate + gli orari PP
+            ricaricaListaStudenti();
+
+            // 4. Timestamp e feedback
             localStorage.setItem("dataUltimoReset", new Date().toLocaleString());
             mostraDataReset();
-            alert("Reset manuale completato.");
+            alert("Reset manuale completato.\nLe assenze programmate sono state mantenute.");
         }
     } else if (tipo === 'completo') {
         if (confirm("⚠️ RESET COMPLETO: cancellare TUTTI i dati locali?")) {
