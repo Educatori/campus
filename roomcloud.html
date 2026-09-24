@@ -293,6 +293,30 @@
             font-style: italic;
             color: var(--accent-2);
         }
+        
+        /* ─── ROOM 112: legenda statica ───────────────────────── */
+.student-item.nota-room112 {
+    background: rgba(56,217,169,0.15) !important;
+    border-left: 3px solid var(--accent-2);
+    padding: 6px 10px;
+    cursor: default;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.nota-room112-legenda {
+    font-style: italic;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.nota-room112-edu {
+    font-weight: 700;
+    color: var(--accent-2);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    font-size: 0.72rem;
+}
 
         /* ─── MODALE ──────────────────────────────────────────── */
         .modal {
@@ -517,6 +541,17 @@
                 border-top: 1px solid #eee;
                 padding-top: 4px;
             }
+           .student-item.nota-room112 {
+    background: #e8f8f5 !important;
+    border-left: 3px solid #26a69a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.nota-room112-legenda,
+.nota-room112-edu {
+    color: black !important;
+} 
+            
         }
     </style>
 </head>
@@ -667,53 +702,70 @@
         };
 
         function creaStudenteElement(studente, room) {
-            const id          = getStudentId(studente, room);
-            const stato       = assenzeData[id] || {};
-            const isForesteria = studente.classe === 'Foresteria';
-            const isNota       = studente.cognome === 'NOTE';
+    const id          = getStudentId(studente, room);
+    const stato       = assenzeData[id] || {};
+    const isForesteria = studente.classe === 'Foresteria';
+    const isNota       = studente.cognome === 'NOTE';
+    const isRoom112    = String(room) === '112';   // ← NUOVO
 
-            const div = document.createElement('div');
-            div.className = 'student-item';
+    const div = document.createElement('div');
+    div.className = 'student-item';
 
-            if (isNota) {
-                div.className += ' nota-row';
-                div.innerHTML = `<div class="student-name">${studente.nome}</div>`;
-                return div;
-            }
-
-            if (isForesteria) {
-                div.className = `student-item foresteria-row ${stato.occupato ? 'foresteria-occupato' : ''}`;
-                div.innerHTML = `
-                    <span class="student-name">Foresteria ${studente.nome}</span>
-                    <input type="text" class="foresteria-input" placeholder="Nome ospite..." value="${stato.nomeOccupante || ''}">
-                `;
-                div.querySelector('input').addEventListener('change', (e) => salvaForesteria(id, e.target.value));
-                return div;
-            }
-
-            if (stato.assente)   div.classList.add('stato-assente');
-            if (stato.confermato) div.classList.add('stato-confermato');
-            if (stato.attivita)  div.classList.add('stato-attivita');
-
-            let statusHtml = '';
-            if (stato.assente)    statusHtml = '<div class="student-status status-assente">❓ STAND-BY</div>';
-            if (stato.confermato) statusHtml = '<div class="student-status status-confermato">❌ ASSENTE</div>';
-            if (stato.attivita)   statusHtml = '<div class="student-status status-attivita">⚙️ ATTIVITÀ</div>';
-
-            div.innerHTML = `
-                <div class="student-name">${studente.cognome} ${studente.nome}</div>
-                <div class="student-class">${studente.classe}</div>
-                ${statusHtml}
-            `;
-
-            div.addEventListener('click', async (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                const scelta = await showChoiceDialog(`${studente.cognome} ${studente.nome}`);
-                if (scelta !== null) await setStatoStudente(id, scelta);
-            });
-
-            return div;
+    // ── ROOM 112: legenda statica (non editabile, non cliccabile) ──
+    if (isRoom112) {
+        div.className += ' nota-room112';
+        // Se la riga è quella dell'educatore, mostra solo la seconda parte
+        if (studente.cognome === '• EDUCATORE • e • NOTTURNO •') {
+            div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
+        } else {
+            div.innerHTML = `<div class="nota-room112-legenda">Note: 🟡Stand-by 🔴Assente 🟢Attività 🔵Foresteria</div>`;
         }
+        // Nessun evento click: la riga è solo informativa
+        return div;
+    }
+
+    // ── NOTE generiche (fuori dalla 112) ──────────────────────────
+    if (isNota) {
+        div.className += ' nota-row';
+        div.innerHTML = `<div class="student-name">${studente.nome}</div>`;
+        return div;
+    }
+
+    // ── FORESTERIA ────────────────────────────────────────────────
+    if (isForesteria) {
+        div.className = `student-item foresteria-row ${stato.occupato ? 'foresteria-occupato' : ''}`;
+        div.innerHTML = `
+            <span class="student-name">Foresteria ${studente.nome}</span>
+            <input type="text" class="foresteria-input" placeholder="Nome ospite..." value="${stato.nomeOccupante || ''}">
+        `;
+        div.querySelector('input').addEventListener('change', (e) => salvaForesteria(id, e.target.value));
+        return div;
+    }
+
+    // ── STUDENTE NORMALE ──────────────────────────────────────────
+    if (stato.assente)   div.classList.add('stato-assente');
+    if (stato.confermato) div.classList.add('stato-confermato');
+    if (stato.attivita)  div.classList.add('stato-attivita');
+
+    let statusHtml = '';
+    if (stato.assente)    statusHtml = '<div class="student-status status-assente">❓ STAND-BY</div>';
+    if (stato.confermato) statusHtml = '<div class="student-status status-confermato">❌ ASSENTE</div>';
+    if (stato.attivita)   statusHtml = '<div class="student-status status-attivita">⚙️ ATTIVITÀ</div>';
+
+    div.innerHTML = `
+        <div class="student-name">${studente.cognome} ${studente.nome}</div>
+        <div class="student-class">${studente.classe}</div>
+        ${statusHtml}
+    `;
+
+    div.addEventListener('click', async (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        const scelta = await showChoiceDialog(`${studente.cognome} ${studente.nome}`);
+        if (scelta !== null) await setStatoStudente(id, scelta);
+    });
+
+    return div;
+}
 
         function generaGriglia() {
             if (!studentiData.length) return;
