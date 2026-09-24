@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trasporti in Furgone</title>
-    
+    <title>Trasportini Furgone</title>
+
     <link rel="stylesheet" href="css/campus-theme.css">
     <link rel="stylesheet" href="css/campus_hub-style.css">
 
@@ -41,13 +41,13 @@
             margin-bottom: 10px;
         }
         .time-slot:last-child { margin-bottom: 0; }
-        
+
         /* Variante "Dalla palestra" */
         .time-slot.special-slot {
             border-left: 4px solid var(--lab);
             background: var(--lab-dim);
         }
-        
+
         /* Variante "Simulimpresa NO" (Toni del rosso del tema) */
         .time-slot.simula-no-slot {
             border-left: 4px solid var(--absent);
@@ -68,7 +68,7 @@
             margin-bottom: 4px;
             display: block;
         }
-        
+
         /* Colori dinamici dei titoli in base allo stato */
         .special-slot .slot-title { color: var(--lab); }
         .simula-no-slot .slot-title { color: var(--absent); }
@@ -88,14 +88,14 @@
     <div class="container">
         <header>
             <div>
-                 <h1><a href="index.html"> Piano Trasporti Settimanali</a></h1>
+                <h1><a href="index.html">Piano Trasporti Settimanali</a></h1>
                 <div id="todayDate">-- -- ----</div>
             </div>
             <div style="text-align: right;">
                 <div id="digitalClock">--:--:--</div>
             </div>
         </header>
-        
+
         <div class="note-toolbar-container">
             <div class="note-content">
                 <span class="note-icon">📌</span>
@@ -103,19 +103,17 @@
                 <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
             </div>
         </div>
-        
+
         <div id="quadroSettimanale"></div>
     </div>
 
-    
     <script>
         // --- CONFIGURAZIONE DEI DATI ---
         const programmaDati = {
             "lunedì": {
                 "14:30": ["3A 🚙🚙 da Gare x9"],
                 "15:50": ["5A, 5B 🚙🚙 da Gare x23"],
-                "16:40": ["🚂, 🚌 1A, 1B, 3B, 4A, 4B" + StV 🚙🅿️"]
-                
+                "16:40": ["🚂, 🚌 1A, 1B, 3B, 4A, 4B + StV 🚙🅿️"]
             },
             "martedì": {
                 "14:30": ["3B 🚙🚙 da Gare x10"],
@@ -124,13 +122,11 @@
                 "16:40": ["🚂, 🚌 1A, 1B, 5A, 5B", "4A 🚙🚙 da Gare x5"],
                 "17:00 simulimpresa SI": ["4B 🚙🚙 da Gare x6"],
                 "18:00": ["StV 🚙🅿️"]
-                
             },
             "mercoledì": {
                 "14:10 simulimpresa NO": ["4A 🚙🚙 da Gare x5"],
                 "16:40": ["🚂, 🚌 3B", "1A, 4B 🚙🚙 da Gare x11"],
-                "17:00 simulimpresa SI": ["4A 🚙🚙 da Gare x5"], 
-                
+                "17:00 simulimpresa SI": ["4A 🚙🚙 da Gare x5"],
                 "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🚙🅿️"]
             },
             "giovedì": {
@@ -141,14 +137,25 @@
             }
         };
 
-        const ordineOrari = ["14:00", "14:10", "14:10 simulimpresa NO", "14:30", "15:10", "15:50",
-                             "16:10", "16:40", "17:00", "17:00 simulimpresa SI", "17:30", "18:00"];
+        const ordineOrari = [
+            "14:00", "14:10", "14:10 simulimpresa NO", "14:30",
+            "15:10", "15:50", "16:10", "16:40",
+            "17:00", "17:00 simulimpresa SI", "17:30", "18:00"
+        ];
+
+        // Orari che devono usare lo stile "special-slot" (dalla palestra)
+        // Modifica/aggiungi qui gli orari che vuoi evidenziare con il colore --lab
+        const ORARI_SPECIALI = ["14:10"];
 
         function init() {
             const d = new Date();
             const dateEl = document.getElementById('todayDate');
-            if (dateEl) dateEl.innerText = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            
+            if (dateEl) {
+                dateEl.innerText = d.toLocaleDateString('it-IT', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                });
+            }
+
             setInterval(() => {
                 const clockEl = document.getElementById('digitalClock');
                 if (clockEl) clockEl.innerText = new Date().toLocaleTimeString('it-IT');
@@ -161,8 +168,8 @@
                 if (noteSalvate) {
                     noteInput.value = noteSalvate;
                 }
-                
-                // Ascolta la digitazione e salva istantaneamente a ogni carattere inserito
+
+                // Salva istantaneamente a ogni carattere inserito
                 noteInput.addEventListener('input', () => {
                     localStorage.setItem('note_trasportini', noteInput.value);
                 });
@@ -188,8 +195,8 @@
 
             Object.keys(programmaDati).forEach(giorno => {
                 const card = document.createElement('div');
-                card.className = 'day-card student-row'; 
-                
+                card.className = 'day-card student-row';
+
                 const header = document.createElement('div');
                 header.className = 'day-header';
                 header.innerText = giorno;
@@ -200,22 +207,22 @@
                 ordineOrari.forEach(ora => {
                     if (orariDelGiorno[ora] && orariDelGiorno[ora].length > 0) {
                         const slot = document.createElement('div');
-                        
+
                         // Gestione dinamica delle classi di stile per gli slot speciali
                         let varianteClasse = '';
-                        if (ora === '00:00') {
-                            varianteClasse = 'special-slot';
-                        } else if (ora === '00:10') {
-                            varianteClasse = 'special-slot';    
-                        } else if (ora === '14:10 simulimpresa NO') {
+                        if (ora === '14:10 simulimpresa NO') {
                             varianteClasse = 'simula-no-slot';
                         } else if (ora === '17:00 simulimpresa SI') {
                             varianteClasse = 'simula-si-slot';
+                        } else if (ORARI_SPECIALI.includes(ora)) {
+                            varianteClasse = 'special-slot';
                         }
 
-                        slot.className = `time-slot ${varianteClasse}`;
+                        slot.className = `time-slot ${varianteClasse}`.trim();
 
-                        const elementiLista = orariDelGiorno[ora].map(info => `<li>${info}</li>`).join('');
+                        const elementiLista = orariDelGiorno[ora]
+                            .map(info => `<li>${info}</li>`)
+                            .join('');
 
                         slot.innerHTML = `
                             <span class="slot-title">${ora}</span>
@@ -233,7 +240,7 @@
             });
         }
 
-        window.onload = init;
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
