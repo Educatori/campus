@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trasportini Furgone</title>
+    <title>Trasporti in Furgone</title>
     
     <link rel="stylesheet" href="css/campus-theme.css">
     <link rel="stylesheet" href="css/campus_hub-style.css">
@@ -88,7 +88,7 @@
     <div class="container">
         <header>
             <div>
-                 <h1><a href="index.html"> Piano Trasportini Settimanali</a></h1>
+                 <h1><a href="index.html"> Piano Trasporti Settimanali</a></h1>
                 <div id="todayDate">-- -- ----</div>
             </div>
             <div style="text-align: right;">
@@ -114,8 +114,8 @@
             "lunedì": {
                 "14:30": ["3A 🚙🚙 da Gare x9"],
                 "15:50": ["5A, 5B 🚙🚙 da Gare x23"],
-                "16:40": ["🚂, 🚌 1A, 1B, 3B, 4A, 4B"],
-                "18:00": ["StV 🚙"]
+                "16:40": ["🚂, 🚌 1A, 1B, 3B, 4A, 4B" + StV 🚙🅿️"]
+                
             },
             "martedì": {
                 "14:30": ["3B 🚙🚙 da Gare x10"],
@@ -123,7 +123,7 @@
                 "15:50": ["🚌 3A"],
                 "16:40": ["🚂, 🚌 1A, 1B, 5A, 5B", "4A 🚙🚙 da Gare x5"],
                 "17:00 simulimpresa SI": ["4B 🚙🚙 da Gare x6"],
-                "18:00": ["StV 🚙"]
+                "18:00": ["StV 🚙🅿️"]
                 
             },
             "mercoledì": {
@@ -131,17 +131,17 @@
                 "16:40": ["🚂, 🚌 3B", "1A, 4B 🚙🚙 da Gare x11"],
                 "17:00 simulimpresa SI": ["4A 🚙🚙 da Gare x5"], 
                 
-                "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🚙"]
+                "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🚙🅿️"]
             },
             "giovedì": {
-                "14:00": ["5A 🚙🚙 da Gare x13"],
+                "14:10": ["5A 🚙🚙 da Gare x13"],
                 "15:10": ["4C 🚙🚙 da Gare x9"],
                 "16:10": ["1B 🚙🚙 da Gare x9"],
-                "16:40": ["🚂, 🚌 1A, 3A, 3B, 4A, 4B + StV 🚙"]
+                "16:40": ["🚂, 🚌 1A, 3A, 3B, 4A, 4B + StV 🚙🅿️"]
             }
         };
 
-        const ordineOrari = ["14:00", "14:10 simulimpresa NO", "14:30", "15:10", "15:50",
+        const ordineOrari = ["14:00", "14:10", "14:10 simulimpresa NO", "14:30", "15:10", "15:50",
                              "16:10", "16:40", "17:00", "17:00 simulimpresa SI", "17:30", "18:00"];
 
         function init() {
