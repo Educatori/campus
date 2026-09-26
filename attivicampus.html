@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attività Campus</title>
+    <link rel="stylesheet" href="assets/campus-theme.css">
+    <link rel="stylesheet" href="assets/campus-activities.css">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+    <div>
+        <h1>Attività del Campus</h1>
+        <p class="subtitle">Calendario settimanale</p>
+    </div>
+    <div class="header-datetime">
+        <div id="todayDate">--/--/----</div>
+        <div id="digitalClock">--:--:--</div>
+    </div>
+</header>
+
+        <div class="day-container">
+            <div class="day-card">
+                <h2>Lunedì</h2>
+                <div class="activity">
+                    <h3>Calcio</h3>
+                    <p class="time">20:00 — Campo sportivo</p>
+                    <p>Partita amichevole. Portare scarpe da ginnastica.</p>
+                    <div class="participation">
+                        <strong>Partecipanti:</strong>
+                        <span class="yes"><span id="calcio-yes">0</span> SÌ</span>
+                        <span class="no"><span id="calcio-no">0</span> NO</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-card">
+                <h2>Martedì</h2>
+                <div class="activity">
+                    <h3>Laboratorio di Coding</h3>
+                    <p class="time">17:00 — Aula 3B</p>
+                    <p>Portare il proprio laptop.</p>
+                    <div class="participation">
+                        <strong>Partecipanti:</strong>
+                        <span class="yes"><span id="coding-yes">0</span> SÌ</span>
+                        <span class="no"><span id="coding-no">0</span> NO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="qr-container">
+            <h3>Iscriviti alle attività</h3>
+            <p>Scansiona il QR code con il tuo smartphone:</p>
+            <div class="qr-code">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://tuosito.com/campus_activities/subscribe/subscribe.html" alt="QR Code">
+            </div>
+            <p><small>Riservato agli iscritti nella mailing list.</small></p>
+        </div>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>
