@@ -200,6 +200,9 @@ async function caricaDatiFirebase() {
     }
 }
 
+// Promise globale che si risolve quando il caricamento è terminato (successo o errore)
+window.firebasePronto = caricaDatiFirebase();
+
 // ─────────────────────────────────────────────────────────────
 // 5. SALVATAGGIO SU FIREBASE
 // ─────────────────────────────────────────────────────────────
@@ -256,22 +259,14 @@ window.addEventListener('load', () => {
 
 // ─────────────────────────────────────────────────────────────
 // 7. RE-RENDER FORZATO del pannello permessi dopo Firebase
-//    Questo è IL FIX per il pannello che mostra PAOLONI.
-//    Aspetta che caricaDatiFirebase sia terminato e forza il render.
+//    Aspetta la Promise window.firebasePronto (nessun polling,
+//    nessun cognome hardcoded). Funziona sia in caso di successo
+//    che di errore: il re-render avviene appena Firebase ha finito.
 // ─────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-    // Aspetta che Firebase abbia finito (polling fino a 5 secondi)
-    const maxAttesa = 5000;
-    const inizio = Date.now();
-    while (Date.now() - inizio < maxAttesa) {
-        // Condizione: ORARI_PP contiene BUZZI (cognome Firebase) invece di PAOLONI (DEMO)
-        if (window.ORARI_PP && window.ORARI_PP["BUZZI"]) {
-            break;
-        }
-        await new Promise(r => setTimeout(r, 100));
-    }
+    // Aspetta che il caricamento Firebase sia terminato
+    await window.firebasePronto;
 
-    // Ora Firebase ha finito → forza re-render di tutti i pannelli
     console.log('🔄 Forzo re-render pannelli dopo Firebase');
 
     if (typeof window.popolaListaPermessi === 'function') {
