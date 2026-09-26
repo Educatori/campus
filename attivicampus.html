@@ -20,63 +20,9 @@
             </div>
         </header>
 
-        <div class="day-container">
-            <div class="day-card">
-                <h2>Lunedì</h2>
-                <div class="activity">
-                    <h3>Calcio</h3>
-                    <p class="time">21:00 — Campo sportivo</p>
-                    <p>Partita amichevole. Portare scarpe da ginnastica.</p>
-                    <div class="participation">
-                        <strong>Partecipanti:</strong>
-                        <span class="yes"><span id="calcio-yes">0</span> SÌ</span>
-                        <span class="no"><span id="calcio-no">0</span> NO</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="day-card">
-                <h2>Martedì</h2>
-                <div class="activity">
-                    <h3>Volley</h3>
-                    <p class="time">20:00 — Palazzetto</p>
-                    <p>Partita amichevole. Portare scarpe da ginnastica.</p>
-                    <div class="participation">
-                        <strong>Partecipanti:</strong>
-                        <span class="yes"><span id="volley-yes">0</span> SÌ</span>
-                        <span class="no"><span id="volley-no">0</span> NO</span>
-                    </div>
-                </div>
-            </div>
-            
-        <div class="day-card">
-                <h2>Mercoledì</h2>
-                <div class="activity">
-                    <h3>Scacchi</h3>
-                    <p class="time">19:00 — Aula Magna</p>
-                    <p>Torneo.</p>
-                    <div class="participation">
-                        <strong>Partecipanti:</strong>
-                        <span class="yes"><span id="scacchi-yes">0</span> SÌ</span>
-                        <span class="no"><span id="scacchi-no">0</span> NO</span>
-                    </div>
-                </div>
-            </div>    
-            
-        <div class="day-card">
-                <h2>Giovedì</h2>
-                <div class="activity">
-                    <h3>Belote</h3>
-                    <p class="time">18:00 — Aula 1B</p>
-                    <p>Torneo.</p>
-                    <div class="participation">
-                        <strong>Partecipanti:</strong>
-                        <span class="yes"><span id="belote-yes">0</span> SÌ</span>
-                        <span class="no"><span id="belote-no">0</span> NO</span>
-                    </div>
-                </div>
-            </div>    
-            
+        <!-- Le card verranno generate qui via JavaScript -->
+        <div class="day-container" id="dayContainer">
+            <p style="color:var(--text-2);font-family:var(--font-mono);">Caricamento attività...</p>
         </div>
 
         <div class="qr-container">
@@ -94,26 +40,17 @@
 
     <script src="assets/script.js"></script>
 
-    <!-- Generazione automatica del QR code -->
+    <!-- Generazione QR dinamico -->
     <script>
         (function () {
-            // Costruisce l'URL assoluto verso subscribe/subscribe.html
-            // a partire dall'URL reale della pagina corrente.
             const subscribeUrl = new URL('subscribe/subscribe.html', window.location.href).href;
-
             const img = document.getElementById('qrImage');
             const fallback = document.getElementById('qrFallback');
             const link = document.getElementById('qrLink');
-
-            // Popola sempre il fallback (utile se il QR non si carica)
             link.href = subscribeUrl;
             link.textContent = subscribeUrl;
-
-            // Genera il QR tramite api.qrserver.com
             img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' +
                       encodeURIComponent(subscribeUrl);
-
-            // Se il QR non si carica (offline / servizio bloccato), mostra il link
             img.addEventListener('error', () => {
                 img.style.display = 'none';
                 fallback.style.display = 'block';
