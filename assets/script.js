@@ -41,10 +41,18 @@ async function caricaStatistiche() {
         if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
 
-        document.getElementById('calcio-yes').textContent = data.calcio?.yes ?? 0;
-        document.getElementById('calcio-no').textContent  = data.calcio?.no  ?? 0;
-        document.getElementById('coding-yes').textContent = data.coding?.yes ?? 0;
-        document.getElementById('coding-no').textContent  = data.coding?.no  ?? 0;
+        // Per ogni attività ritornata dal Web App, aggiorna i contatori
+        // Cerca gli elementi con id "<attività>-yes" e "<attività>-no"
+        Object.keys(data).forEach(function(key) {
+            // Salta updated_at e total_records
+            if (key === 'updated_at' || key === 'total_records' || key === 'warning') return;
+            if (typeof data[key] !== 'object') return;
+
+            const yesEl = document.getElementById(key + '-yes');
+            const noEl  = document.getElementById(key + '-no');
+            if (yesEl) yesEl.textContent = data[key].yes ?? 0;
+            if (noEl)  noEl.textContent  = data[key].no  ?? 0;
+        });
     } catch (err) {
         console.warn('Statistiche non disponibili:', err.message);
     }
