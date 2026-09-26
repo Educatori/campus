@@ -10,15 +10,15 @@
 <body>
     <div class="container">
         <header class="app-header">
-    <div>
-        <h1>Attività del Campus</h1>
-        <p class="subtitle">Calendario settimanale</p>
-    </div>
-    <div class="header-datetime">
-        <div id="todayDate">--/--/----</div>
-        <div id="digitalClock">--:--:--</div>
-    </div>
-</header>
+            <div>
+                <h1>Attività del Campus</h1>
+                <p class="subtitle">Calendario settimanale</p>
+            </div>
+            <div class="header-datetime">
+                <div id="todayDate">--/--/----</div>
+                <div id="digitalClock">--:--:--</div>
+            </div>
+        </header>
 
         <div class="day-container">
             <div class="day-card">
@@ -54,12 +54,42 @@
             <h3>Iscriviti alle attività</h3>
             <p>Scansiona il QR code con il tuo smartphone:</p>
             <div class="qr-code">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://tuosito.com/campus_activities/subscribe/subscribe.html" alt="QR Code">
+                <img id="qrImage" alt="QR Code">
             </div>
+            <p id="qrFallback" style="display:none; margin-top:10px;">
+                <small>Oppure apri questo link: <a id="qrLink" href="#"></a></small>
+            </p>
             <p><small>Riservato agli iscritti nella mailing list.</small></p>
         </div>
     </div>
 
     <script src="assets/script.js"></script>
+
+    <!-- Generazione automatica del QR code -->
+    <script>
+        (function () {
+            // Costruisce l'URL assoluto verso subscribe/subscribe.html
+            // a partire dall'URL reale della pagina corrente.
+            const subscribeUrl = new URL('subscribe/subscribe.html', window.location.href).href;
+
+            const img = document.getElementById('qrImage');
+            const fallback = document.getElementById('qrFallback');
+            const link = document.getElementById('qrLink');
+
+            // Popola sempre il fallback (utile se il QR non si carica)
+            link.href = subscribeUrl;
+            link.textContent = subscribeUrl;
+
+            // Genera il QR tramite api.qrserver.com
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' +
+                      encodeURIComponent(subscribeUrl);
+
+            // Se il QR non si carica (offline / servizio bloccato), mostra il link
+            img.addEventListener('error', () => {
+                img.style.display = 'none';
+                fallback.style.display = 'block';
+            });
+        })();
+    </script>
 </body>
 </html>
