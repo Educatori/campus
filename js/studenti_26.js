@@ -1,5 +1,5 @@
 /**
- * js/studenti_26_DEMO.js
+ * js/studenti_26.js è la versione DEMO in caso di offline
  * ─────────────────────────────────────────────────────────────
  * Database studenti DEMO (fallback locale quando Firebase non è
  * disponibile o i dati remoti sono vuoti).
