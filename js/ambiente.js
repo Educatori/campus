@@ -1,4 +1,4 @@
-/**
+/** 
  * js/ambiente.js
  * Rileva se l'app deve girare in modalità ONLINE (Firebase)
  * oppure OFFLINE (liste + localStorage).
