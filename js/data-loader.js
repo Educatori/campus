@@ -220,9 +220,7 @@ async function salvaDatiFirebase() {
                 switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
             };
         });
-        const { set } = await import(
-            'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js'
-        );
+       
         await set(ref(db, `convitto/${chiave}/dati`), dati);
         await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
         console.log(`☁️ Salvato: ${Object.keys(dati).length} studenti (${chiave})`);
