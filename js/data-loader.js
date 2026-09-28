@@ -200,8 +200,9 @@ async function caricaDatiFirebase() {
     }
 }
 
-// Promise globale che si risolve quando il caricamento è terminato (successo o errore)
-window.firebasePronto = caricaDatiFirebase();
+// La Promise globale parte solo se qualcuno la invoca esplicitamente,
+// altrimenti si crea un doppione di fetch al primo import.
+// window.firebasePronto = caricaDatiFirebase();
 
 // ─────────────────────────────────────────────────────────────
 // 5. SALVATAGGIO SU FIREBASE
@@ -257,35 +258,9 @@ window.addEventListener('load', () => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────
-// 7. RE-RENDER FORZATO del pannello permessi dopo Firebase
-//    Aspetta la Promise window.firebasePronto (nessun polling,
-//    nessun cognome hardcoded). Funziona sia in caso di successo
-//    che di errore: il re-render avviene appena Firebase ha finito.
-// ─────────────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-    // Aspetta che il caricamento Firebase sia terminato
-    await window.firebasePronto;
-
-    console.log('🔄 Forzo re-render pannelli dopo Firebase');
-
-    if (typeof window.popolaListaPermessi === 'function') {
-        window.popolaListaPermessi();
-        console.log('   ✅ Permessi ri-renderizzati');
-    }
-    if (typeof window.popolaSelectStudenti === 'function') {
-        window.popolaSelectStudenti();
-    }
-    if (typeof window.popolaSelectClassi === 'function') {
-        window.popolaSelectClassi();
-    }
-    if (typeof window.renderListaAssenze === 'function') {
-        window.renderListaAssenze();
-    }
-});
 
 // ─────────────────────────────────────────────────────────────
-// 8. ESPOSIZIONE GLOBALE
+// 7. ESPOSIZIONE GLOBALE
 // ─────────────────────────────────────────────────────────────
 window.caricaDatiFirebase = caricaDatiFirebase;
 window.salvaDatiFirebase  = salvaDatiFirebase;
@@ -295,7 +270,7 @@ window.normalizzaPP       = normalizzaPP;
 console.log('🔧 data-loader.js pronto');
 
 // ─────────────────────────────────────────────────────────────
-// 9. NOTE CONDIVISE (realtime)
+// 8. NOTE CONDIVISE (realtime)
 // ─────────────────────────────────────────────────────────────
 
 // ⚠️ in cima al file importa: onValue, set

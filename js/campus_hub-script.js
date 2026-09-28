@@ -196,6 +196,15 @@ function ricaricaListaStudenti() {
 
 // --- 1. INIZIALIZZAZIONE ---
 function init() {
+    // In offline rileggi eventuali permessi importati via JSON
+    if (window.APP_MODE === 'offline') {
+        const ppLocali = localStorage.getItem("ORARI_PP");
+        if (ppLocali) {
+            try { window.ORARI_PP = JSON.parse(ppLocali); }
+            catch (e) { console.warn("ORARI_PP locale non valido", e); }
+        }
+    }
+    
     const d = getDataCorrente();
     caricaAssenzeProgrammate();
 
