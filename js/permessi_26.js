@@ -1,4 +1,4 @@
-/**
+/** 
  * js/permessi_26.js è la versione DEMO in caso di offline 
  * ─────────────────────────────────────────────────────────────
  * Permessi permanenti (ORARI_PP) e assenze fisse (ASSENTI_PERMESSO)
