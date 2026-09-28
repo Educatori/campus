@@ -1,4 +1,4 @@
-// data-loader.js 
+// data-loader.js
 // ─────────────────────────────────────────────────────────────
 // Carica i dati sensibili (studenti, permessi, assenze) da
 // Firebase Realtime Database, con fallback ai DEMO locali.
@@ -8,13 +8,13 @@
 import { db, ref, get, set, onValue } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
-// 0. BACKUP dei dati DEMO
+// 0. BACKUP dei dati OFF
 // ─────────────────────────────────────────────────────────────
-const demoStudenti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti.slice() : [];
-const demoPP       = window.ORARI_PP ? { ...window.ORARI_PP } : {};
-const demoAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO } : {};
+const offlineStudenti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti.slice() : [];
+const offlinePP       = window.ORARI_PP ? { ...window.ORARI_PP } : {};
+const offlineAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO } : {};
 
-console.log(`📦 Backup DEMO: ${demoStudenti.length} studenti, ${Object.keys(demoPP).length} PP`);
+console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.keys(offlinePP).length} PP`);
 
 // ─────────────────────────────────────────────────────────────
 // 1. CONFIGURAZIONE LOCALE
@@ -65,15 +65,15 @@ window.CALENDARIO_GRUPPI_DINNER = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// 2. INIZIALIZZAZIONE con DEMO
+// 2. INIZIALIZZAZIONE con OFF
 // ─────────────────────────────────────────────────────────────
-window.tuttiStudenti      = demoStudenti;
-window.studenticonvittori = demoStudenti.filter(s => {
+window.tuttiStudenti      = offlineStudenti;
+window.studenticonvittori = offlineStudenti.filter(s => {
     const n = parseInt(s.room, 10);
     return !isNaN(n) && n >= 101 && n <= 221;
 });
-window.ORARI_PP         = demoPP;
-window.ASSENTI_PERMESSO = demoAssenti;
+window.ORARI_PP         = offlinePP;
+window.ASSENTI_PERMESSO = offlineAssenti;
 
 // ─────────────────────────────────────────────────────────────
 // 3. UTILITY
@@ -134,7 +134,7 @@ async function caricaDatiFirebase() {
                 console.log(`   📚 Studenti: ${studentiArray.length}`);
             }
         } else {
-            console.warn('   ⚠️ Nodo "studenti" assente → uso DEMO');
+            console.warn('   ⚠️ Nodo "studenti" assente → uso OFF');
         }
 
         // 4b. Filtro convittori
