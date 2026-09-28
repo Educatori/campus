@@ -970,7 +970,7 @@ function generaPopUpStampaBusPomeriggio() {
     // 🚗 Cognomi che ricevono il simbolo auto nelle note
     const COGNOMI_AUTO = [
         "RASO", "NICOLASI", "DANNA", "CONTA",
-        "CHIADO'", "CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
+        "CHIADÒ CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
     ];
 
     const oggi = new Date();
