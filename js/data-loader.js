@@ -1,4 +1,4 @@
-// data-loader.js
+// data-loader.js 
 // ─────────────────────────────────────────────────────────────
 // Carica i dati sensibili (studenti, permessi, assenze) da
 // Firebase Realtime Database, con fallback ai DEMO locali.
