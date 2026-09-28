@@ -268,10 +268,29 @@ if (window.APP_MODE === 'offline') {
 if (window.APP_MODE === 'online') {
     console.log('🟢 Bootstrap ONLINE');
 
+    // ─────────────────────────────────────────────
+    // IMPORT Firebase con try/catch diagnostico
+    // ─────────────────────────────────────────────
+    let firebaseMod;
+    try {
+        firebaseMod = await import('./js/firebase-campus_hub-config.js');
+        console.log('✅ firebase-campus_hub-config.js importato:', Object.keys(firebaseMod));
+    } catch (err) {
+        console.error('❌ Errore import firebase-campus_hub-config.js:', err);
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#c00;
+            background:#fff;min-height:100vh;">
+            <h2>❌ Errore di caricamento Firebase</h2>
+            <pre style="background:#f5f5f5;padding:15px;border-radius:6px;overflow:auto;">${err.message}</pre>
+            <p>Apri la console (F12) per i dettagli completi.</p>
+            <p>Verifica che <code>js/firebase-campus_hub-config.js</code> esista e sia raggiungibile.</p>
+        </div>`;
+        throw err;
+    }
+
     const {
         auth, db, ref, get, set, update,
         signInWithEmailAndPassword, signOut, onAuthStateChanged
-    } = await import('./js/firebase-campus_hub-config.js');
+    } = firebaseMod;
 
     // ─────────────────────────────────────────────
     // LOGIN
@@ -317,6 +336,16 @@ if (window.APP_MODE === 'online') {
         if (!confirm('Vuoi uscire?')) return;
         try { await signOut(auth); } catch (e) { console.error(e); }
     };
+
+    // ─────────────────────────────────────────────
+    // Aggancio pulsante ACCEDI
+    // ─────────────────────────────────────────────
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => window.effettuaLogin());
+    } else {
+        console.warn('⚠️ loginBtn non trovato nel DOM');
+    }
 
     // ─────────────────────────────────────────────
     // Invio con Enter
@@ -418,6 +447,7 @@ if (window.APP_MODE === 'online') {
         let dl;
         try {
             dl = await import('./js/data-loader.js');
+            console.log('✅ data-loader.js importato:', Object.keys(dl));
         } catch (err) {
             console.error('❌ Impossibile caricare data-loader.js:', err);
             alert('Errore di connessione ai moduli. Ricarica la pagina.');
