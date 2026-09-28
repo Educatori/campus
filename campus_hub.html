@@ -185,8 +185,8 @@
      Popolano window.tuttiStudenti, window.ORARI_PP, window.ASSENTI_PERMESSO
      con i dati DEMO. In modalità online verranno poi sovrascritti da Firebase.
      Definiscono anche tutte le funzioni globali (init, generaPopUp*, ecc.) -->
-<script src="js/studenti_26.js"></script>
-<script src="js/permessi_26.js"></script>
+<script src="js/studenti_26_offline.js"></script>
+<script src="js/permessi_26_offline.js"></script>
 <script src="js/campus_hub-script.js"></script>
 
 <!-- 2. Bootstrap condizionale: ONLINE (Firebase) o OFFLINE (DEMO + localStorage) -->
@@ -196,7 +196,7 @@
    OFFLINE — nessun login, dati DEMO già caricati, note locali
    ══════════════════════════════════════════════════════════════ */
 if (window.APP_MODE === 'offline') {
-    console.log('🟠 Bootstrap OFFLINE');
+    console.log('📴 Bootstrap OFFLINE');
 
     // ─── Note locali (localStorage) ───
     const NOTE_KEY = 'convitto_note_locali';
@@ -227,7 +227,7 @@ if (window.APP_MODE === 'offline') {
     // ─── Badge connessione ───
     const badge = document.getElementById('connection-status');
     if (badge) {
-        badge.textContent = '🟠 Demo Locale';
+        badge.textContent = '📴 ➖ Locale';
         badge.classList.remove('connected');
         badge.classList.add('disconnected');
         badge.style.background  = 'rgba(234, 88, 12, 0.15)';
@@ -479,7 +479,7 @@ if (window.APP_MODE === 'online') {
                 });
             }
             if (badge) {
-                badge.textContent = '🟠 Demo';
+                badge.textContent = '📴 ➖ ';
                 badge.classList.remove('connected');
                 badge.classList.add('disconnected');
                 badge.style.background  = 'rgba(234, 88, 12, 0.15)';
