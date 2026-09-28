@@ -6,13 +6,20 @@
 <title>Cruscotto Operativo — SyncPanel</title>
 <link rel="stylesheet" href="css/campus-theme.css">
 <link rel="stylesheet" href="css/campus_hub-style.css">
+
+<!-- ═══════════════════════════════════════════════════════════
+     AMBIENTE: deve essere il PRIMO script.
+     Decide se l'app gira in modalità 'online' (Firebase)
+     oppure 'offline' (DEMO + localStorage).
+     ═══════════════════════════════════════════════════════════ -->
+<script src="js/ambiente.js"></script>
 </head>
 <body>
 
 <!-- ============================================================
-     LOGIN OVERLAY
+     LOGIN OVERLAY — visibile solo in modalità ONLINE
      ============================================================ -->
-<div id="loginScreen" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);
+<div id="loginScreen" style="position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:var(--bg);
      background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);">
     <div style="background:var(--surface);padding:36px 32px;border-radius:var(--radius-xl);width:340px;
                 box-shadow:var(--shadow-lg);border:1px solid var(--border-2);">
@@ -31,7 +38,7 @@
                       border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);
                       font-family:var(--font);font-size:0.9rem;outline:none;">
 
-        <button id="loginBtn" onclick="effettuaLogin()"
+        <button id="loginBtn"
                 style="width:100%;padding:12px;background:var(--accent);color:white;border:none;
                        border-radius:var(--radius);font-weight:700;cursor:pointer;
                        font-family:var(--font);font-size:0.9rem;letter-spacing:0.05em;">
@@ -44,7 +51,7 @@
 </div>
 
 <!-- ============================================================
-     CONTENUTO APP (nascosto finché non autenticato + autorizzato)
+     CONTENUTO APP — mostrato se online (dopo auth) o offline
      ============================================================ -->
 <div id="appContent" style="display:none;">
 
@@ -57,7 +64,7 @@
         <div id="digitalClock" class="header-clock">15:55:38</div>
         <div class="header-actions">
             <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
-            <button onclick="effettuaLogout()" title="Esci"
+            <button id="btnLogout" title="Esci"
                     style="background:rgba(220,38,38,0.1);color:var(--absent);border:1px solid rgba(220,38,38,0.3);
                            padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;
                            font-family:var(--font);font-size:0.72rem;font-weight:700;">
@@ -174,246 +181,314 @@
      SCRIPTS
      ============================================================ -->
 
-<!-- 1. Script classici (NON module): definiscono tutte le funzioni globali -->
-<script src="js/studenti_26_DEMO.js"></script>
-<script src="js/permessi_26_DEMO.js"></script>
+<!-- 1. Script classici (globali) — SEMPRE caricati.
+     Popolano window.tuttiStudenti, window.ORARI_PP, window.ASSENTI_PERMESSO
+     con i dati DEMO. In modalità online verranno poi sovrascritti da Firebase.
+     Definiscono anche tutte le funzioni globali (init, generaPopUp*, ecc.) -->
+<script src="js/studenti_26.js"></script>
+<script src="js/permessi_26.js"></script>
 <script src="js/campus_hub-script.js"></script>
 
-<!-- 2. Loader Firebase (MODULE) -->
-<script type="module" src="js/data-loader.js"></script>
-
-<!-- 3. Bootstrap: LOGIN + AUTORIZZAZIONE + INIT -->
+<!-- 2. Bootstrap condizionale: ONLINE (Firebase) o OFFLINE (DEMO + localStorage) -->
 <script type="module">
-import {auth, db, ref, get, set, update, signInWithEmailAndPassword, signOut, onAuthStateChanged
-} from './js/firebase-campus_hub-config.js';
 
-// ═══════════════════════════════════════════════════════════
-// LOGIN
-// ═══════════════════════════════════════════════════════════
-window.effettuaLogin = async function () {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pwd   = document.getElementById('loginPassword').value;
-    const errEl = document.getElementById('loginError');
-    const btn   = document.getElementById('loginBtn');
+/* ══════════════════════════════════════════════════════════════
+   OFFLINE — nessun login, dati DEMO già caricati, note locali
+   ══════════════════════════════════════════════════════════════ */
+if (window.APP_MODE === 'offline') {
+    console.log('🟠 Bootstrap OFFLINE');
 
-    errEl.textContent = '';
-    if (!email || !pwd) {
-        errEl.textContent = 'Inserisci email e password';
-        return;
+    // ─── Note locali (localStorage) ───
+    const NOTE_KEY = 'convitto_note_locali';
+
+    window.salvaNoteFirebase = function (testo) {
+        localStorage.setItem(NOTE_KEY, testo ?? "");
+    };
+
+    window.attivaNoteCondivise = function () {
+        const ta = document.getElementById('dailyNotes');
+        if (!ta) return;
+        ta.value = localStorage.getItem(NOTE_KEY) || "";
+        let timer = null;
+        ta.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => window.salvaNoteFirebase(ta.value), 400);
+        });
+        ta.addEventListener('blur', () => window.salvaNoteFirebase(ta.value));
+        console.log('📝 Note locali attive');
+    };
+
+    // ─── UI: mostra app, nascondi login + logout ───
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display  = 'block';
+    const btnOut = document.getElementById('btnLogout');
+    if (btnOut) btnOut.style.display = 'none';
+
+    // ─── Badge connessione ───
+    const badge = document.getElementById('connection-status');
+    if (badge) {
+        badge.textContent = '🟠 Demo Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+        badge.style.background  = 'rgba(234, 88, 12, 0.15)';
+        badge.style.color       = '#ea580c';
+        badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Verifica…';
+    // ─── Filtro convittori dai DEMO ───
+    window.studenticonvittori = (window.tuttiStudenti || []).filter(s => {
+        const n = parseInt(s.room, 10);
+        return !isNaN(n) && n >= 101 && n <= 221;
+    });
+    console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
-    try {
-        await signInWithEmailAndPassword(auth, email, pwd);
-        // onAuthStateChanged gestirà il resto
-    } catch (e) {
-        console.error('Login error:', e.code);
-        const messaggi = {
-            'auth/invalid-email':        'Email non valida',
-            'auth/user-not-found':       'Utente non trovato',
-            'auth/wrong-password':       'Password errata',
-            'auth/invalid-credential':   'Credenziali errate',
-            'auth/too-many-requests':    'Troppi tentativi. Riprova più tardi.',
-            'auth/network-request-failed':'Errore di rete'
-        };
-        errEl.textContent = messaggi[e.code] || 'Errore di accesso';
-        btn.disabled = false;
-        btn.textContent = 'ACCEDI';
-    }
-};
-
-// ═══════════════════════════════════════════════════════════
-// LOGOUT
-// ═══════════════════════════════════════════════════════════
-window.effettuaLogout = async function () {
-    if (!confirm('Vuoi uscire?')) return;
-    try { await signOut(auth); } catch (e) { console.error(e); }
-};
-
-// ═══════════════════════════════════════════════════════════
-// INVIO CON ENTER
-// ═══════════════════════════════════════════════════════════
-document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') window.effettuaLogin();
-});
-document.getElementById('loginEmail').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('loginPassword').focus();
-});
-
-// ═══════════════════════════════════════════════════════════
-// CONTROLLO AUTORIZZAZIONE
-// Legge authorizedUsers/{uid} da Firebase.
-// Ritorna true se l'utente è autorizzato, false altrimenti.
-// ═══════════════════════════════════════════════════════════
-async function isUtenteAutorizzato(uid) {
-    try {
-        const snap = await get(ref(db, `authorizedUsers/${uid}`));
-        return snap.exists() && snap.val() === true;
-    } catch (e) {
-        console.error('Errore verifica autorizzazione:', e);
-        return false;
-    }
+    // ─── Init app al DOM ready ───
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            if (typeof init                 === 'function') init();
+            if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
+            if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+            if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+            if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+            if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+            if (typeof attivaNoteCondivise  === 'function') attivaNoteCondivise();
+            console.log('✅ App OFFLINE pronta');
+        } catch (e) {
+            console.error('❌ Errore init offline:', e);
+        }
+    });
 }
 
-// ═══════════════════════════════════════════════════════════
-// SALVATAGGIO PERMESSI SU FIREBASE
-// Espone una funzione globale usata da importaPermessiJSON()
-// nel file campus_hub-script.js
-// ═══════════════════════════════════════════════════════════
-window.salvaPermessiFirebase = async function (permessi) {
-    if (!db) throw new Error("Firebase DB non inizializzato");
-    if (!permessi || typeof permessi !== "object") {
-        throw new Error("Permessi non validi");
+
+/* ══════════════════════════════════════════════════════════════
+   ONLINE — login Firebase + autorizzazione + data-loader
+   Gli import() sono dinamici: in offline il browser NON prova
+   mai a scaricare Firebase (niente errori CORS da file://).
+   ══════════════════════════════════════════════════════════════ */
+if (window.APP_MODE === 'online') {
+    console.log('🟢 Bootstrap ONLINE');
+
+    const {
+        auth, db, ref, get, set, update,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged
+    } = await import('./js/firebase-campus_hub-config.js');
+
+    // ─────────────────────────────────────────────
+    // LOGIN
+    // ─────────────────────────────────────────────
+    window.effettuaLogin = async function () {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pwd   = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        const btn   = document.getElementById('loginBtn');
+
+        errEl.textContent = '';
+        if (!email || !pwd) {
+            errEl.textContent = 'Inserisci email e password';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Verifica…';
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pwd);
+            // onAuthStateChanged gestirà il resto
+        } catch (e) {
+            console.error('Login error:', e.code);
+            const messaggi = {
+                'auth/invalid-email':          'Email non valida',
+                'auth/user-not-found':         'Utente non trovato',
+                'auth/wrong-password':         'Password errata',
+                'auth/invalid-credential':     'Credenziali errate',
+                'auth/too-many-requests':      'Troppi tentativi. Riprova più tardi.',
+                'auth/network-request-failed': 'Errore di rete'
+            };
+            errEl.textContent = messaggi[e.code] || 'Errore di accesso';
+            btn.disabled = false;
+            btn.textContent = 'ACCEDI';
+        }
+    };
+
+    // ─────────────────────────────────────────────
+    // LOGOUT
+    // ─────────────────────────────────────────────
+    window.effettuaLogout = async function () {
+        if (!confirm('Vuoi uscire?')) return;
+        try { await signOut(auth); } catch (e) { console.error(e); }
+    };
+
+    // ─────────────────────────────────────────────
+    // Invio con Enter
+    // ─────────────────────────────────────────────
+    document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.effettuaLogin();
+    });
+    document.getElementById('loginEmail').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+    });
+
+    // ─────────────────────────────────────────────
+    // Click sul pulsante ESCI
+    // ─────────────────────────────────────────────
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) btnLogout.onclick = () => window.effettuaLogout();
+
+    // ─────────────────────────────────────────────
+    // AUTORIZZAZIONE
+    // ─────────────────────────────────────────────
+    async function isUtenteAutorizzato(uid) {
+        try {
+            const snap = await get(ref(db, `authorizedUsers/${uid}`));
+            return snap.exists() && snap.val() === true;
+        } catch (e) {
+            console.error('Errore verifica autorizzazione:', e);
+            return false;
+        }
     }
-    
-    try {
-        // update() fa MERGE: aggiunge/sovrascrive solo i cognomi presenti,
-        // NON tocca quelli che non sono nell'oggetto.
-        await update(ref(db, 'permessi_pp'), permessi);
-        
-        const num = Object.keys(permessi).length;
-        console.log(`✅ Permessi aggiornati (${num} cognomi processati)`);
-    } catch (err) {
-        console.error("❌ Errore scrittura Firebase:", err);
-        throw err;
-    }
-};
 
-// ═══════════════════════════════════════════════════════════
-// GESTIONE STATO AUTH — UNICO PUNTO DI AVVIO
-// ═══════════════════════════════════════════════════════════
-let appInizializzata = false;
+    // ─────────────────────────────────────────────
+    // SALVA PERMESSI (usato da importaPermessiJSON)
+    // ─────────────────────────────────────────────
+    window.salvaPermessiFirebase = async function (permessi) {
+        if (!db) throw new Error("Firebase DB non inizializzato");
+        if (!permessi || typeof permessi !== "object") {
+            throw new Error("Permessi non validi");
+        }
+        try {
+            await update(ref(db, 'permessi_pp'), permessi);
+            console.log(`✅ Permessi aggiornati (${Object.keys(permessi).length} cognomi)`);
+        } catch (err) {
+            console.error("❌ Errore scrittura Firebase:", err);
+            throw err;
+        }
+    };
 
-onAuthStateChanged(auth, async (user) => {
-    const loginScreen = document.getElementById('loginScreen');
-    const appContent  = document.getElementById('appContent');
-    const errEl       = document.getElementById('loginError');
-    const btn         = document.getElementById('loginBtn');
+    // ─────────────────────────────────────────────
+    // AUTH STATE — unico punto di avvio
+    // ─────────────────────────────────────────────
+    let appInizializzata = false;
 
-    // ─────────────────────────────────────────────────
-    // CASO 1: NON AUTENTICATO
-    // ─────────────────────────────────────────────────
-    if (!user) {
+    onAuthStateChanged(auth, async (user) => {
+        const loginScreen = document.getElementById('loginScreen');
+        const appContent  = document.getElementById('appContent');
+        const errEl       = document.getElementById('loginError');
+        const btn         = document.getElementById('loginBtn');
+
+        // ── CASO 1: non autenticato ──
+        if (!user) {
+            loginScreen.style.display = 'flex';
+            appContent.style.display  = 'none';
+            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            appInizializzata = false;
+            return;
+        }
+
+        // ── CASO 2: autenticato → verifica autorizzazione ──
+        console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
         loginScreen.style.display = 'flex';
         appContent.style.display  = 'none';
+        if (errEl) errEl.textContent = 'Verifica autorizzazione…';
+        if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
+
+        const autorizzato = await isUtenteAutorizzato(user.uid);
+
+        if (!autorizzato) {
+            console.warn('⛔ Utente non autorizzato:', user.uid);
+            if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
+            setTimeout(async () => {
+                try { await signOut(auth); } catch (e) { console.error(e); }
+                if (errEl) errEl.textContent = '';
+                if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            }, 2000);
+            return;
+        }
+
+        // ── CASO 3: autenticato e autorizzato → avvia app ──
+        console.log('✅ Utente autorizzato:', user.uid);
+        loginScreen.style.display = 'none';
+        appContent.style.display  = 'block';
         if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
-        appInizializzata = false;
-        return;
-    }
+        if (errEl) errEl.textContent = '';
 
-    // ─────────────────────────────────────────────────
-    // CASO 2: AUTENTICATO — verifica autorizzazione
-    // ─────────────────────────────────────────────────
-    console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
+        if (appInizializzata) return;
+        appInizializzata = true;
 
-    loginScreen.style.display = 'flex';   // resta visibile durante il check
-    appContent.style.display  = 'none';
-    if (errEl) errEl.textContent = 'Verifica autorizzazione…';
-    if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
-
-    const autorizzato = await isUtenteAutorizzato(user.uid);
-
-    if (!autorizzato) {
-        console.warn('⛔ Utente non autorizzato:', user.uid);
-        if (errEl) errEl.textContent = 'Utente non autorizzato. Contatta l\'amministratore.';
-        // Forza logout dopo 2 secondi per far leggere il messaggio
-        setTimeout(async () => {
-            try { await signOut(auth); } catch (e) { console.error(e); }
-            if (errEl) errEl.textContent = '';
-            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
-        }, 2000);
-        return;
-    }
-
-    // ─────────────────────────────────────────────────
-    // CASO 3: AUTENTICATO E AUTORIZZATO → avvia l'app
-    // ─────────────────────────────────────────────────
-    console.log('✅ Utente autorizzato:', user.uid);
-
-    loginScreen.style.display = 'none';
-    appContent.style.display  = 'block';
-    if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
-    if (errEl) errEl.textContent = '';
-
-    // Evita doppia inizializzazione (es. refresh token)
-    if (appInizializzata) return;
-    appInizializzata = true;
-
-    // ─────────────────────────────────────────────────
-    // CARICAMENTO DATI
-    // ─────────────────────────────────────────────────
-    const badge = document.getElementById('connection-status');
-    let datiCaricati = false;
-
-    if (typeof window.caricaDatiFirebase === 'function') {
+        // ── Carica data-loader.js (solo online) ──
+        let dl;
         try {
-            datiCaricati = await window.caricaDatiFirebase();
+            dl = await import('./js/data-loader.js');
         } catch (err) {
-            console.error('❌ Errore caricamento Firebase:', err);
-            datiCaricati = false;
+            console.error('❌ Impossibile caricare data-loader.js:', err);
+            alert('Errore di connessione ai moduli. Ricarica la pagina.');
+            return;
         }
-    } else {
-        console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
-    }
 
-    // ─────────────────────────────────────────────────
-    // FALLBACK DEMO
-    // ─────────────────────────────────────────────────
-    if (!datiCaricati) {
-        console.warn('🔁 Fallback: dati DEMO locali');
-        if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
-            (!Array.isArray(window.studenticonvittori) || window.studenticonvittori.length === 0)) {
-            window.studenticonvittori = window.tuttiStudenti.filter(s => {
-                const n = parseInt(s.room, 10);
-                return !isNaN(n) && n >= 101 && n <= 221;
-            });
-        }
-        if (badge) {
-            badge.textContent = '🟠 Demo';
-            badge.classList.remove('connected');
-            badge.classList.add('disconnected');
-            badge.style.background = 'rgba(234, 88, 12, 0.15)';
-            badge.style.color = '#ea580c';
-            badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
-        }
-    } else {
-        if (badge) {
-            badge.textContent = '🟢 Firebase';
-            badge.classList.add('connected');
-            badge.classList.remove('disconnected');
-        }
-    }
+        const badge = document.getElementById('connection-status');
+        let datiCaricati = false;
 
-    // ─────────────────────────────────────────────────
-    // INIZIALIZZAZIONE APP
-    // ─────────────────────────────────────────────────
-    try {
-        if (typeof init === 'function') init();
-        if (typeof caricaDatiLocale === 'function') caricaDatiLocale();
-        if (typeof popolaListaPermessi === 'function') popolaListaPermessi();
-        if (typeof renderListaAssenze === 'function') renderListaAssenze();
-        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
-        if (typeof popolaSelectClassi === 'function') popolaSelectClassi();
-        console.log('✅ Inizializzazione completata');
-    } catch (e) {
-        console.error('❌ Errore inizializzazione:', e);
-    }
-    
-  // ─────────────────────────────────────────────────
-    // ATTIVA NOTE CONDIVISE (realtime, solo dopo auth+autorizzazione)
-    // ─────────────────────────────────────────────────
-    try {
-        if (typeof window.attivaNoteCondivise === 'function') {
-            window.attivaNoteCondivise();
+        if (typeof dl.caricaDatiFirebase === 'function') {
+            try {
+                datiCaricati = await dl.caricaDatiFirebase();
+            } catch (err) {
+                console.error('❌ Errore caricamento Firebase:', err);
+                datiCaricati = false;
+            }
         } else {
-            console.warn('⚠️ attivaNoteCondivise non disponibile');
+            console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
         }
-    } catch (e) {
-        console.error('❌ Errore attivazione note condivise:', e);
-    }
-});
+
+        // ── Fallback DEMO ──
+        if (!datiCaricati) {
+            console.warn('🔁 Fallback: dati DEMO locali');
+            if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
+                (!Array.isArray(window.studenticonvittori) || window.studenticonvittori.length === 0)) {
+                window.studenticonvittori = window.tuttiStudenti.filter(s => {
+                    const n = parseInt(s.room, 10);
+                    return !isNaN(n) && n >= 101 && n <= 221;
+                });
+            }
+            if (badge) {
+                badge.textContent = '🟠 Demo';
+                badge.classList.remove('connected');
+                badge.classList.add('disconnected');
+                badge.style.background  = 'rgba(234, 88, 12, 0.15)';
+                badge.style.color       = '#ea580c';
+                badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
+            }
+        } else {
+            if (badge) {
+                badge.textContent = '🟢 Firebase';
+                badge.classList.add('connected');
+                badge.classList.remove('disconnected');
+            }
+        }
+
+        // ── Init app ──
+        try {
+            if (typeof init                 === 'function') init();
+            if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
+            if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+            if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+            if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+            if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+            console.log('✅ Inizializzazione completata');
+        } catch (e) {
+            console.error('❌ Errore inizializzazione:', e);
+        }
+
+        // ── Note condivise realtime (dal modulo data-loader) ──
+        try {
+            if (typeof dl.attivaNoteCondivise === 'function') {
+                dl.attivaNoteCondivise();
+            } else if (typeof window.attivaNoteCondivise === 'function') {
+                window.attivaNoteCondivise();
+            }
+        } catch (e) {
+            console.error('❌ Errore attivazione note condivise:', e);
+        }
+    });
+}
 </script>
 
 </body>
