@@ -338,3 +338,15 @@ function attivaNoteCondivise() {
 
 window.attivaNoteCondivise = attivaNoteCondivise;
 
+// ─────────────────────────────────────────────────────────────
+// 9. EXPORT per import() dinamico (campus_hub.html)
+// ─────────────────────────────────────────────────────────────
+export {
+    caricaDatiFirebase,
+    salvaDatiFirebase,
+    salvaNoteFirebase,
+    dataKeyFirebase,
+    normalizzaPP,
+    attivaNoteCondivise
+};
+
