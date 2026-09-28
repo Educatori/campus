@@ -964,8 +964,15 @@ function generaPopUpStampaTransfer() {
     `);
     popup.document.close();
 }
+
 // --- POMERIGGIO BUS
 function generaPopUpStampaBusPomeriggio() {
+    // 🚗 Cognomi che ricevono il simbolo auto nelle note
+    const COGNOMI_AUTO = [
+        "RASO", "NICOLASI", "DANNA", "CONTA",
+        "CHIADO'", "CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
+    ];
+
     const oggi = new Date();
     const dataTestuale = document.getElementById("todayDate").innerText;
     const dataOggi = oggi.toLocaleDateString("it-IT");
@@ -1029,12 +1036,16 @@ function generaPopUpStampaBusPomeriggio() {
         // Gestione sfondi colorati tenui per i gruppi 5A e 5B
         let bgStyle = "";
         if (s.classe === "5A") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;"; // lilla tenue
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;"; // giallo tenue
+            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
         } else if (s.classe === "5B") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;"; // lilla tenue
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;"; // giallo tenue
+            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
         }
+
+        // 🚗 Nota auto se il cognome è nella lista
+        const cognomeUpper = s.cognome.toUpperCase();
+        const notaCustom = COGNOMI_AUTO.includes(cognomeUpper) ? "🚗" : "";
 
         colonneHtml[colonnaIdx] += `
             <div class="bus-row" style="${bgStyle}">
@@ -1044,7 +1055,7 @@ function generaPopUpStampaBusPomeriggio() {
                 <div class="b-cell b-day"></div>
                 <div class="b-cell b-day"></div>
                 <div class="b-cell b-day"></div>
-                <div class="b-cell b-notes"></div>
+                <div class="b-cell b-notes">${notaCustom}</div>
             </div>
         `;
     });
@@ -1060,36 +1071,34 @@ function generaPopUpStampaBusPomeriggio() {
             .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.65rem; color: #777; }
             .grid-container { display: flex; gap: 10px; justify-content: space-between; }
             .colonna { width: 32.5%; display: flex; flex-direction: column; }
-            
-            /* Struttura Header e Riga con altezze aumentate a 22px */
+
             .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.70rem; text-transform: uppercase; border: 1px solid #000; height: 22px; box-sizing: border-box; }
             .bus-row { display: flex; font-size: 0.72rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px !important; box-sizing: border-box; }
             .class-separator { height: 6px; background: #444; border: 1px solid #000; margin: 1px 0; page-break-inside: avoid; }
-            
+
             .b-cell, .h-cell { padding: 2px 4px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; height: 100%; box-sizing: border-box; }
-            
-            /* Larghezze FISSE e IDENTICHE per colonne e intestazioni */
+
             .b-class, .h-class { width: 50px; font-size: 0.65rem; }
             .b-class { border-right: 1px solid #ccc; background: #f5f5f5; }
             .h-class { border-right: 1px solid #555; }
-            
+
             .b-name, .h-name { width: 115px; text-align: left; justify-content: flex-start; padding-left: 6px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
-            
+
             .b-day, .h-day { width: 22px; font-size: 0.65rem; }
             .b-day { border-right: 1px solid #ccc; }
             .h-day { border-right: 1px solid #555; }
-            
+
             .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 6px; }
-            
+
             .no-print { text-align: center; margin-bottom: 12px; }
             @media print { .no-print { display: none; } }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
             <h2>CONVITTORI PER CLASSE</h2>
             <div class="date-subtitle">${dataTestuale} — Elementi totali: <b>${totaleElementi}</b></div>
-            
+
             <div class="no-print">
                 <button onclick="window.print()" style="padding:6px 30px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     •STAMPA
@@ -1120,6 +1129,7 @@ function generaPopUpStampaBusPomeriggio() {
     `);
     popup.document.close();
 }
+
 // --- USCITA
 function generaPopUpStampaUscite() {
     // 1. VERIFICA DATABASE
@@ -1638,15 +1648,22 @@ function generaPopUpStampaConvitto() {
     </body></html>`);
     popup.document.close();
 }
+
 // --- MATTINO BUS
 function generaPopUpStampaBus(ordinamento) {
     // ordinamento: 'alfabetico' (default) | 'perClasse'
     ordinamento = ordinamento || 'alfabetico';
 
+    // 🚗 Cognomi che ricevono il simbolo auto nelle note
+    const COGNOMI_AUTO = [
+        "RASO", "NICOLASI", "DANNA", "CONTA",
+        "CHIADO'", "CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
+    ];
+
     const oggi = new Date();
     const dataOggi = oggi.toLocaleDateString("it-IT");
     const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-    
+
     // Data di domani (per il sottotitolo "Trasporto del ...")
     const domani = new Date(oggi);
     domani.setDate(oggi.getDate() + 1);
@@ -1660,7 +1677,7 @@ function generaPopUpStampaBus(ordinamento) {
         return;
     }
 
-    // 1. FILTRO CLASSI ESCLUSE (Aggiunta la 4C)
+    // 1. FILTRO CLASSI ESCLUSE
     const validi = studenticonvittori.filter((s) => {
         if (!s.cognome) return false;
         const classe = s.classe.toUpperCase();
@@ -1676,44 +1693,41 @@ function generaPopUpStampaBus(ordinamento) {
             return a.cognome.localeCompare(b.cognome);
         });
     } else {
-        // alfabetico per cognome (con 5A/5B in fondo, come da logica originale)
-       const classiInFondo = ["4C", "5A", "5B"];
+        const classiInFondo = ["4C", "5A", "5B"];
 
-const resto = validi.filter((s) => !classiInFondo.includes(s.classe));
-        
-const classe4C = validi.filter((s) => s.classe === "4C");
-const classe5A = validi.filter((s) => s.classe === "5A");
-const classe5B = validi.filter((s) => s.classe === "5B");
+        const resto = validi.filter((s) => !classiInFondo.includes(s.classe));
+        const classe4C = validi.filter((s) => s.classe === "4C");
+        const classe5A = validi.filter((s) => s.classe === "5A");
+        const classe5B = validi.filter((s) => s.classe === "5B");
 
-resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
+        resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
 
-const ordinaPerGruppoECognome = (a, b) => {
-    const gA = a.gruppo || "";
-    const gB = b.gruppo || "";
-    return (gA + a.cognome).localeCompare(gB + b.cognome);
-};
-        
-classe4C.sort(ordinaPerGruppoECognome);
-classe5A.sort(ordinaPerGruppoECognome);
-classe5B.sort(ordinaPerGruppoECognome);
+        const ordinaPerGruppoECognome = (a, b) => {
+            const gA = a.gruppo || "";
+            const gB = b.gruppo || "";
+            return (gA + a.cognome).localeCompare(gB + b.cognome);
+        };
 
-validi.length = 0;
-validi.push(...resto, ...classe4C, ...classe5A, ...classe5B);
+        classe4C.sort(ordinaPerGruppoECognome);
+        classe5A.sort(ordinaPerGruppoECognome);
+        classe5B.sort(ordinaPerGruppoECognome);
+
+        validi.length = 0;
+        validi.push(...resto, ...classe4C, ...classe5A, ...classe5B);
     }
 
     // 3. DISTRIBUZIONE IN 3 COLONNE
-const totaleElementi = validi.length;
-const itemsPerColonna = Math.ceil(totaleElementi / 3);
-const colonneHtml = ["", "", ""];
+    const colonneHtml = ["", "", ""];
 
-// Testo della nota da mettere in cima alla prima colonna
-const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A 🍹 GIO 4C+1B";
+    // Testo della nota da mettere in cima alla prima colonna
+    const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A 🍹 GIO 4C+1B";
 
+    // Funzione per generare una riga studente (con note automatiche)
     function generaRigaStudente(s) {
         let bgStyle = "";
         if (s.classe === "5A" || s.classe === "5B") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8; border-left: 4px solid #2c3e50;"; // lilla tenue
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dashed #2c3e50;"; // giallo tenue
+            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8; border-left: 4px solid #2c3e50;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dashed #2c3e50;";
         }
 
         // Lookup stand-by dal DOM
@@ -1723,13 +1737,20 @@ const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A �
             visualizzaStandBy = verificaStudenteStandBy(rigaElemento) ? "➖" : "";
         }
 
-        // Gestione Note per 4C e 5B
+        // ── NOTE ──
         let notaCustom = "";
         const classeUpper = s.classe.toUpperCase();
+        const cognomeUpper = s.cognome.toUpperCase();
+
         if (classeUpper === "4C") {
             notaCustom = "solo GIO";
         } else if (classeUpper === "5B") {
-            notaCustom = "GIO NO";
+            notaCustom = "mai GIO";
+        }
+
+        // 🚗 Aggiungi auto se il cognome è nella lista
+        if (COGNOMI_AUTO.includes(cognomeUpper)) {
+            notaCustom = notaCustom ? notaCustom + " 🚗" : "🚗";
         }
 
         return `
@@ -1744,21 +1765,31 @@ const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A �
         `;
     }
 
-    validi.forEach((s, idx) => {
-    const colonnaIdx = Math.floor(idx / itemsPerColonna);
-    colonneHtml[colonnaIdx] += generaRigaStudente(s);
-});
+      // ── DISTRIBUZIONE ──
+    // Colonne 1-2: resto + 4C bilanciati
+    // Colonna 3: SOLO 5A + 5B, con nota LAB in fondo
+    const gruppoResto  = validi.filter(s => s.classe !== "5A" && s.classe !== "5B");
+    const gruppoQuinte = validi.filter(s => s.classe === "5A" || s.classe === "5B");
 
-// Aggiungi la riga di nota in FONDO alla TERZA colonna
-colonneHtml[2] += `
-    <div class="bus-row nota-colonna" style="background:#f0f0f0; font-weight:bold; font-style:italic; justify-content:center;">
-        <div class="b-cell" style="width:100%; text-align:center; justify-content:center;">
-            ${notaInTesta}
+    const itemsPerCol12 = Math.ceil(gruppoResto.length / 2);
+
+    gruppoResto.forEach((s, idx) => {
+        const col = Math.min(Math.floor(idx / itemsPerCol12), 1);
+        colonneHtml[col] += generaRigaStudente(s);
+    });
+
+    // Terza colonna: prima le quinte, poi la nota LAB in fondo
+    gruppoQuinte.forEach((s) => {
+        colonneHtml[2] += generaRigaStudente(s);
+    });
+
+    colonneHtml[2] += `
+        <div class="bus-row nota-colonna" style="background:#f0f0f0; font-weight:bold; font-style:italic; justify-content:center;">
+            <div class="b-cell" style="width:100%; text-align:center; justify-content:center;">
+                ${notaInTesta}
+            </div>
         </div>
-    </div>
-`;
-    
-    
+    `;
 
     // Calcolo presenti (senza stand-by) e totale bus
     const totaleBus = validi.length;
@@ -1767,11 +1798,8 @@ colonneHtml[2] += `
         if (!rigaElemento || typeof verificaStudenteStandBy !== "function") return true;
         return !verificaStudenteStandBy(rigaElemento);
     }).length;
-
-    
-    
     // 4. POPUP
-    const titolo = ordinamento === 'perClasse' ? "BUS DOMATTINA — per classe"   : "BUS DOMATTINA - alfabetico";
+    const titolo = ordinamento === 'perClasse' ? "BUS DOMATTINA — per classe" : "BUS DOMATTINA - alfabetico";
 
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
@@ -1783,7 +1811,7 @@ colonneHtml[2] += `
             .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; color: #777; }
 
             .toolbar-stampa { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
-            
+
             .toolbar-stampa button {
                 padding: 6px 26px;
                 color: white;
@@ -1805,14 +1833,14 @@ colonneHtml[2] += `
             .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.6rem; text-transform: uppercase; border: 1px solid #000; height: 18px; }
 
             .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
-            
+
             .nota-colonna {
-    font-size: 0.7rem;
-    height: auto;
-    min-height: 22px;
-    border: 1px solid #000;
-    border-bottom: 2px solid #000;
-}
+                font-size: 0.7rem;
+                height: auto;
+                min-height: 22px;
+                border: 1px solid #000;
+                border-bottom: 2px solid #000;
+            }
 
             .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
 
@@ -1842,14 +1870,12 @@ colonneHtml[2] += `
             }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            
+
             <h2>${titolo}</h2>
-           <div class="date-subtitle">Trasporto del ${dataDomaniTestuale} — Presenti: <b>${presenti}</b> su <b>${totaleBus}</b> totali</div>
+            <div class="date-subtitle">Trasporto del ${dataDomaniTestuale} — Presenti: <b>${presenti}</b> su <b>${totaleBus}</b> totali</div>
 
-    <div class="toolbar-stampa no-print">
-
+            <div class="toolbar-stampa no-print">
                 <button class="btn-stampa" onclick="window.print()">•STAMPA</button>
-                
             </div>
 
             <div class="grid-container">
@@ -1875,11 +1901,6 @@ colonneHtml[2] += `
     `);
     popup.document.close();
 }
-
-
-
-
-
 
 //-- bus generico
 function generaPopUpStampaBusGenerico() {
