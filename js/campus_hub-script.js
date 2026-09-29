@@ -1,5 +1,10 @@
 /**
  * CAMPUS_HUB-SCRIPT.JS - Versione su Firebase 
+ nota bene:
+ // --- ROOMING list
+function generaPopUpStampaRooming() {
+    // 1. DATI EXTRA E VERIFICA DATABASE contiene le forestrie che potrebbero cambiare
+
  */
 
 let cambiTurnoManuali = {};
@@ -1294,11 +1299,13 @@ function generaPopUpStampaRooming() {
     // 1. DATI EXTRA E VERIFICA DATABASE
     const extra = [
         { cognome: "EDUCATORI", nome: "", classe: "", gruppo: "", room: "112", percorso: "" },
-        { cognome: "", nome: "", classe: "Foresteria", gruppo: "", room: "124", percorso: "" },
-        { cognome: "", nome: "", classe: "Foresteria", gruppo: "", room: "125", percorso: "" },
-        { cognome: "", nome: "", classe: "Foresteria", gruppo: "", room: "213", percorso: "" },
-        { cognome: "", nome: "", classe: "Foresteria", gruppo: "", room: "216", percorso: "" },
-        { cognome: "", nome: "", classe: "Foresteria", gruppo: "", room: "220", percorso: "" }
+        { cognome: "", nome: "", classe: "Foresteria_1", gruppo: "", room: "124", percorso: "" },
+        { cognome: "", nome: "", classe: "Foresteria_2", gruppo: "", room: "124", percorso: "" },
+        { cognome: "", nome: "", classe: "Foresteria_3", gruppo: "", room: "124", percorso: "" },
+        { cognome: "", nome: "", classe: "Foresteria_4", gruppo: "", room: "124", percorso: "" },
+        { cognome: "", nome: "", classe: "Foresteria_5", gruppo: "", room: "212", percorso: "" },        
+        { cognome: "", nome: "", classe: "Foresteria_6", gruppo: "", room: "212", percorso: "" },
+        { cognome: "", nome: "", classe: "Foresteria_7", gruppo: "", room: "212", percorso: "" }
     ];
 
     let listaDalDatabase = [];
