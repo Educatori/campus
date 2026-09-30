@@ -2555,31 +2555,21 @@ function caricaDatiLocale() {
 
 /**
  * Applica i dati remoti (provenienti da Firebase) alle card ESISTENTI,
- * senza ricostruire la lista. Questo evita di perdere l'input in corso
- * (es. un utente che sta scrivendo un orario).
- *
- * @param {Object} datiGiorno - Oggetto { cognome: { esce, entra, assente, dinnerno, switch } }
+ * senza ricostruire la lista. Evita di perdere l'input in corso.
  */
 function renderDatiRemoti(datiGiorno) {
-    const giornoSettimana = getDataCorrente().getDay();
-
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
-        const cgn = cognome.toUpperCase();
         const d = datiGiorno[cognome];
 
-        // Se il cognome non è nei dati remoti, salta (non è stato toccato)
         if (!d) return;
 
-        // ─── Salta se l'utente sta editando i campi di questa riga ───
+        // Salta se l'utente sta editando i campi di questa riga
         const inputAttivo = document.activeElement;
         const staEditandoQuestaRiga = inputAttivo && r.contains(inputAttivo);
-        if (staEditandoQuestaRiga) {
-            console.log(`✏️ Riga ${cognome} in modifica, sync rimandata`);
-            return;
-        }
+        if (staEditandoQuestaRiga) return;
 
-        // ─── Applica stato ASSENTE ───
+        // Applica stato ASSENTE
         const eraAssente = r.classList.contains("assente");
         const oraAssente = d.assente === true;
         if (eraAssente !== oraAssente) {
@@ -2588,7 +2578,7 @@ function renderDatiRemoti(datiGiorno) {
             if (btnAss) btnAss.classList.toggle("active-ass", oraAssente);
         }
 
-        // ─── Applica stato DINNER NO ───
+        // Applica stato DINNER NO
         const eraDinnerNo = r.dataset.dinnerno === "1";
         const oraDinnerNo = d.dinnerno === "1";
         if (eraDinnerNo !== oraDinnerNo) {
@@ -2598,7 +2588,7 @@ function renderDatiRemoti(datiGiorno) {
             if (btnDin) btnDin.classList.toggle("active-din", oraDinnerNo);
         }
 
-        // ─── Applica orari (esce / entra) ───
+        // Applica orari (esce / entra)
         const inU = r.querySelector(".in-u");
         const inI = r.querySelector(".in-i");
         if (inU && d.esce !== undefined && inU.value !== d.esce) {
@@ -2608,7 +2598,7 @@ function renderDatiRemoti(datiGiorno) {
             inI.value = d.entra;
         }
 
-        // ─── Applica switch turno ───
+        // Applica switch turno
         const eraSwitch = cambiTurnoManuali[cognome] === true;
         const oraSwitch = d.switch === true;
         if (eraSwitch !== oraSwitch) {
@@ -2624,16 +2614,30 @@ function renderDatiRemoti(datiGiorno) {
             controllaDinnerAutomatico(r);
         }
     });
-
-    console.log(`✅ Dati remoti applicati (${Object.keys(datiGiorno).length} studenti)`);
 }
 
 window.renderDatiRemoti = renderDatiRemoti;
 
 function mostraDataReset() {
-    const dReset = localStorage.getItem("dataUltimoReset");
-    if (dReset) document.getElementById("info-reset").innerText = `Ultimo aggiornamento: ${dReset}`;
+    aggiornaInfoReset();
 }
+
+/**
+ * Aggiorna il testo di #info-reset con entrambi i timestamp:
+ *   - Ultimo reset manuale (locale, salvato su localStorage)
+ *   - Ultima modifica condivisa (da Firebase, salvata su localStorage)
+ */
+function aggiornaInfoReset() {
+    const el = document.getElementById("info-reset");
+    if (!el) return;
+
+    const dReset = localStorage.getItem("dataUltimoReset") || "MAI";
+    const dModifica = localStorage.getItem("dataUltimaModifica") || "MAI";
+
+    el.innerText = `Ultimo reset locale: ${dReset} | Ultima modifica online: ${dModifica}`;
+}
+
+window.aggiornaInfoReset = aggiornaInfoReset;
 
 function cancellaNote() {
     if (confirm("Vuoi cancellare definitivamente tutte le note per TUTTI gli utenti?")) {
@@ -2676,8 +2680,11 @@ function resetDati(tipo) {
             ricaricaListaStudenti();
 
             // 4. Timestamp e feedback
-            localStorage.setItem("dataUltimoReset", new Date().toLocaleString());
-            mostraDataReset();
+            llocalStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+}));
+mostraDataReset();
             alert("Reset manuale completato.\nLe assenze programmate sono state mantenute.");
         }
     } else if (tipo === 'completo') {
