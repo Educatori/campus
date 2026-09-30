@@ -8,7 +8,7 @@
 }
 
 header {
-    background: #45d7544c; /* #fe8b0e9e; */
+    background: #45d7544c; /* fallback: verde pallido (OFFLINE) */
     border: 1px solid var(--border);
     color: var(--text);
     padding: 16px 28px;
@@ -20,6 +20,35 @@ header {
     box-shadow: var(--shadow-sm);
     gap: 16px;
 }
+
+/* ============================================================
+   HEADER — Colore diverso per ONLINE / OFFLINE
+   La classe mode-online / mode-offline viene aggiunta al <body>
+   dal bootstrap in campus_hub.html
+   ============================================================ */
+
+/* OFFLINE — verde pallido (come prima) */
+body.mode-offline header {
+    background: #45d7544c;
+    border-color: var(--border);
+}
+
+/* ONLINE — blu tenue (Firebase) */
+body.mode-online header {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.30);
+}
+
+/* Clock digitale — colore coerente con la modalità */
+body.mode-offline #digitalClock {
+    color: var(--accent-2);
+    text-shadow: 0 0 20px var(--accent-2-dim);
+}
+body.mode-online #digitalClock {
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent-dim);
+}
+
 header h1 {
     font-size: 1.15rem;
     font-weight: 700;
@@ -242,6 +271,9 @@ header button:hover {
     font-size: 0.65rem;
     font-weight: 700;
 }
+
+
+
 
 @media (max-width: 900px) {
     #listaStudenti { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
