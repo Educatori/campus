@@ -44,12 +44,15 @@ window.OVERRIDE_TURNI_DINNER_CLASSI = {
 };
 
 window.OVERRIDE_TURNI_DINNER = {
-    "GASPARD":    { 1: 2, 2: 2, 3: 2, 4: 2, 5: 1 },
-    "RONCO A":    { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
-    "CONSOL":     { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
-    "CASTELLANO": { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
-    "GHILARDINI": { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
-    "GORREX":     { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }
+    "GASPARD":    { 1: 2, 2: 2, 3: 2, 4: 2 },
+    "RONCO A":    { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CONSOL":     { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CASTELLANO": { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "GHILARDINI": { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "GORREX":     { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CASTROREALE":{ 1: 1, 2: 1, 3: 1, 4: 1 },
+    "DUROUX":     { 1: 2, 2: 2, 3: 2, 4: 2 },
+    
 };
 
 window.CALENDARIO_GRUPPI_DINNER = {
