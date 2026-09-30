@@ -224,8 +224,13 @@ async function salvaDatiFirebase() {
             };
         });
        
+        // Scrittura dati studenti
         await set(ref(db, `convitto/${chiave}/dati`), dati);
-        await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
+
+        // Scrittura timestamp di ultima modifica (condiviso tra tutti i terminali)
+        const timestamp = Date.now();
+        await set(ref(db, `convitto/${chiave}/lastUpdate`), timestamp);
+
         console.log(`☁️ Salvato: ${Object.keys(dati).length} studenti (${chiave})`);
         return true;
     } catch (error) {
@@ -245,7 +250,7 @@ function salvaDatiFirebaseDebounced() {
         if (typeof salvaDatiFirebase === 'function') {
             salvaDatiFirebase();
         }
-    }, 500);
+    }, 1000); // 1000ms di debounce
 }
 
 window.salvaDatiFirebaseDebounced = salvaDatiFirebaseDebounced;
@@ -357,13 +362,13 @@ function attivaNoteCondivise() {
 
 window.attivaNoteCondivise = attivaNoteCondivise;
 
-// ─────────────────────────────────────────────────────────────
+/// ─────────────────────────────────────────────────────────────
 // 8b. SYNC DATI GIORNALIERI (realtime)
 // ─────────────────────────────────────────────────────────────
 
 let syncDatiListenerAttivo = false;
 let syncRemotoInCorso = false;   // evita loop: remoto → DOM → salva → Firebase
-let syncChiaveAttuale = null;    // per rilevare il cambio giorno
+let syncChiaveAttuale = null;
 
 /**
  * Attiva il listener realtime sui dati giornalieri.
@@ -389,10 +394,10 @@ function attivaSyncDatiGiornalieri() {
         const chiaveNuova = dataKeyFirebase(new Date());
         if (chiaveNuova !== syncChiaveAttuale) {
             console.log(`🌙 Cambio giorno rilevato: ${syncChiaveAttuale} → ${chiaveNuova}`);
-            // Ricarica la pagina per semplicità (evita conflitti di merge)
-            // Oppure decommenta la riga sotto per riattivare senza reload:
-            // syncDatiListenerAttivo = false;
-            // attivaSyncDatiGiornalieri();
+            // Ricarica i dati per il nuovo giorno
+            syncChiaveAttuale = chiaveNuova;
+            syncDatiListenerAttivo = false;
+            attivaSyncDatiGiornalieri();
             return;
         }
 
@@ -424,7 +429,6 @@ function attivaSyncDatiGiornalieri() {
             if (typeof window.renderDatiRemoti === 'function') {
                 window.renderDatiRemoti(datiGiorno);
             } else if (typeof caricaDatiLocale === 'function') {
-                // Fallback: ricarica tutto (perde input in corso)
                 caricaDatiLocale();
             }
         } finally {
@@ -434,6 +438,62 @@ function attivaSyncDatiGiornalieri() {
 }
 
 window.attivaSyncDatiGiornalieri = attivaSyncDatiGiornalieri;
+
+
+// ─────────────────────────────────────────────────────────────
+// 8c. SYNC ULTIMO AGGIORNAMENTO (realtime)
+// ─────────────────────────────────────────────────────────────
+// Ascolta il nodo `convitto/{chiaveOggi}/lastUpdate` per mostrare
+// in tempo reale a TUTTI i terminali l'ultima modifica fatta.
+// ─────────────────────────────────────────────────────────────
+
+let lastUpdateListenerAttivo = false;
+
+function attivaUltimoAggiornamento() {
+    if (lastUpdateListenerAttivo) return;
+    lastUpdateListenerAttivo = true;
+
+    const chiave = dataKeyFirebase(new Date());
+    const lastUpdateRef = ref(db, `convitto/${chiave}/lastUpdate`);
+
+    console.log(`🕒 Sync ultimo aggiornamento attiva su convitto/${chiave}/lastUpdate`);
+
+    onValue(lastUpdateRef, (snap) => {
+        if (!snap.exists()) return;
+
+        const timestamp = snap.val();
+        if (!timestamp) return;
+
+        // Formatta data e ora
+        const d = new Date(timestamp);
+        const dataOra = d.toLocaleString("it-IT", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+        // Aggiorna localStorage (per persistenza tra reload)
+        localStorage.setItem("dataUltimaModifica", dataOra);
+
+        // Aggiorna il display se la funzione esiste
+        if (typeof window.aggiornaInfoReset === 'function') {
+            window.aggiornaInfoReset();
+        } else {
+            // Fallback: aggiorna direttamente il testo
+            const el = document.getElementById("info-reset");
+            if (el) {
+                const dReset = localStorage.getItem("dataUltimoReset") || "MAI";
+                el.innerText = `Ultimo reset locale: ${dReset} | Ultima modifica online: ${dataOra}`;
+            }
+        }
+
+        console.log(`🕒 Ultimo aggiornamento: ${dataOra}`);
+    });
+}
+
+window.attivaUltimoAggiornamento = attivaUltimoAggiornamento;
 
 // ─────────────────────────────────────────────────────────────
 // 9. EXPORT per import() dinamico (campus_hub.html)
@@ -445,5 +505,6 @@ export {
     dataKeyFirebase,
     normalizzaPP,
     attivaNoteCondivise,
-    attivaSyncDatiGiornalieri   
+    attivaSyncDatiGiornalieri,   
+    attivaUltimoAggiornamento    
 };
