@@ -561,8 +561,8 @@ if (window.APP_MODE === 'online') {
             console.error('❌ Errore inizializzazione:', e);
         }
 
-        // ── Note condivise realtime (dal modulo data-loader) ──
-        // ── Note condivise realtime (dal modulo data-loader) ──
+
+// ── Note condivise realtime (dal modulo data-loader) ──
 try {
     if (typeof dl.attivaNoteCondivise === 'function') {
         dl.attivaNoteCondivise();
@@ -571,6 +571,28 @@ try {
     }
 } catch (e) {
     console.error('❌ Errore attivazione note condivise:', e);
+}
+
+// ── Sync dati giornalieri realtime (assenti, presenti, orari, switch) ──
+try {
+    if (typeof dl.attivaSyncDatiGiornalieri === 'function') {
+        dl.attivaSyncDatiGiornalieri();
+    } else if (typeof window.attivaSyncDatiGiornalieri === 'function') {
+        window.attivaSyncDatiGiornalieri();
+    }
+} catch (e) {
+    console.error('❌ Errore attivazione sync dati:', e);
+}
+
+// ── Sync ultimo aggiornamento condiviso (realtime) ──
+try {
+    if (typeof dl.attivaUltimoAggiornamento === 'function') {
+        dl.attivaUltimoAggiornamento();
+    } else if (typeof window.attivaUltimoAggiornamento === 'function') {
+        window.attivaUltimoAggiornamento();
+    }
+} catch (e) {
+    console.error('❌ Errore attivazione sync ultimo aggiornamento:', e);
 }
 
 // ── Sync dati giornalieri realtime (assenti, presenti, orari, ecc.) ──
