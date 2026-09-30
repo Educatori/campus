@@ -151,27 +151,75 @@
     <div id="listaStudenti"></div>
 </div>
 
-<!-- Side Panel -->
-<div id="sidePanel" style="position:fixed;top:0;right:-350px;width:320px;height:100%;transition:0.3s;z-index:1000;padding:24px;overflow-y:auto;display:flex;flex-direction:column;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-        <h3 style="margin:0;">Gestione Permessi</h3>
-        <button onclick="togglePanel()" style="border:none;background:rgba(255,255,255,0.07);color:var(--text-2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1.2em;display:flex;align-items:center;justify-content:center;">&times;</button>
+<!-- ============================================================
+     SIDE PANEL — Permessi Permanenti (vetro smerigliato)
+     ─────────────────────────────────────────────────────────────
+     #sidePanel: pointer-events:none → i click attraversano il pannello
+     #sidePanelOverlay: zona alta semi-trasparente → i click passano sotto
+     #sidePanelContent: zona bassa opaca → pointer-events:auto per i controlli
+     ============================================================ -->
+<div id="sidePanel" style="position:fixed;top:0;right:-350px;width:320px;height:100%;
+     transition:right 0.3s ease;z-index:1000;display:flex;flex-direction:column;
+     pointer-events:none;">
+
+    <!-- Zona superiore semi-trasparente — i click passano sotto -->
+    <div id="sidePanelOverlay" style="
+         flex:0 0 300px;
+         background:linear-gradient(180deg,
+             rgba(240,244,248,0.05) 0%,
+             rgba(240,244,248,0.25) 60%,
+             rgba(240,244,248,0.55) 100%);
+         backdrop-filter:blur(4px);
+         -webkit-backdrop-filter:blur(4px);
+         border-bottom:1px solid rgba(0,0,0,0.08);
+         pointer-events:none;">
     </div>
-    <hr>
-    <h3 style="margin-top:10px;">Programmazione Assenze</h3>
+
+    <!-- Zona inferiore opaca con il contenuto (cliccabile) -->
+    <div id="sidePanelContent" style="
+     flex:1 1 auto;
+     background:var(--bg-2);
+     border-left:1px solid var(--border-2);
+     box-shadow:-8px 0 40px rgba(0,0,0,0.15);
+     padding:24px;
+     overflow-y:auto;
+     display:flex;flex-direction:column;
+     pointer-events:auto;">
+
+    <!-- Titolo + pulsante chiudi -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="margin:0;">Gestione Permessi</h3>
+        <button onclick="togglePanel()" style="border:none;background:rgba(0,0,0,0.06);
+                color:var(--text-2);border-radius:50%;width:30px;height:30px;cursor:pointer;
+                font-size:1.2em;display:flex;align-items:center;justify-content:center;
+                transition:all 0.2s;">&times;</button>
+    </div>
+
+    <!-- Programmazione Assenze -->
+    <h3 style="margin:16px 0 10px 0;">Programmazione Assenze</h3>
     <select id="selectStudente" style="margin-bottom:8px;"><option value="">-- Seleziona Nome --</option></select>
     <select id="selectClasse" style="margin-bottom:8px;"><option value="">-- Seleziona Classe --</option></select>
     <input type="date" id="dataDal" style="margin-bottom:8px;">
     <input type="date" id="dataAl" style="margin-bottom:12px;">
-    <button onclick="aggiungiAssenza()" style="width:100%;background:var(--absent);color:white;border:none;padding:10px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font);font-weight:700;font-size:0.85rem;">➕ Aggiungi Assenza</button>
-    <hr style="margin:20px 0;">
-    <h3>Lista Assenze</h3>
-    <div id="listaAssenze" style="margin-bottom:20px;"></div>
-    <hr>
-    <hr>
-<h3>Permessi Permanenti</h3>
-<div style="font-size:0.75em; color:var(--text-2); margin-bottom:10px; font-style:italic;">Gestire da qui</div>
-<div id="listaPermessiContent"></div>
+    <button onclick="aggiungiAssenza()" style="width:100%;background:var(--absent);color:white;
+            border:none;padding:10px;border-radius:var(--radius-sm);cursor:pointer;
+            font-family:var(--font);font-weight:700;font-size:0.85rem;">➕ Aggiungi Assenza</button>
+
+    <!-- Lista Assenze -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0 14px 0;">
+    <h3 style="margin:0 0 10px 0;">Lista Assenze</h3>
+    <div id="listaAssenze" style="margin-bottom:10px;"></div>
+
+    <!-- Permessi Permanenti -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0 14px 0;">
+    <h3 style="margin:0 0 6px 0;">Permessi Permanenti</h3>
+    <div style="font-size:0.75em; color:var(--text-2); margin-bottom:10px; font-style:italic;">
+        Gestire da qui
+    </div>
+    <div id="listaPermessiContent"></div>
+</div>
+
+
 </div>
 
 
