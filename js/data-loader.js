@@ -1,7 +1,7 @@
 // data-loader.js
 // ─────────────────────────────────────────────────────────────
 // Carica i dati sensibili (studenti, permessi, assenze) da
-// Firebase Realtime Database, con fallback ai DEMO locali.
+// Firebase Realtime Database, con fallback ai dati locali.
 // Salva automaticamente le modifiche giornaliere su Firebase.
 // ─────────────────────────────────────────────────────────────
 
@@ -350,4 +350,3 @@ export {
     normalizzaPP,
     attivaNoteCondivise
 };
-
