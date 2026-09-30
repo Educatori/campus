@@ -2554,66 +2554,91 @@ function caricaDatiLocale() {
 }
 
 /**
- * Applica i dati remoti (provenienti da Firebase) alle card ESISTENTI,
- * senza ricostruire la lista. Evita di perdere l'input in corso.
+ * Applica i dati remoti (provenienti da Firebase) alle card ESISTENTI.
+ * 
+ * Caso speciale: se `datiGiorno` contiene studenti ma TUTTI hanno stato
+ * "vuoto" (nessun assente, nessun dinner-no, orari = PP), significa che
+ * è stato fatto un reset condiviso → pulisce tutte le card.
  */
 function renderDatiRemoti(datiGiorno) {
+    const giornoSettimana = getDataCorrente().getDay();
+
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
         const d = datiGiorno[cognome];
-
-        if (!d) return;
 
         // Salta se l'utente sta editando i campi di questa riga
         const inputAttivo = document.activeElement;
         const staEditandoQuestaRiga = inputAttivo && r.contains(inputAttivo);
         if (staEditandoQuestaRiga) return;
 
-        // Applica stato ASSENTE
-        const eraAssente = r.classList.contains("assente");
-        const oraAssente = d.assente === true;
-        if (eraAssente !== oraAssente) {
-            r.classList.toggle("assente", oraAssente);
-            const btnAss = r.querySelector(".btn-ass");
-            if (btnAss) btnAss.classList.toggle("active-ass", oraAssente);
+        // Se lo studente non è nei dati remoti, lo trattiamo come "vuoto"
+        // (è il caso del reset: Firebase ha il nodo dati senza questo cognome)
+        const info = d || {
+            esce: "",
+            entra: "",
+            assente: false,
+            dinnerno: "0",
+            switch: false
+        };
+
+        // ─── Recupera gli orari PP del giorno per questo studente ───
+        let ppOut = "";
+        let ppIn = "";
+        if (ORARI_PP[cognome] && ORARI_PP[cognome][giornoSettimana]) {
+            ppOut = ORARI_PP[cognome][giornoSettimana].out || "";
+            ppIn = ORARI_PP[cognome][giornoSettimana].in || "";
         }
 
-        // Applica stato DINNER NO
-        const eraDinnerNo = r.dataset.dinnerno === "1";
-        const oraDinnerNo = d.dinnerno === "1";
-        if (eraDinnerNo !== oraDinnerNo) {
-            r.dataset.dinnerno = oraDinnerNo ? "1" : "0";
-            r.classList.toggle("dinner-no", oraDinnerNo);
-            const btnDin = r.querySelector(".btn-din");
-            if (btnDin) btnDin.classList.toggle("active-din", oraDinnerNo);
-        }
+        // ─── Applica stato ASSENTE ───
+        const oraAssente = info.assente === true;
+        r.classList.toggle("assente", oraAssente);
+        const btnAss = r.querySelector(".btn-ass");
+        if (btnAss) btnAss.classList.toggle("active-ass", oraAssente);
 
-        // Applica orari (esce / entra)
+        // ─── Applica stato DINNER NO ───
+        const oraDinnerNo = info.dinnerno === "1";
+        r.dataset.dinnerno = oraDinnerNo ? "1" : "0";
+        r.classList.toggle("dinner-no", oraDinnerNo);
+        const btnDin = r.querySelector(".btn-din");
+        if (btnDin) btnDin.classList.toggle("active-din", oraDinnerNo);
+
+        // ─── Applica orari (esce / entra) ───
+        // Se il dato remoto ha un valore esplicito, usa quello.
+        // Se è vuoto, torna al valore del PP (o vuoto se non c'è).
         const inU = r.querySelector(".in-u");
         const inI = r.querySelector(".in-i");
-        if (inU && d.esce !== undefined && inU.value !== d.esce) {
-            inU.value = d.esce;
+
+        if (inU) {
+            const valoreRemoto = info.esce;
+            if (valoreRemoto !== undefined && valoreRemoto !== "") {
+                inU.value = valoreRemoto;
+            } else {
+                inU.value = ppOut;  // reset → torna al PP
+            }
         }
-        if (inI && d.entra !== undefined && inI.value !== d.entra) {
-            inI.value = d.entra;
+        if (inI) {
+            const valoreRemoto = info.entra;
+            if (valoreRemoto !== undefined && valoreRemoto !== "") {
+                inI.value = valoreRemoto;
+            } else {
+                inI.value = ppIn;   // reset → torna al PP
+            }
         }
 
-        // Applica switch turno
-        const eraSwitch = cambiTurnoManuali[cognome] === true;
-        const oraSwitch = d.switch === true;
-        if (eraSwitch !== oraSwitch) {
-            cambiTurnoManuali[cognome] = oraSwitch;
-            const btnSwitch = r.querySelector(".btn-switch");
-            if (btnSwitch) btnSwitch.classList.toggle("modificato", oraSwitch);
-        }
+        // ─── Applica switch turno ───
+        const oraSwitch = info.switch === true;
+        cambiTurnoManuali[cognome] = oraSwitch;
+        const btnSwitch = r.querySelector(".btn-switch");
+        if (btnSwitch) btnSwitch.classList.toggle("modificato", oraSwitch);
     });
 
-    // Ricalcola dinner automatico per le righe aggiornate
+    // Ricalcola dinner automatico per tutte le righe
     document.querySelectorAll(".student-row").forEach((r) => {
-        if (datiGiorno[r.dataset.cognome]) {
-            controllaDinnerAutomatico(r);
-        }
+        controllaDinnerAutomatico(r);
     });
+
+    console.log(`✅ Dati remoti applicati (${Object.keys(datiGiorno || {}).length} studenti)`);
 }
 
 window.renderDatiRemoti = renderDatiRemoti;
@@ -2653,49 +2678,140 @@ function cancellaNote() {
 }
 
 
-// --- FUNZIONI DI RESET (da implementare se necessarie) ---
+// --- FUNZIONI DI RESET ---
 function resetDati(tipo) {
     if (tipo === 'soloManuali') {
-        if (confirm("Resettare solo le modifiche manuali di oggi?")) {
+        // ═══════════════════════════════════════════════════════════
+        // PRIMA CONFERMA — riepilogo di cosa verrà cancellato
+        // ═══════════════════════════════════════════════════════════
+        const msgPrima =
+            "🗑️ RESET GIORNALIERO CONDIVISO\n\n" +
+            "Verranno cancellate le modifiche di OGGI per TUTTI i terminali:\n" +
+            "  • Stato ASSENTE\n" +
+            "  • Stato NON CENA\n" +
+            "  • Orari ESCE / ENTRA\n" +
+            "  • Switch turno\n\n" +
+            "NON verranno toccati:\n" +
+            "  • Permessi permanenti (PP)\n" +
+            "  • Programmazione assenze\n" +
+            "  • Assenti permesso\n\n" +
+            "Vuoi procedere?";
 
-         
-            rimuoviEvidenziazioneTasti();
+        if (!confirm(msgPrima)) return;
 
-            // Reset ricerca, room input e filtro classe
-            const searchInput = document.getElementById("search");
-            if (searchInput) searchInput.value = "";
-            const roomInput = document.getElementById("roomInput");
-            if (roomInput) roomInput.value = "";
-            const classeFilter = document.getElementById("classeFilter");
-            if (classeFilter) classeFilter.value = "";
+        // ═══════════════════════════════════════════════════════════
+        // SECONDA CONFERMA — digitare "RESET" per confermare
+        // ═══════════════════════════════════════════════════════════
+        const msgSeconda =
+            "⚠️ CONFERMA FINALE ⚠️\n\n" +
+            "Questa azione è IRREVERSIBILE e riguarderà TUTTI i terminali connessi.\n\n" +
+            "Per confermare, digita la parola:\n\n" +
+            "         RESET\n\n" +
+            "(tutto maiuscolo, senza spazi)";
 
-            // 1. Pulisci i dati manuali da localStorage
-            localStorage.removeItem("datiConvitto");
+        const conferma = prompt(msgSeconda);
 
-            // 2. Resetta i cambi turno manuali
-            cambiTurnoManuali = {};
-
-            // 3. Ricostruisci le card: ricaricaListaStudenti() riapplica
-            //    automaticamente le assenze programmate + gli orari PP
-            ricaricaListaStudenti();
-
-            // 4. Timestamp e feedback
-            llocalStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit"
-}));
-mostraDataReset();
-            alert("Reset manuale completato.\nLe assenze programmate sono state mantenute.");
+        if (conferma === null) {
+            // Utente ha premuto "Annulla" nel prompt
+            console.log("Reset annullato (prompt annullato)");
+            return;
         }
-    } else if (tipo === 'completo') {
-        if (confirm("⚠️ RESET COMPLETO: cancellare TUTTI i dati locali?")) {
-            localStorage.removeItem("datiConvitto");
-            localStorage.removeItem("assenzeProgrammate");
-            localStorage.setItem("dataUltimoReset", new Date().toLocaleString());
-            cambiTurnoManuali = {};
-            assenzeProgrammate = {};
-            location.reload();
+
+        if (conferma.trim() !== "RESET") {
+            alert("❌ Reset annullato.\nIl testo digitato non corrisponde a \"RESET\".");
+            console.log("Reset annullato (testo errato):", conferma);
+            return;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // RESET LOCALE
+        // ═══════════════════════════════════════════════════════════
+        console.log("🗑️ Reset confermato, avvio procedura...");
+
+        rimuoviEvidenziazioneTasti();
+
+        // Reset filtri di ricerca
+        const searchInput = document.getElementById("search");
+        if (searchInput) searchInput.value = "";
+        const roomInput = document.getElementById("roomInput");
+        if (roomInput) roomInput.value = "";
+        const classeFilter = document.getElementById("classeFilter");
+        if (classeFilter) classeFilter.value = "";
+
+        // Pulisci dati manuali da localStorage
+        localStorage.removeItem("datiConvitto");
+
+        // Resetta i cambi turno manuali
+        cambiTurnoManuali = {};
+
+        // Timestamp reset (locale)
+        localStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+        }));
+
+        // Ricostruisci le card (riapplica automaticamente PP + assenze programmate)
+        ricaricaListaStudenti();
+        mostraDataReset();
+
+        // ═══════════════════════════════════════════════════════════
+        // RESET CONDIVISO SU FIREBASE (solo se online)
+        // ═══════════════════════════════════════════════════════════
+        if (window.APP_MODE === 'online' &&
+            typeof window.salvaDatiFirebase === 'function') {
+
+            // Chiamata diretta (senza debounce) per evitare
+            // che modifiche successive si mescolino al reset.
+            window.salvaDatiFirebase()
+                .then(() => {
+                    console.log('☁️ Reset condiviso pubblicato su Firebase');
+                    alert("✅ Reset completato e pubblicato su tutti i terminali.\n\nLe assenze programmate e i permessi permanenti sono stati mantenuti.");
+                })
+                .catch((err) => {
+                    console.error('❌ Errore reset condiviso:', err);
+                    alert("⚠️ Reset locale completato, ma errore nella pubblicazione condivisa:\n" + err.message);
+                });
+        } else {
+            // Modalità offline
+            alert("✅ Reset completato (modalità locale).\n\nLe assenze programmate e i permessi permanenti sono stati mantenuti.");
+        }
+    }
+    else if (tipo === 'completo') {
+        // ═══════════════════════════════════════════════════════════
+        // RESET COMPLETO (cancella tutto) — doppia conferma anche qui
+        // ═══════════════════════════════════════════════════════════
+        const msgPrimaCompleto =
+            "⚠️ RESET COMPLETO ⚠️\n\n" +
+            "Verranno cancellati TUTTI i dati locali:\n" +
+            "  • Modifiche giornaliere (assente, no cena, orari, switch)\n" +
+            "  • Programmazione assenze\n" +
+            "  • Timestamp di reset\n\n" +
+            "Vuoi procedere?";
+
+        if (!confirm(msgPrimaCompleto)) return;
+
+        const confermaCompleto = prompt(
+            "⚠️ CONFERMA FINALE ⚠️\n\n" +
+            "Digita la parola:\n\n" +
+            "         RESET\n\n" +
+            "(tutto maiuscolo)"
+        );
+
+        if (confermaCompleto === null) return;
+        if (confermaCompleto.trim() !== "RESET") {
+            alert("❌ Reset annullato.\nIl testo digitato non corrisponde a \"RESET\".");
+            return;
+        }
+
+        localStorage.removeItem("datiConvitto");
+        localStorage.removeItem("assenzeProgrammate");
+        localStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+        }));
+        cambiTurnoManuali = {};
+        assenzeProgrammate = {};
+        location.reload();
     }
 }
 
