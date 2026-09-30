@@ -243,6 +243,10 @@
 /* ══════════════════════════════════════════════════════════════
    OFFLINE — nessun login, dati DEMO già caricati, note locali
    ══════════════════════════════════════════════════════════════ */
+    // ─── Aggiungi classe al body per stile condizionale ───
+document.body.classList.add('mode-' + window.APP_MODE);
+console.log(`🎨 Body class: mode-${window.APP_MODE}`);
+    
 if (window.APP_MODE === 'offline') {
     console.log('📴 Bootstrap OFFLINE');
 
@@ -313,6 +317,8 @@ if (window.APP_MODE === 'offline') {
    Gli import() sono dinamici: in offline il browser NON prova
    mai a scaricare Firebase (niente errori CORS da file://).
    ══════════════════════════════════════════════════════════════ */
+    
+    
 if (window.APP_MODE === 'online') {
     console.log('🟢 Bootstrap ONLINE');
 
