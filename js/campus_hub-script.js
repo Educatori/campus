@@ -2489,6 +2489,12 @@ function salvaDatiLocale() {
         };
     });
     localStorage.setItem("datiConvitto", JSON.stringify(dati));
+
+    // ─── Sync su Firebase (solo in modalità online) ───
+    if (window.APP_MODE === 'online' &&
+        typeof window.salvaDatiFirebaseDebounced === 'function') {
+        window.salvaDatiFirebaseDebounced();
+    }
 }
 
 function caricaDatiLocale() {
@@ -2546,6 +2552,83 @@ function caricaDatiLocale() {
         controllaDinnerAutomatico(r);
     });
 }
+
+/**
+ * Applica i dati remoti (provenienti da Firebase) alle card ESISTENTI,
+ * senza ricostruire la lista. Questo evita di perdere l'input in corso
+ * (es. un utente che sta scrivendo un orario).
+ *
+ * @param {Object} datiGiorno - Oggetto { cognome: { esce, entra, assente, dinnerno, switch } }
+ */
+function renderDatiRemoti(datiGiorno) {
+    const giornoSettimana = getDataCorrente().getDay();
+
+    document.querySelectorAll(".student-row").forEach((r) => {
+        const cognome = r.dataset.cognome;
+        const cgn = cognome.toUpperCase();
+        const d = datiGiorno[cognome];
+
+        // Se il cognome non è nei dati remoti, salta (non è stato toccato)
+        if (!d) return;
+
+        // ─── Salta se l'utente sta editando i campi di questa riga ───
+        const inputAttivo = document.activeElement;
+        const staEditandoQuestaRiga = inputAttivo && r.contains(inputAttivo);
+        if (staEditandoQuestaRiga) {
+            console.log(`✏️ Riga ${cognome} in modifica, sync rimandata`);
+            return;
+        }
+
+        // ─── Applica stato ASSENTE ───
+        const eraAssente = r.classList.contains("assente");
+        const oraAssente = d.assente === true;
+        if (eraAssente !== oraAssente) {
+            r.classList.toggle("assente", oraAssente);
+            const btnAss = r.querySelector(".btn-ass");
+            if (btnAss) btnAss.classList.toggle("active-ass", oraAssente);
+        }
+
+        // ─── Applica stato DINNER NO ───
+        const eraDinnerNo = r.dataset.dinnerno === "1";
+        const oraDinnerNo = d.dinnerno === "1";
+        if (eraDinnerNo !== oraDinnerNo) {
+            r.dataset.dinnerno = oraDinnerNo ? "1" : "0";
+            r.classList.toggle("dinner-no", oraDinnerNo);
+            const btnDin = r.querySelector(".btn-din");
+            if (btnDin) btnDin.classList.toggle("active-din", oraDinnerNo);
+        }
+
+        // ─── Applica orari (esce / entra) ───
+        const inU = r.querySelector(".in-u");
+        const inI = r.querySelector(".in-i");
+        if (inU && d.esce !== undefined && inU.value !== d.esce) {
+            inU.value = d.esce;
+        }
+        if (inI && d.entra !== undefined && inI.value !== d.entra) {
+            inI.value = d.entra;
+        }
+
+        // ─── Applica switch turno ───
+        const eraSwitch = cambiTurnoManuali[cognome] === true;
+        const oraSwitch = d.switch === true;
+        if (eraSwitch !== oraSwitch) {
+            cambiTurnoManuali[cognome] = oraSwitch;
+            const btnSwitch = r.querySelector(".btn-switch");
+            if (btnSwitch) btnSwitch.classList.toggle("modificato", oraSwitch);
+        }
+    });
+
+    // Ricalcola dinner automatico per le righe aggiornate
+    document.querySelectorAll(".student-row").forEach((r) => {
+        if (datiGiorno[r.dataset.cognome]) {
+            controllaDinnerAutomatico(r);
+        }
+    });
+
+    console.log(`✅ Dati remoti applicati (${Object.keys(datiGiorno).length} studenti)`);
+}
+
+window.renderDatiRemoti = renderDatiRemoti;
 
 function mostraDataReset() {
     const dReset = localStorage.getItem("dataUltimoReset");
