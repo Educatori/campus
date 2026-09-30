@@ -562,15 +562,27 @@ if (window.APP_MODE === 'online') {
         }
 
         // ── Note condivise realtime (dal modulo data-loader) ──
-        try {
-            if (typeof dl.attivaNoteCondivise === 'function') {
-                dl.attivaNoteCondivise();
-            } else if (typeof window.attivaNoteCondivise === 'function') {
-                window.attivaNoteCondivise();
-            }
-        } catch (e) {
-            console.error('❌ Errore attivazione note condivise:', e);
-        }
+        // ── Note condivise realtime (dal modulo data-loader) ──
+try {
+    if (typeof dl.attivaNoteCondivise === 'function') {
+        dl.attivaNoteCondivise();
+    } else if (typeof window.attivaNoteCondivise === 'function') {
+        window.attivaNoteCondivise();
+    }
+} catch (e) {
+    console.error('❌ Errore attivazione note condivise:', e);
+}
+
+// ── Sync dati giornalieri realtime (assenti, presenti, orari, ecc.) ──
+try {
+    if (typeof dl.attivaSyncDatiGiornalieri === 'function') {
+        dl.attivaSyncDatiGiornalieri();
+    } else if (typeof window.attivaSyncDatiGiornalieri === 'function') {
+        window.attivaSyncDatiGiornalieri();
+    }
+} catch (e) {
+    console.error('❌ Errore attivazione sync dati:', e);
+}
     });
 }
 </script>
