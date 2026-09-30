@@ -1,10 +1,10 @@
-// CONVITTORI_26.JS
+// FILTRO_CONVITTO.JS
 // Filtra tuttiStudenti per includere solo convittori (room tra 101 e 221)
 
 (function() {
     // Verifica che l'array globale tuttiStudenti esista
     if (typeof tuttiStudenti === 'undefined') {
-        console.error("Errore: manca l'array 'tuttiStudenti'. Assicurati di aver incluso studenti_26.js PRIMA di convittori_26.js");
+        console.error("Errore: manca l'array 'tuttiStudenti'. Assicurati di aver incluso studenti_26.js PRIMA di filtro_convitto.js");
         window.studenticonvittori = [];
         return;
     }
