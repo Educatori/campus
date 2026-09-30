@@ -233,6 +233,23 @@ async function salvaDatiFirebase() {
         return false;
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// 5a. DEBOUNCE salvataggio Firebase
+// ─────────────────────────────────────────────────────────────
+let salvaDebounceTimer = null;
+
+function salvaDatiFirebaseDebounced() {
+    clearTimeout(salvaDebounceTimer);
+    salvaDebounceTimer = setTimeout(() => {
+        if (typeof salvaDatiFirebase === 'function') {
+            salvaDatiFirebase();
+        }
+    }, 500);
+}
+
+window.salvaDatiFirebaseDebounced = salvaDatiFirebaseDebounced;
+
 // ─────────────────────────────────────────────────────────────
 // 5b. SALVATAGGIO NOTE (realtime)
 // ─────────────────────────────────────────────────────────────
@@ -246,19 +263,20 @@ async function salvaNoteFirebase(testo) {
 window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
-// 6. WRAPPER salvataggio locale → Firebase
+// 6. WRAPPER salvataggio locale → Firebase (con debounce)
 // ─────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
     const _orig = window.salvaDatiLocale;
     if (typeof _orig === 'function') {
         window.salvaDatiLocale = function () {
             _orig();
-            window.salvaDatiFirebase();
+            window.salvaDatiFirebaseDebounced();
         };
-        console.log('🔗 Wrapper salvataggio attivo');
+        console.log('🔗 Wrapper salvataggio attivo (con debounce)');
+    } else {
+        console.warn('⚠️ salvaDatiLocale non trovata: wrapper non attivato');
     }
 });
-
 
 // ─────────────────────────────────────────────────────────────
 // 7. ESPOSIZIONE GLOBALE
@@ -340,6 +358,84 @@ function attivaNoteCondivise() {
 window.attivaNoteCondivise = attivaNoteCondivise;
 
 // ─────────────────────────────────────────────────────────────
+// 8b. SYNC DATI GIORNALIERI (realtime)
+// ─────────────────────────────────────────────────────────────
+
+let syncDatiListenerAttivo = false;
+let syncRemotoInCorso = false;   // evita loop: remoto → DOM → salva → Firebase
+let syncChiaveAttuale = null;    // per rilevare il cambio giorno
+
+/**
+ * Attiva il listener realtime sui dati giornalieri.
+ * Va chiamata DOPO che l'utente è autorizzato e l'app è visibile.
+ *
+ * Quando un altro terminale scrive su `convitto/{chiaveOggi}/dati`,
+ * Firebase notifica questo client → aggiorna le card → non riscrive
+ * su Firebase (il flag syncRemotoInCorso lo impedisce).
+ */
+function attivaSyncDatiGiornalieri() {
+    if (syncDatiListenerAttivo) return;
+    syncDatiListenerAttivo = true;
+
+    const chiave = dataKeyFirebase(new Date());
+    syncChiaveAttuale = chiave;
+
+    console.log(`🔄 Sync dati giornalieri attiva su convitto/${chiave}/dati`);
+
+    const datiRef = ref(db, `convitto/${chiave}/dati`);
+
+    onValue(datiRef, (snap) => {
+        // ─── Cambio giorno a mezzanotte: riattiva su nuova chiave ───
+        const chiaveNuova = dataKeyFirebase(new Date());
+        if (chiaveNuova !== syncChiaveAttuale) {
+            console.log(`🌙 Cambio giorno rilevato: ${syncChiaveAttuale} → ${chiaveNuova}`);
+            // Ricarica la pagina per semplicità (evita conflitti di merge)
+            // Oppure decommenta la riga sotto per riattivare senza reload:
+            // syncDatiListenerAttivo = false;
+            // attivaSyncDatiGiornalieri();
+            return;
+        }
+
+        if (!snap.exists()) {
+            console.log('ℹ️ Nessun dato remoto per oggi');
+            return;
+        }
+
+        const datiGiorno = snap.val() || {};
+        console.log(`⬇️ Sync remota: ${Object.keys(datiGiorno).length} studenti`);
+
+        // ─── Evita loop: se stiamo scrivendo noi, salta ───
+        if (syncRemotoInCorso) return;
+
+        // ─── Confronta con i dati locali per evitare re-render inutili ───
+        const datiLocaliStr = localStorage.getItem('datiConvitto') || '{}';
+        let datiLocali;
+        try { datiLocali = JSON.parse(datiLocaliStr); } catch { datiLocali = {}; }
+
+        const diversi = JSON.stringify(datiLocali) !== JSON.stringify(datiGiorno);
+        if (!diversi) return;
+
+        // ─── Aggiorna localStorage con i dati remoti ───
+        localStorage.setItem('datiConvitto', JSON.stringify(datiGiorno));
+
+        // ─── Applica i dati alle card visibili ───
+        syncRemotoInCorso = true;
+        try {
+            if (typeof window.renderDatiRemoti === 'function') {
+                window.renderDatiRemoti(datiGiorno);
+            } else if (typeof caricaDatiLocale === 'function') {
+                // Fallback: ricarica tutto (perde input in corso)
+                caricaDatiLocale();
+            }
+        } finally {
+            syncRemotoInCorso = false;
+        }
+    });
+}
+
+window.attivaSyncDatiGiornalieri = attivaSyncDatiGiornalieri;
+
+// ─────────────────────────────────────────────────────────────
 // 9. EXPORT per import() dinamico (campus_hub.html)
 // ─────────────────────────────────────────────────────────────
 export {
@@ -348,5 +444,6 @@ export {
     salvaNoteFirebase,
     dataKeyFirebase,
     normalizzaPP,
-    attivaNoteCondivise
+    attivaNoteCondivise,
+    attivaSyncDatiGiornalieri   
 };
