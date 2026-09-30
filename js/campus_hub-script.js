@@ -2283,18 +2283,168 @@ function popolaSelectClassi() {
         classiUniche.map((c) => `<option value="${c}">${c}</option>`).join("");
 }
 
+/**
+ * ─────────────────────────────────────────────────────────────
+ * SIDE PANEL — Gestione Permessi Permanenti
+ * ─────────────────────────────────────────────────────────────
+ * Apre/chiude il pannello laterale e, all'apertura, calcola
+ * dinamicamente l'altezza dell'overlay semi-trasparente in modo
+ * che copra esattamente gli elementi superiori (header, note,
+ * toolbar, griglia tasti) lasciandoli visibili e CLICCABILI
+ * grazie a pointer-events:none impostato nell'HTML.
+ * ─────────────────────────────────────────────────────────────
+ */
 function togglePanel() {
     const panel = document.getElementById("sidePanel");
-    if (panel.style.right === "0px") {
+    if (!panel) {
+        console.warn("⚠️ #sidePanel non trovato nel DOM");
+        return;
+    }
+
+    // Legge lo stato attuale: se right è "0px" è aperto
+    const isOpen = panel.style.right === "0px";
+
+    if (isOpen) {
+        // ── CHIUDI ──
         panel.style.right = "-350px";
     } else {
-        popolaListaPermessi();
-        popolaSelectStudenti();
-        renderListaAssenze();
-        popolaSelectClassi();
+        // ── APRI ──
+        // 1. Popola i contenuti del pannello
+        if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
+        if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
+        if (typeof renderListaAssenze   === "function") renderListaAssenze();
+        if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
+
+        // 2. Calcola l'altezza dell'overlay in base agli elementi sopra
+        aggiornaAltezzaOverlay();
+
+        // 3. Apri il pannello (animazione CSS transition:right)
         panel.style.right = "0px";
     }
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * SIDE PANEL — Gestione Permessi Permanenti
+ * ─────────────────────────────────────────────────────────────
+ * Apre/chiude il pannello laterale e, all'apertura, calcola
+ * dinamicamente l'altezza dell'overlay semi-trasparente in modo
+ * che copra esattamente gli elementi superiori (header, note,
+ * toolbar, griglia tasti) lasciandoli visibili e CLICCABILI
+ * grazie a pointer-events:none impostato nell'HTML.
+ * ─────────────────────────────────────────────────────────────
+ */
+function togglePanel() {
+    const panel = document.getElementById("sidePanel");
+    if (!panel) {
+        console.warn("⚠️ #sidePanel non trovato nel DOM");
+        return;
+    }
+
+    // Legge lo stato attuale: se right è "0px" è aperto
+    const isOpen = panel.style.right === "0px";
+
+    if (isOpen) {
+        // ── CHIUDI ──
+        panel.style.right = "-350px";
+    } else {
+        // ── APRI ──
+        // 1. Popola i contenuti del pannello
+        if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
+        if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
+        if (typeof renderListaAssenze   === "function") renderListaAssenze();
+        if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
+
+        // 2. Calcola l'altezza dell'overlay in base agli elementi sopra
+        aggiornaAltezzaOverlay();
+
+        // 3. Apri il pannello (animazione CSS transition:right)
+        panel.style.right = "0px";
+    }
+}
+
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Calcola l'altezza dell'overlay semi-trasparente del pannello
+ * in base all'altezza reale degli elementi che devono rimanere
+ * visibili e cliccabili sotto di esso:
+ *
+ *   1. header                  → pulsante ❌ ESCI
+ *   2. note-toolbar-container  → textarea note condivise
+ *   3. info-reset              → "Ultimo aggiornamento: ..."
+ *   4. toolbar                 → MODULI, P•PP, ricerca, ROOM, CLASSE, DATA, Reset
+ *   5. griglia tasti           → CONVITTO, DINNER, DOMATTINA, 1°, 2°, ASSENTI, CENE, GLOBALE
+ *
+ * Viene chiamata:
+ *   - all'apertura del pannello (togglePanel)
+ *   - al resize della finestra (se pannello aperto)
+ *   - al DOMContentLoaded (con piccolo delay)
+ * ─────────────────────────────────────────────────────────────
+ */
+function aggiornaAltezzaOverlay() {
+    const overlay = document.getElementById("sidePanelOverlay");
+    if (!overlay) return;
+
+    let h = 0;
+
+    // 1. Header (con logo, clock, ESCI)
+    const header = document.querySelector("header");
+    if (header) h += header.offsetHeight;
+
+    // 2. Note condivise
+    const note = document.querySelector(".note-toolbar-container");
+    if (note) h += note.offsetHeight;
+
+    // 3. Info reset
+    const infoReset = document.getElementById("info-reset");
+    if (infoReset) h += infoReset.offsetHeight;
+
+    /* rimossi per diminuire la zona smerigliata
+     *  
+    // 4. Toolbar principale
+    const toolbar = document.querySelector(".toolbar");
+    if (toolbar) h += toolbar.offsetHeight;
+
+    // 5. Griglia tasti (div subito dopo la toolbar)
+    if (toolbar && toolbar.nextElementSibling) {
+        h += toolbar.nextElementSibling.offsetHeight;
+    }  
+    *
+    */
+
+    // Margine di sicurezza per evitare che l'overlay tagli
+    // parte dell'ultimo elemento visibile
+    h += 70;
+
+    // Applica l'altezza calcolata
+    overlay.style.flex = `0 0 ${h}px`;
+
+    console.log(`🔲 Overlay permessi: ${h}px (header+note+reset+toolbar+tasti)`);
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   RICALCOLO AUTOMATICO
+   ───────────────────────────────────────────────────────────── */
+
+// Ricalcola al resize della finestra (solo se il pannello è aperto)
+window.addEventListener("resize", () => {
+    const panel = document.getElementById("sidePanel");
+    if (panel && panel.style.right === "0px") {
+        aggiornaAltezzaOverlay();
+    }
+});
+
+// Ricalcola al caricamento iniziale (con delay per lasciar
+// renderizzare header, toolbar e griglia tasti)
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        aggiornaAltezzaOverlay();
+    }, 150);
+});
+
+
 
 function isStudenteInLabOggi(classe, gruppo, dataOggetto) {
     const giorno = dataOggetto.getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mer, 4=Gio, 5=Ven, 6=Sab
