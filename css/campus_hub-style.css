@@ -272,7 +272,10 @@ header button:hover {
     font-weight: 700;
 }
 
-
+@keyframes ppFadeIn {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
 
 
 @media (max-width: 900px) {
