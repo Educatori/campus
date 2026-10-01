@@ -68,6 +68,28 @@ window.CALENDARIO_GRUPPI_DINNER = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// 1a PAROLE-CHIAVE PER L'INTERPRETAZIONE DEI PERMESSI PERMANENTI
+// ─────────────────────────────────────────────────────────────
+// Usate da analizzaPP() in campus_hub-script.js.
+//
+// PAROLE_ASSENZA     → se compaiono in OUT o IN del PP
+//                      ⇒ studente ASSENTE + NON CENA
+// PAROLE_NO_RIENTRO  → se compaiono in IN del PP
+//                      ⇒ studente NON CENA (resta presente)
+// ─────────────────────────────────────────────────────────────
+
+window.PAROLE_ASSENZA = [
+   "ass", "assente",
+    "sosp", "sospeso", "sospesa",
+    "gita", "trasferta", "malattia"
+];
+
+window.PAROLE_NO_RIENTRO = [
+    "n", "no", "non", "nor",
+    "no r", "no rientro", "x"
+];
+
+// ─────────────────────────────────────────────────────────────
 // 2. INIZIALIZZAZIONE con OFF
 // ─────────────────────────────────────────────────────────────
 window.tuttiStudenti      = offlineStudenti;
@@ -213,23 +235,32 @@ async function caricaDatiFirebase() {
 async function salvaDatiFirebase() {
     try {
         const chiave = dataKeyFirebase(new Date());
+        const giorno = new Date().getDay();
         const dati = {};
+
         document.querySelectorAll('.student-row').forEach(r => {
-            dati[r.dataset.cognome] = {
+            const cognome = r.dataset.cognome;
+
+            // Deduci lo stato dal PP (se la funzione è disponibile)
+            const statoPP = (typeof window.analizzaPP === 'function')
+                ? window.analizzaPP(cognome, giorno)
+                : { assente: false, dinnerNo: false };
+
+            const assenteNelDom  = r.classList.contains('assente');
+            const dinnerNoNelDom = r.dataset.dinnerno === "1";
+
+            dati[cognome] = {
                 esce:     r.querySelector('.in-u')?.value ?? "",
                 entra:    r.querySelector('.in-i')?.value ?? "",
-                assente:  r.classList.contains('assente'),
-                dinnerno: r.dataset.dinnerno ?? "0",
-                switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
+                // ── Il PP è legge: non salvare come override ciò che impone ──
+                assente:  statoPP.assente  ? false : assenteNelDom,
+                dinnerno: statoPP.dinnerNo ? "0"   : (dinnerNoNelDom ? "1" : "0"),
+                switch:   window.cambiTurnoManuali?.[cognome] ?? false
             };
         });
-       
-        // Scrittura dati studenti
-        await set(ref(db, `convitto/${chiave}/dati`), dati);
 
-        // Scrittura timestamp di ultima modifica (condiviso tra tutti i terminali)
-        const timestamp = Date.now();
-        await set(ref(db, `convitto/${chiave}/lastUpdate`), timestamp);
+        await set(ref(db, `convitto/${chiave}/dati`), dati);
+        await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
 
         console.log(`☁️ Salvato: ${Object.keys(dati).length} studenti (${chiave})`);
         return true;
@@ -268,21 +299,12 @@ async function salvaNoteFirebase(testo) {
 window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
-// 6. WRAPPER salvataggio locale → Firebase (con debounce)
+// 6. WRAPPER salvataggio locale → Firebase (RIMOSSO)
 // ─────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-    const _orig = window.salvaDatiLocale;
-    if (typeof _orig === 'function') {
-        window.salvaDatiLocale = function () {
-            _orig();
-            window.salvaDatiFirebaseDebounced();
-        };
-        console.log('🔗 Wrapper salvataggio attivo (con debounce)');
-    } else {
-        console.warn('⚠️ salvaDatiLocale non trovata: wrapper non attivato');
-    }
-});
-
+// La chiamata a salvaDatiFirebaseDebounced() è già inclusa
+// dentro salvaDatiLocale() in campus_hub-script.js.
+// Non serve un secondo wrapper (evita doppie chiamate).
+// 
 // ─────────────────────────────────────────────────────────────
 // 7. ESPOSIZIONE GLOBALE
 // ─────────────────────────────────────────────────────────────
