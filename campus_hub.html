@@ -130,7 +130,9 @@
 
    
     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
-          
+        <button class="day-box" style="border-bottom: 3px solid var(--accent); background: var(--surface);
+        color: var(--accent); cursor: pointer; font-weight: bold;" 
+        id="btnOrdineAlfabetico" onclick="toggleOrdineLista()">room A-Z</button>  
         <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
         <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div> 
         <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">DOMATTINA</div>
@@ -143,9 +145,7 @@
     <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">CENE</div>
      <button class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface);
             color: var(--btn-t4); cursor: pointer; font-weight: bold;" onclick="resetSimulazione()">GLOBALE</button>
-  <button class="day-box" style="border-bottom: 3px solid var(--accent); background: var(--surface);
-        color: var(--accent); cursor: pointer; font-weight: bold;" 
-        id="btnOrdineAlfabetico" onclick="toggleOrdineLista()">room A-Z</button>
+  
     </div>
 
 
@@ -597,17 +597,7 @@ try {
     console.error('❌ Errore attivazione sync ultimo aggiornamento:', e);
 }
 
-// ── Sync dati giornalieri realtime (assenti, presenti, orari, ecc.) ──
-try {
-    if (typeof dl.attivaSyncDatiGiornalieri === 'function') {
-        dl.attivaSyncDatiGiornalieri();
-    } else if (typeof window.attivaSyncDatiGiornalieri === 'function') {
-        window.attivaSyncDatiGiornalieri();
-    }
-} catch (e) {
-    console.error('❌ Errore attivazione sync dati:', e);
-}
-    });
+});
 }
 </script>
 
