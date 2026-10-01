@@ -1,4 +1,4 @@
-/** 
+/**
  * CAMPUS_HUB-SCRIPT.JS - Versione su Firebase 
  nota bene:
  // --- ROOMING list
@@ -6,6 +6,36 @@ function generaPopUpStampaRooming() {
     // 1. DATI EXTRA E VERIFICA DATABASE contiene le forestrie che potrebbero cambiare
 
  */
+
+// --- VARIABILE PER ORDINAMENTO LISTA ---
+let ordineAlfabetico = false; // false = per room (default), true = per cognome
+
+/**
+ * Alterna l'ordinamento della lista studenti tra "per room" e "alfabetico per cognome"
+ */
+function toggleOrdineLista() {
+    ordineAlfabetico = !ordineAlfabetico;
+    
+    // Aggiorna l'aspetto del bottone
+    const btn = document.getElementById("btnOrdineAlfabetico");
+    if (btn) {
+        if (ordineAlfabetico) {
+            btn.style.background = "var(--accent)";
+            btn.style.color = "white";
+            btn.textContent = "🔤 A-Z ✓";
+        } else {
+            btn.style.background = "var(--surface)";
+            btn.style.color = "var(--accent)";
+            btn.textContent = "🔤 A-Z";
+        }
+    }
+    
+    // ← QUI: salva la preferenza PRIMA di ricaricare la lista
+    localStorage.setItem("ordineAlfabetico", ordineAlfabetico);
+    
+    ricaricaListaStudenti();
+
+}
 
 let cambiTurnoManuali = {};
 let assenzeProgrammate = {};
@@ -150,6 +180,30 @@ function ricaricaListaStudenti() {
     
     const data = getDataCorrente();
     const studenti = [...studenticonvittori];
+    
+    // Ordinamento condizionale
+studenti.sort((a, b) => {
+    if (ordineAlfabetico) {
+        // Alfabetico per cognome
+        const c = (a.cognome || "").localeCompare(b.cognome || "", "it", { sensitivity: "base" });
+        if (c !== 0) return c;
+        return (a.nome || "").localeCompare(b.nome || "", "it", { sensitivity: "base" });
+    } else {
+        // Per room (default)
+        return a.room.localeCompare(b.room, undefined, { numeric: true });
+    }
+});
+    
+    // Ripristina ordinamento preferito
+if (localStorage.getItem("ordineAlfabetico") === "true") {
+    ordineAlfabetico = true;
+    const btn = document.getElementById("btnOrdineAlfabetico");
+    if (btn) {
+        btn.style.background = "var(--accent)";
+        btn.style.color = "white";
+        btn.textContent = "🔤 A-Z ✓";
+    }
+}
     
     studenti
         .sort((a, b) => a.room.localeCompare(b.room, undefined, { numeric: true }))
@@ -531,99 +585,352 @@ function toggleDinnerNo(btn) {
 
 // --- DINNER riepilogo
 function generaPopUpStampaDinner() {
-    let a1 = 0,
-        p1 = 0,
-        a2 = 0,
-        p2 = 0,
-        n1 = [],
-        n2 = [],
-        switch1 = [],
-        switch2 = [];
+    // ─── CONTATORI ───
+    let a1 = 0, p1 = 0, a2 = 0, p2 = 0;
+
+    // ─── ARRAY DI OGGETTI (non più stringhe) ───
+    // Ogni elemento: { cognome, nome, classe, nota }
+    let n1 = [], n2 = [], switch1 = [], switch2 = [];
+
     const oggi = getDataCorrente();
     const giornoSett = oggi.getDay();
     const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     const dataOggi = oggi.toLocaleDateString("it-IT");
     const dataTestuale = document.getElementById("todayDate").innerText;
 
+    // ─── HELPER: estrae il solo nome dal nomeCompleto ───
+    // nomeCompleto è "COGNOME Nome", quindi rimuoviamo il cognome iniziale
+    function estraiNome(nomeCompleto, cognome) {
+        if (!nomeCompleto) return "";
+        const cognomeUpper = (cognome || "").toUpperCase();
+        if (nomeCompleto.toUpperCase().startsWith(cognomeUpper)) {
+            return nomeCompleto.substring(cognome.length).trim();
+        }
+        return nomeCompleto;
+    }
+
+    // ─── RACCOLTA DATI DAL DOM ───
     document.querySelectorAll(".student-row").forEach((r) => {
-        const cognome = r.dataset.cognome;
-        const nomeCompleto = r.dataset.nomeCompleto;
-        let turnoOriginale = TURNI_DINNER[1].includes(r.dataset.classe) ? 1 : 2;
-        let turnoEffettivo = turnoStudente(r.dataset.classe, cognome);
+        const cognome = r.dataset.cognome || "";
+        const nomeCompleto = r.dataset.nomeCompleto || "";
+        const classe = r.dataset.classe || "";
+        const nome = estraiNome(nomeCompleto, cognome);
 
-        if (cambiTurnoManuali[cognome]) turnoEffettivo = turnoEffettivo === 1 ? 2 : 1;
+        // Turno originale (senza override)
+        const turnoOriginale = TURNI_DINNER[1].includes(classe) ? 1 : 2;
+        // Turno effettivo (con override classe + individuali)
+        let turnoEffettivo = turnoStudente(classe, cognome);
 
-        if (turnoEffettivo !== turnoOriginale) {
-            const nota = turnoEffettivo === 1 ? " (da 2° a 1°)" : " (da 1° a 2°)";
-            if (turnoEffettivo === 1) switch1.push(nomeCompleto + nota);
-            else switch2.push(nomeCompleto + nota);
+        // Applica il cambio turno manuale
+        if (cambiTurnoManuali[cognome]) {
+            turnoEffettivo = turnoEffettivo === 1 ? 2 : 1;
         }
 
-        const isLab = isStudenteInLabOggi(r.dataset.classe, r.dataset.gruppo, oggi);
-        const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
-        const escluso = isLab || isPPNoCena || r.classList.contains("assente") || r.dataset.dinnerno === "1";
+        // ─── Registra il cambio turno (se diverso dall'originale) ───
+        if (turnoEffettivo !== turnoOriginale) {
+            const nota = turnoEffettivo === 1 ? "da 2° a 1°" : "da 1° a 2°";
+            const obj = {
+                cognome: cognome.toUpperCase(),
+                nome: nome,
+                classe: classe,
+                nota: nota
+            };
+            if (turnoEffettivo === 1) switch1.push(obj);
+            else switch2.push(obj);
+        }
 
+        // ─── Verifica esclusione dal dinner ───
+        const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
+        const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
+        const escluso =
+            isLab ||
+            isPPNoCena ||
+            r.classList.contains("assente") ||
+            r.dataset.dinnerno === "1";
+
+        // ─── Assegna al turno corretto ───
         if (turnoEffettivo === 1) {
             if (escluso) {
                 a1++;
-                n1.push(nomeCompleto + (isLab ? " (LAB)" : ""));
-            } else p1++;
+                n1.push({
+                    cognome: cognome.toUpperCase(),
+                    nome: nome,
+                    classe: classe,
+                    nota: isLab ? "LAB" : ""
+                });
+            } else {
+                p1++;
+            }
         } else {
             if (escluso) {
                 a2++;
-                n2.push(nomeCompleto + (isLab ? " (LAB)" : ""));
-            } else p2++;
+                n2.push({
+                    cognome: cognome.toUpperCase(),
+                    nome: nome,
+                    classe: classe,
+                    nota: isLab ? "LAB" : ""
+                });
+            } else {
+                p2++;
+            }
         }
     });
 
+    // ─── ORDINAMENTO ALFABETICO PER COGNOME ───
+    const ordinaCognome = (a, b) =>
+        a.cognome.localeCompare(b.cognome, "it", { sensitivity: "base" });
+
+    n1.sort(ordinaCognome);
+    n2.sort(ordinaCognome);
+    switch1.sort(ordinaCognome);
+    switch2.sort(ordinaCognome);
+
+    // ─── HELPER: genera l'HTML di una griglia di nomi a 2 colonne ───
+    function buildGrigliaNomi(lista, opzioni = {}) {
+        const { mostraNota = false, mostraClasse = true } = opzioni;
+
+        if (!lista.length) {
+            return `<div class="griglia-nomi"><div class="nome-item"><i>Nessuno</i></div></div>`;
+        }
+
+        const items = lista
+            .map((o) => {
+                const tagClasse = mostraClasse && o.classe
+                    ? ` <span class="tag-classe">${o.classe}</span>`
+                    : "";
+                const tagNota = mostraNota && o.nota
+                    ? ` <span class="tag-nota">${o.nota}</span>`
+                    : "";
+                return `<div class="nome-item"><b>${o.cognome}</b> ${o.nome}${tagClasse}${tagNota}</div>`;
+            })
+            .join("");
+
+        return `<div class="griglia-nomi">${items}</div>`;
+    }
+
+    // ─── TESTO PERMESSI DEL GIORNO ───
     const testiPermessi = {
-        1: "LAB 2IeFP - PERMESSI: DINNER ORE 20:30 DELL'AQUILA ",
-        2: "LAB 2A - PERMESSI: DINNER ORE 20:30 DELL'AQUILA, ORE 20:30 PAONESSA ",
-        3: "LAB 2B - PERMESSI: DINNER ORE 20:30 DELL'AQUILA ",
-        4: "LAB 5A/5B - PERMESSI: DINNER ORE 20:30 DELL'AQUILA "
+        1: "LAB 2IeFP - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, MENALDINO",
+        2: "LAB 2A - PERMESSI DINNER ORE 20:30 DELL'AQUILA, PAONESSA, CHIADÒ, GIOVANNELLI P",
+        3: "LAB 2B - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, GIOVANNELLI P, MENALDINO",
+        4: "LAB 5A/5B - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, GIOVANNELLI P, MENALDINO"
     };
     const notaGiornoCorrente = testiPermessi[giornoSett] || "";
 
-    const popup = window.open("", "_blank", "width=900,height=800");
+    // ─── GENERAZIONE POPUP ───
+    const popup = window.open("", "_blank", "width=1000,height=900");
     popup.document.write(`
         <html><head><title>Riepilogo Dinner - ${dataTestuale}</title><style>
-            body { font-family: sans-serif; padding: 40px; position: relative; }
-            h2 { text-align: center; text-transform: uppercase; margin-top: 20px; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px 40px; position: relative; color: #222; }
+            h2 { text-align: center; text-transform: uppercase; margin-top: 20px; margin-bottom: 6px; font-size: 1.6em; letter-spacing: 1px; }
+            h3 { font-size: 1em; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
             .timestamp { position: absolute; top: 10px; right: 20px; font-size: 0.8em; color: #666; }
-            .date { text-align: center; font-size: 1.2em; margin-bottom: 20px;}
-            .editable-notes { width: 100%; border: 1px dashed #ccc; font-size: 1.1em; font-weight: bold; text-align: center; text-transform: uppercase; padding: 10px; margin-bottom: 20px;}
-            .section { margin-bottom: 30px; border-left: 6px solid #333; padding-left: 20px; }
-            .stats-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-            input { font-size: 1.5em; font-weight: bold; width: 60px; border: none; border-bottom: 2px solid #000; text-align: center; background: transparent; }
-            .nomi, .cambi { font-size: 0.85em; color: #444; font-style: italic; margin-top: 10px; line-height: 1.4; }
-            .no-print { margin-top: 30px; display: flex; justify-content: center; }
-            @media print { .no-print { display: none; } .editable-notes { border: none; } }
+            .date { text-align: center; font-size: 1.15em; margin-bottom: 20px; color: #444; }
+            
+            .editable-notes { 
+                width: 100%; 
+                box-sizing: border-box;
+                border: 1px dashed #ccc; 
+                font-size: 1em; 
+                font-weight: bold; 
+                text-align: center; 
+                text-transform: uppercase; 
+                padding: 10px; 
+                margin-bottom: 24px;
+                font-family: inherit;
+                resize: vertical;
+            }
+            
+            .section { 
+                margin-bottom: 28px; 
+                border-left: 6px solid #333; 
+                padding-left: 18px; 
+                page-break-inside: avoid;
+            }
+            .section h3 { color: #2c3e50; }
+            
+            .stats-row { 
+                display: flex; 
+                gap: 24px; 
+                align-items: center; 
+                flex-wrap: wrap; 
+                margin-bottom: 12px;
+            }
+            .stats-row span {
+                font-size: 0.95em;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .stats-row input { 
+                font-size: 1.3em; 
+                font-weight: bold; 
+                width: 65px; 
+                border: none; 
+                border-bottom: 2px solid #000; 
+                text-align: center; 
+                background: transparent; 
+                font-family: inherit;
+                color: #000;
+            }
+            
+            .label-sezione {
+                font-size: 0.85em;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: #555;
+                margin-bottom: 4px;
+                letter-spacing: 0.5px;
+            }
+            
+            /* ── GRIGLIA NOMI A 2 COLONNE ── */
+            .griglia-nomi {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3px 20px;
+                margin: 4px 0 14px 0;
+                font-size: 0.85em;
+                color: #333;
+                line-height: 1.5;
+            }
+            .nome-item {
+                padding: 2px 4px;
+                border-bottom: 1px dotted #e0e0e0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .nome-item b { color: #000; }
+            
+            /* ── TAG ── */
+            .tag-classe {
+                display: inline-block;
+                background: #ecf0f1;
+                color: #2c3e50;
+                font-size: 0.75em;
+                font-weight: bold;
+                padding: 1px 6px;
+                border-radius: 3px;
+                text-transform: uppercase;
+                vertical-align: middle;
+                margin-left: 4px;
+            }
+            .tag-nota {
+                display: inline-block;
+                background: #fef9e7;
+                color: #b7950b;
+                font-size: 0.75em;
+                font-weight: bold;
+                padding: 1px 6px;
+                border-radius: 3px;
+                text-transform: uppercase;
+                vertical-align: middle;
+                margin-left: 4px;
+                border: 1px solid #f7dc6f;
+            }
+            
+            .no-print { margin-top: 20px; display: flex; justify-content: center; }
+            .no-print button {
+                padding: 14px 50px; 
+                background: #27ae60; 
+                color: white; 
+                font-weight: bold; 
+                border-radius: 80px; 
+                border: none; 
+                cursor: pointer; 
+                font-size: 0.95em;
+                font-family: inherit;
+                letter-spacing: 1px;
+                box-shadow: 0 4px 12px rgba(39,174,96,0.3);
+            }
+            .no-print button:hover { filter: brightness(1.08); }
+            
+            /* ── STAMPA ── */
+            /* ── STAMPA ── */
+@media print {
+    body { padding: 8px 12px; font-size: 0.9em; }
+    .no-print { display: none; }
+    .editable-notes { border: none; margin-bottom: 12px; padding: 6px; }
+    
+    /* Griglia più compatta in stampa: 3 colonne + font ridotto */
+    .griglia-nomi { 
+        grid-template-columns: repeat(3, 1fr); 
+        font-size: 0.62em; 
+        gap: 0px 12px;
+        margin: 2px 0 8px 0;
+        line-height: 1.2;
+    }
+    .nome-item { padding: 0; }
+    
+    .section { 
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+        padding-left: 12px;
+        border-left-width: 4px;
+    }
+    
+    h2 { font-size: 1.3em; margin: 8px 0 4px 0; }
+    h3 { font-size: 0.9em; margin-bottom: 6px; }
+    .date { font-size: 0.95em; margin-bottom: 12px; }
+    .stats-row { gap: 16px; margin-bottom: 8px; }
+    .stats-row span { font-size: 0.85em; }
+    .stats-row input { font-size: 1.1em; width: 55px; }
+    .label-sezione { font-size: 0.75em; margin-bottom: 2px; }
+}
+            @page { size: A4 portrait; margin: 1cm; }
         </style></head><body>
+        
             <div class="timestamp">aggiornamento ${dataOggi} ore ${oraEsatta}</div>
             <h2>Riepilogo Dinner</h2>
             <div class="date">${dataTestuale}</div>
-            <div class="no-print"><button onclick="window.print()" style="padding:15px 50px; background:#27ae60; color:white; font-weight:bold; border-radius:80px; border:none; cursor:pointer; font-size:0.9em;">•STAMPA</button></div>
+            
+            <div class="no-print">
+                <button onclick="window.print()">• STAMPA</button>
+            </div>
+            
             <textarea class="editable-notes" rows="2">${notaGiornoCorrente}</textarea>
+            
+            <!-- ═══════════ TURNO 1 ═══════════ -->
             <div class="section">
-                <h3>1° DINNER ore 18:30</h3>
+                <h3>1° turno — 18:30</h3>
+                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI 1A, 1B, 1P, 2A, 2B, 2FP, 3FP [mercoledì escluse 1A, 1B]
+                </div>
+                
                 <div class="stats-row">
                     <span>Assenti: <input type="number" value="${a1}"></span>
                     <span>Presenti: <input type="number" value="${p1}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
-                <div class="nomi"><b>Esclusi:</b> ${n1.length ? n1.join(", ") : "Nessuno"}</div>
-                <div class="cambi"><b>Cambi Turno:</b> ${switch1.length ? switch1.join(", ") : "Nessuno"}</div>
+                
+                <div class="label-sezione">Esclusi</div>
+                ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true })}
+                
+                <div class="label-sezione">Cambi Turno</div>
+                ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
             </div>
+            
+            <!-- ═══════════ TURNO 2 ═══════════ -->
             <div class="section">
-                <h3>2° DINNER ore 19:15</h3>
+                <h3>2° turno — 19:15</h3>
+                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI 3A, 3B, 4A, 4B, 4C, 5A, 5B [mercoledì comprese 1A, 1B]
+                </div>
+                
                 <div class="stats-row">
                     <span>Assenti: <input type="number" value="${a2}"></span>
                     <span>Presenti: <input type="number" value="${p2}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
-                <div class="nomi"><b>Esclusi:</b> ${n2.length ? n2.join(", ") : "Nessuno"}</div>
-                <div class="cambi"><b>Cambi Turno:</b> ${switch2.length ? switch2.join(", ") : "Nessuno"}</div>
+                
+                <div class="label-sezione">Esclusi</div>
+                ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
+                
+                <div class="label-sezione">Cambi Turno</div>
+                ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
             </div>
+            
         </body></html>`);
     popup.document.close();
 }
