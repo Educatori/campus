@@ -242,12 +242,24 @@ if (localStorage.getItem("ordineAlfabetico") === "true") {
                 <button class="btn-din" onclick="toggleDinnerNo(this)">NON CENA</button>
             </div>`;
 
-            if (isAssenteProgrammato(s.cognome, data)) {
-                r.classList.add("assente");
-                r.dataset.dinnerno = "1";
-            }
+                    // ── Assenza programmata (dal side panel) ──
+        if (isAssenteProgrammato(s.cognome, data)) {
+            r.classList.add("assente");
+            r.dataset.dinnerno = "1";
+        }
 
-            lista.appendChild(r);
+        // ── Assenza/dinner dedotti dal PP (SOSP, GITA, MAL…) ──
+        const statoPP = analizzaPP(s.cognome, data.getDay());
+        if (statoPP.assente) {
+            r.classList.add("assente");
+            r.dataset.dinnerno = "1";
+            r.classList.add("dinner-no");
+        } else if (statoPP.dinnerNo) {
+            r.dataset.dinnerno = "1";
+            r.classList.add("dinner-no");
+        }
+
+        lista.appendChild(r);
         });
 
     caricaDatiLocale();
@@ -534,28 +546,113 @@ function normalizzaOrario(valore) {
     return valore;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// analizzaPP() — Deduce stato assenza/dinner-no dai permessi PP
+// ═══════════════════════════════════════════════════════════════
+// Analizza i campi `out` e `in` del permesso permanente di uno
+// studente per un dato giorno della settimana e determina se le
+// parole-chiave indicano ASSENZA o solo NO-CENA.
+//
+// Regole:
+//   PAROLE_ASSENZA    in out o in  →  { assente: true,  dinnerNo: true  }
+//   PAROLE_NO_RIENTRO in in        →  { assente: false, dinnerNo: true  }
+//   altrimenti                     →  { assente: false, dinnerNo: false }
+//
+// Il match è PER TOKEN ESATTO (split su spazi, virgole, punti, trattini)
+// per evitare falsi positivi tipo "NORD" che contiene "no".
+//
+// @param {string} cognome  - cognome dello studente (case-insensitive)
+// @param {number} giorno   - giorno settimana (0=Dom … 6=Sab)
+// @returns {{assente:boolean, dinnerNo:boolean, etichetta:string}}
+// ═══════════════════════════════════════════════════════════════
+function analizzaPP(cognome, giorno) {
+    const cgn = (cognome || "").toUpperCase();
+    const pp = (typeof ORARI_PP !== "undefined" && ORARI_PP[cgn])
+        ? ORARI_PP[cgn][giorno]
+        : null;
+
+    if (!pp) return { assente: false, dinnerNo: false, etichetta: "" };
+
+    // Unisce out e in in un'unica stringa e tokenizza
+    const testo = `${pp.out || ""} ${pp.in || ""}`.toLowerCase();
+    const tokens = testo.split(/[\s,;/\-]+/).filter(Boolean);
+
+    // 1. Parole di ASSENZA (in out o in)
+    const parolaAssenza = tokens.find(t => PAROLE_ASSENZA.includes(t));
+    if (parolaAssenza) {
+        return {
+            assente: true,
+            dinnerNo: true,                 // assente ⇒ automaticamente non cena
+            etichetta: parolaAssenza.toUpperCase()
+        };
+    }
+
+    // 2. Parole di NO-RIENTRO (solo nel campo in)
+    const tokensIn = (pp.in || "").toLowerCase()
+        .split(/[\s,;/\-]+/).filter(Boolean);
+    const parolaNoRientro = tokensIn.find(t => PAROLE_NO_RIENTRO.includes(t));
+    if (parolaNoRientro) {
+        return { assente: false, dinnerNo: true, etichetta: "" };
+    }
+
+    return { assente: false, dinnerNo: false, etichetta: "" };
+}
+
+// Espone analizzaPP globalmente (usata anche da data-loader.js)
+window.analizzaPP = analizzaPP;
+
 function controllaDinnerAutomatico(riga) {
-    const classe = riga.dataset.classe;
+    const classe  = riga.dataset.classe;
     const cognome = riga.dataset.cognome;
     const giornoSettimana = getDataCorrente().getDay();
-    let entra = normalizzaOrario(riga.querySelector(".in-i").value);
-    let ppIn =
-        ORARI_PP[cognome] && ORARI_PP[cognome][giornoSettimana] ? normalizzaOrario(ORARI_PP[cognome][giornoSettimana].in) : "";
 
-    // Il limite dipende dal turno EFFETTIVO (override inclusi)
+    let entra = normalizzaOrario(riga.querySelector(".in-i").value);
+    let esce  = normalizzaOrario(riga.querySelector(".in-u").value);
+
+    const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giornoSettimana]
+        ? ORARI_PP[cognome][giornoSettimana]
+        : null;
+
+    let ppIn  = pp ? normalizzaOrario(pp.in  || "") : "";
+    let ppOut = pp ? normalizzaOrario(pp.out || "") : "";
+
+    // Turno effettivo → limite orario
     const turnoEffettivo = turnoStudente(classe, cognome);
     const limite = turnoEffettivo === 1 ? "18:30" : "19:15";
-    const paroleNo = ["n", "no", "non", "nor", "no r", "no rientro", "x"];
 
-    const isTardi = (orario) => orario.includes(":") && orario > limite;
-    const isNoRientro = (orario) => paroleNo.includes(orario);
+    const isTardi = (orario) =>
+        orario.includes(":") && orario > limite;
 
+    // Helper: tokenizza e cerca nelle liste globali
+    const contieneParola = (str, lista) => {
+        if (!str) return false;
+        const tokens = str.toLowerCase()
+            .split(/[\s,;/\-]+/).filter(Boolean);
+        return tokens.some(t => lista.includes(t));
+    };
+
+    const isNoRientro = (str) => contieneParola(str, PAROLE_NO_RIENTRO);
+    const isAssenza   = (str) => contieneParola(str, PAROLE_ASSENZA);
+
+    // ── Se già assente (da PP o da click) ⇒ dinner-no ──
+    if (riga.classList.contains("assente")) {
+        riga.dataset.dinnerno = "1";
+        riga.classList.add("dinner-no");
+        return;
+    }
+
+    // ── Se out/in contengono parola di ASSENZA ⇒ dinner-no ──
+    if (isAssenza(esce) || isAssenza(ppOut) ||
+        isAssenza(entra) || isAssenza(ppIn)) {
+        riga.dataset.dinnerno = "1";
+        riga.classList.add("dinner-no");
+        return;
+    }
+
+    // ── Logica originale: no-rientro o orario tardi ──
     if (
-        riga.classList.contains("assente") ||
-        isNoRientro(entra) ||
-        isNoRientro(ppIn) ||
-        isTardi(entra) ||
-        isTardi(ppIn)
+        isNoRientro(entra) || isNoRientro(ppIn) ||
+        isTardi(entra)     || isTardi(ppIn)
     ) {
         riga.dataset.dinnerno = "1";
         riga.classList.add("dinner-no");
@@ -565,8 +662,74 @@ function controllaDinnerAutomatico(riga) {
     }
 }
 
+/**
+ * Mostra un popup informativo quando l'utente tenta di modificare
+ * uno stato imposto da un Permesso Permanente (che è "legge").
+ *
+ * @param {string} cognome   - cognome dello studente
+ * @param {string} etichetta - parola-chiave del PP (es. "SOSP", "GITA")
+ * @param {string} motivo    - "assenza" | "non cena" | default generico
+ */
+function mostraPopupPPBloccato(cognome, etichetta, motivo) {
+    // Rimuovi eventuale popup precedente
+    const old = document.getElementById("ppBlockedPopup");
+    if (old) old.remove();
+
+    const dettaglio = motivo
+        ? `Lo stato di <b>${motivo}</b> è imposto dal PP <code>${etichetta}</code>.`
+        : `Lo stato è imposto dal PP <code>${etichetta}</code>.`;
+
+    const popup = document.createElement("div");
+    popup.id = "ppBlockedPopup";
+    popup.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        color: var(--text);
+        padding: 14px 22px;
+        border-radius: 12px;
+        border: 2px solid var(--absent, #dc2626);
+        font-family: var(--font);
+        font-size: 0.88rem;
+        z-index: 3000;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        max-width: 420px;
+        text-align: center;
+        animation: ppFadeIn 0.2s ease;
+    `;
+    popup.innerHTML = `
+        <div style="font-size:1.4em;margin-bottom:4px;">🔒</div>
+        <div style="font-weight:700;margin-bottom:6px;">
+            Permesso Permanente attivo
+        </div>
+        <div style="font-size:0.82em;color:var(--text-2);line-height:1.4;">
+            <b>${cognome}</b> — ${dettaglio}<br>
+            Non è possibile modificarlo manualmente.<br>
+            Per sbloccarlo, modifica il PP nel database.
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    // Rimozione automatica dopo 3.5 secondi
+    setTimeout(() => {
+        if (popup.parentNode) popup.remove();
+    }, 3500);
+}
+
 function toggleAssenza(btn) {
     const r = btn.closest(".student-row");
+    const cognome = r.dataset.cognome;
+    const giornoSettimana = getDataCorrente().getDay();
+
+    // ── BLOCCO: se il PP impone l'assenza, l'utente non può sbloccarla ──
+    const statoPP = analizzaPP(cognome, giornoSettimana);
+    if (statoPP.assente) {
+        mostraPopupPPBloccato(cognome, statoPP.etichetta || "PP");
+        return;
+    }
+
     r.classList.toggle("assente");
     btn.classList.toggle("active-ass");
     controllaDinnerAutomatico(r);
@@ -575,6 +738,19 @@ function toggleAssenza(btn) {
 
 function toggleDinnerNo(btn) {
     const r = btn.closest(".student-row");
+    const cognome = r.dataset.cognome;
+    const giornoSettimana = getDataCorrente().getDay();
+
+    // ── BLOCCO: se il PP impone l'assenza o il dinner-no, l'utente non può sbloccare ──
+    const statoPP = analizzaPP(cognome, giornoSettimana);
+    if (statoPP.assente || statoPP.dinnerNo) {
+        const motivo = statoPP.assente
+            ? `assenza (${statoPP.etichetta || "PP"})`
+            : "non cena";
+        mostraPopupPPBloccato(cognome, statoPP.etichetta || "PP", motivo);
+        return;
+    }
+
     r.dataset.dinnerno = r.dataset.dinnerno === "1" ? "0" : "1";
     r.classList.toggle("dinner-no");
     btn.classList.toggle("active-din");
@@ -1752,30 +1928,27 @@ function generaPopUpStampaRooming() {
     `);
     popup.document.close();
 }
+
 // funzione stand-by
 // Funzione condivisa per evitare ripetizioni e disallineamenti di dati
 function verificaStudenteStandBy(r) {
-    const paroleNo = ["n", "no", "non", "nor", "no rientro", "x"];
-    const giornoSettimana = new Date().getDay();
     const cognome = r.dataset.cognome;
-    
-    // 1. Condizione Assente
-    const condAssente = r.classList.contains("assente"); 
-    
-    // 2. Condizione Ingresso NO
-    const inputIngresso = r.querySelector(".in-i");
-    const ingressoNormalizzato = inputIngresso ? inputIngresso.value.trim().toLowerCase() : "";
-    const condIngressoNo = paroleNo.includes(ingressoNormalizzato);
-    
-    // 3. Condizione Permesso Rientro NO
-    let ppIn = "";
-    if (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome] && ORARI_PP[cognome][giornoSettimana]) {
-        ppIn = ORARI_PP[cognome][giornoSettimana].in;
-    }
-    const condPpNo = ppIn.trim().toLowerCase().includes("no rientro");
+    const giornoSettimana = getDataCorrente().getDay();   // ← usa data simulata
 
-    return condAssente || condIngressoNo || condPpNo;
+    // 1. Stato assente visivo
+    if (r.classList.contains("assente")) return true;
+
+    // 2. Deduci dal PP (coerente con analizzaPP)
+    const statoPP = analizzaPP(cognome, giornoSettimana);
+    if (statoPP.assente || statoPP.dinnerNo) return true;
+
+    // 3. Controlla il campo ingresso
+    const inputIngresso = r.querySelector(".in-i");
+    const val = inputIngresso ? inputIngresso.value.trim().toLowerCase() : "";
+    const tokens = val.split(/[\s,;/\-]+/).filter(Boolean);
+    return tokens.some(t => PAROLE_NO_RIENTRO.includes(t));
 }
+
 // --- CONVITTO riepilogo
 function generaPopUpStampaConvitto() {
     const dataStampa = document.getElementById("todayDate").innerText;
@@ -2630,46 +2803,6 @@ function togglePanel() {
     }
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * SIDE PANEL — Gestione Permessi Permanenti
- * ─────────────────────────────────────────────────────────────
- * Apre/chiude il pannello laterale e, all'apertura, calcola
- * dinamicamente l'altezza dell'overlay semi-trasparente in modo
- * che copra esattamente gli elementi superiori (header, note,
- * toolbar, griglia tasti) lasciandoli visibili e CLICCABILI
- * grazie a pointer-events:none impostato nell'HTML.
- * ─────────────────────────────────────────────────────────────
- */
-function togglePanel() {
-    const panel = document.getElementById("sidePanel");
-    if (!panel) {
-        console.warn("⚠️ #sidePanel non trovato nel DOM");
-        return;
-    }
-
-    // Legge lo stato attuale: se right è "0px" è aperto
-    const isOpen = panel.style.right === "0px";
-
-    if (isOpen) {
-        // ── CHIUDI ──
-        panel.style.right = "-350px";
-    } else {
-        // ── APRI ──
-        // 1. Popola i contenuti del pannello
-        if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
-        if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
-        if (typeof renderListaAssenze   === "function") renderListaAssenze();
-        if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
-
-        // 2. Calcola l'altezza dell'overlay in base agli elementi sopra
-        aggiornaAltezzaOverlay();
-
-        // 3. Apri il pannello (animazione CSS transition:right)
-        panel.style.right = "0px";
-    }
-}
-
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -2709,8 +2842,7 @@ function aggiornaAltezzaOverlay() {
 
     /* rimossi per diminuire la zona smerigliata
      *  
-    // 4. Toolbar principale
-    const toolbar = document.querySelector(".toolbar");
+    // 4. Toolbar principale    const toolbar = document.querySelector(".toolbar");
     if (toolbar) h += toolbar.offsetHeight;
 
     // 5. Griglia tasti (div subito dopo la toolbar)
@@ -2806,56 +2938,88 @@ function salvaDatiLocale() {
 
 function caricaDatiLocale() {
     const dati = JSON.parse(localStorage.getItem("datiConvitto") || "{}");
-    const giornoSettimana = new Date().getDay();
+    const giornoSettimana = getDataCorrente().getDay();
 
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
         const cgn = cognome.toUpperCase();
         const d = dati[cognome];
 
+        // ── Analizza il PP per dedurre assenza / no-cena ──
+        const statoPP = analizzaPP(cgn, giornoSettimana);
+
+        // ── Recupera gli orari PP ──
         let ppOut = "";
         let ppIn = "";
         if (ORARI_PP[cgn] && ORARI_PP[cgn][giornoSettimana]) {
             ppOut = ORARI_PP[cgn][giornoSettimana].out || "";
-            ppIn = ORARI_PP[cgn][giornoSettimana].in || "";
+            ppIn  = ORARI_PP[cgn][giornoSettimana].in  || "";
         }
 
-        r.querySelector(".in-u").value = d && d.esce !== undefined ? d.esce : ppOut;
-        r.querySelector(".in-i").value = d && d.entra !== undefined ? d.entra : ppIn;
+        // ── Applica i valori agli input ──
+        r.querySelector(".in-u").value =
+            d && d.esce  !== undefined ? d.esce  : ppOut;
+        r.querySelector(".in-i").value =
+            d && d.entra !== undefined ? d.entra : ppIn;
 
-        if (d) {
-            if (d.assente) {
-                r.classList.add("assente");
-                const btnAss = r.querySelector(".btn-ass");
-                if (btnAss) btnAss.classList.add("active-ass");
-            } else {
-                r.classList.remove("assente");
-                const btnAss = r.querySelector(".btn-ass");
-                if (btnAss) btnAss.classList.remove("active-ass");
-            }
+        // ════════════════════════════════════════════════════════
+        // LOGICA ASSENZA
+        // ────────────────────────────────────────────────────────
+        // Precedenza (PP è legge):
+        //   1. PP dice assente → SEMPRE assente, nessuno può sbloccare
+        //   2. altrimenti override utente (d.assente definito)
+        //   3. altrimenti non assente
+        // ════════════════════════════════════════════════════════
+        let assenteFinale;
 
-            if (d.dinnerno === "1") {
-                r.classList.add("dinner-no");
-                const btnDin = r.querySelector(".btn-din");
-                if (btnDin) btnDin.classList.add("active-din");
-                r.dataset.dinnerno = "1";
-            } else {
-                r.classList.remove("dinner-no");
-                const btnDin = r.querySelector(".btn-din");
-                if (btnDin) btnDin.classList.remove("active-din");
-                r.dataset.dinnerno = "0";
-            }
-
-            if (d.switch) {
-                cambiTurnoManuali[cognome] = true;
-            }
+        if (statoPP.assente) {
+            assenteFinale = true;                                   // ← PP vince sempre
+        } else if (d && d.assente !== undefined) {
+            assenteFinale = d.assente === true;                     // ← override utente
+        } else {
+            assenteFinale = false;
         }
 
+        r.classList.toggle("assente", assenteFinale);
+        const btnAss = r.querySelector(".btn-ass");
+        if (btnAss) btnAss.classList.toggle("active-ass", assenteFinale);
+
+        // ════════════════════════════════════════════════════════
+        // LOGICA DINNER-NO
+        // ────────────────────────────────────────────────────────
+        // Precedenza (PP è legge):
+        //   1. assente → sempre dinner-no
+        //   2. PP dice dinner-no → SEMPRE dinner-no
+        //   3. altrimenti override utente
+        //   4. altrimenti non dinner-no
+        // ════════════════════════════════════════════════════════
+        let dinnerNoFinale;
+
+        if (assenteFinale) {
+            dinnerNoFinale = true;
+        } else if (statoPP.dinnerNo) {
+            dinnerNoFinale = true;                                  // ← PP vince sempre
+        } else if (d && d.dinnerno !== undefined) {
+            dinnerNoFinale = d.dinnerno === "1";
+        } else {
+            dinnerNoFinale = false;
+        }
+
+        r.dataset.dinnerno = dinnerNoFinale ? "1" : "0";
+        r.classList.toggle("dinner-no", dinnerNoFinale);
+        const btnDin = r.querySelector(".btn-din");
+        if (btnDin) btnDin.classList.toggle("active-din", dinnerNoFinale);
+
+        // ── Switch turno ──
+        if (d && d.switch) {
+            cambiTurnoManuali[cognome] = true;
+        }
         if (cambiTurnoManuali[cognome]) {
             const btnSwitch = r.querySelector(".btn-switch");
             if (btnSwitch) btnSwitch.classList.add("modificato");
         }
 
+        // ── Ricalcola dinner automatico (orari tardi, ecc.) ──
         controllaDinnerAutomatico(r);
     });
 }
@@ -2938,6 +3102,27 @@ function renderDatiRemoti(datiGiorno) {
         cambiTurnoManuali[cognome] = oraSwitch;
         const btnSwitch = r.querySelector(".btn-switch");
         if (btnSwitch) btnSwitch.classList.toggle("modificato", oraSwitch);
+    });
+
+    // ─── Riapplica il PP: se il PP dice assente/dinner, vince sempre ───
+    document.querySelectorAll(".student-row").forEach((r) => {
+        const cognome = r.dataset.cognome;
+        const statoPP = analizzaPP(cognome, giornoSettimana);
+
+        if (statoPP.assente) {
+            r.classList.add("assente");
+            r.dataset.dinnerno = "1";
+            r.classList.add("dinner-no");
+            const btnA = r.querySelector(".btn-ass");
+            if (btnA) btnA.classList.add("active-ass");
+            const btnD = r.querySelector(".btn-din");
+            if (btnD) btnD.classList.add("active-din");
+        } else if (statoPP.dinnerNo) {
+            r.dataset.dinnerno = "1";
+            r.classList.add("dinner-no");
+            const btnD = r.querySelector(".btn-din");
+            if (btnD) btnD.classList.add("active-din");
+        }
     });
 
     // Ricalcola dinner automatico per tutte le righe
