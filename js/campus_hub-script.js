@@ -1,4 +1,4 @@
-/**
+/** 
  * CAMPUS_HUB-SCRIPT.JS - Versione su Firebase 
  nota bene:
  // --- ROOMING list
