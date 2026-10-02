@@ -9,7 +9,23 @@ function generaPopUpStampaRooming() {
 
 // --- VARIABILE PER ORDINAMENTO LISTA ---
 let ordineAlfabetico = false; // false = per room (default), true = per cognome
+/* ─────────────────────────────────────────────────────────────
+   COSTANTI GLOBALI — parole chiave per dedurre stati dal PP
+   ───────────────────────────────────────────────────────────── */
+const PAROLE_ASSENZA = [
+    "sosp", "sospeso", "sospensione",
+    "gita", "viaggio", "vacanza",
+    "assente", "assenza",
+    "malattia", "casa", "famiglia",
+    "ricovero", "ospedale",
+    "stage", "alternanza"
+];
 
+const PAROLE_NO_RIENTRO = [
+    "no", "non", "niente", "noreturn",
+    "tardi", "ritardo", "ritardato",
+    "dopo", "post"
+];
 /**
  * Alterna l'ordinamento della lista studenti tra "per room" e "alfabetico per cognome"
  */
@@ -177,62 +193,78 @@ function ricaricaListaStudenti() {
     // Reset filtro classe
     const classeFilter = document.getElementById("classeFilter");
     if (classeFilter) classeFilter.value = "";
-    
+
     const data = getDataCorrente();
     const studenti = [...studenticonvittori];
-    
-    // Ordinamento condizionale
-studenti.sort((a, b) => {
-    if (ordineAlfabetico) {
-        // Alfabetico per cognome
-        const c = (a.cognome || "").localeCompare(b.cognome || "", "it", { sensitivity: "base" });
-        if (c !== 0) return c;
-        return (a.nome || "").localeCompare(b.nome || "", "it", { sensitivity: "base" });
-    } else {
-        // Per room (default)
-        return a.room.localeCompare(b.room, undefined, { numeric: true });
+
+    // ── Ripristina preferenza ordinamento da localStorage ──
+    if (localStorage.getItem("ordineAlfabetico") === "true") {
+        ordineAlfabetico = true;
+        const btn = document.getElementById("btnOrdineAlfabetico");
+        if (btn) {
+            btn.style.background = "var(--accent)";
+            btn.style.color = "white";
+            btn.textContent = "🔤 A-Z ✓";
+        }
     }
-});
-    
-    // Ripristina ordinamento preferito
-if (localStorage.getItem("ordineAlfabetico") === "true") {
-    ordineAlfabetico = true;
-    const btn = document.getElementById("btnOrdineAlfabetico");
-    if (btn) {
-        btn.style.background = "var(--accent)";
-        btn.style.color = "white";
-        btn.textContent = "🔤 A-Z ✓";
-    }
-}
-    
-    studenti
-        .sort((a, b) => a.room.localeCompare(b.room, undefined, { numeric: true }))
-        .forEach((s) => {
-            const r = document.createElement("div");
-            r.className = "student-row";
 
-            const isLab = isStudenteInLabOggi(s.classe, s.gruppo, data);
-            if (isLab) r.classList.add("highlight-lab");
+    // ── Ordinamento condizionale (per room o alfabetico) ──
+    studenti.sort((a, b) => {
+        if (ordineAlfabetico) {
+            // Alfabetico per cognome
+            const c = (a.cognome || "").localeCompare(b.cognome || "", "it", { sensitivity: "base" });
+            if (c !== 0) return c;
+            return (a.nome || "").localeCompare(b.nome || "", "it", { sensitivity: "base" });
+        } else {
+            // Per room (default)
+            return a.room.localeCompare(b.room, undefined, { numeric: true });
+        }
+    });
 
-            r.dataset.cognome = s.cognome;
-            r.dataset.nomeCompleto = s.cognome + " " + s.nome;
-            r.dataset.classe = s.classe;
-            r.dataset.room = s.room;
-            r.dataset.gruppo = s.gruppo || "";
-            r.dataset.percorso = s.percorso || "";
-            r.dataset.dinnerno = "0";
+    studenti.forEach((s) => {
+        const r = document.createElement("div");
+        r.className = "student-row";
 
-            r.innerHTML = `
+        const isLab = isStudenteInLabOggi(s.classe, s.gruppo, data);
+        if (isLab) r.classList.add("highlight-lab");
+
+        r.dataset.cognome = s.cognome;
+        r.dataset.nomeCompleto = s.cognome + " " + s.nome;
+        r.dataset.classe = s.classe;
+        r.dataset.room = s.room;
+        r.dataset.gruppo = s.gruppo || "";
+        r.dataset.percorso = s.percorso || "";
+        r.dataset.dinnerno = "0";
+
+        // ── Calcola turno cena dello studente ──
+        const turno = turnoStudente(s.classe, s.cognome);
+
+        // ── Calcola stato PP (assente/dinner dedotti dalle parole-chiave) ──
+        const statoPP = analizzaPP(s.cognome, data.getDay());
+
+        // ── Badge turno cena (🍽 18:30 / 19:15) ──
+        const turnoHtml = `<span class="st-turno t${turno}">🍽 ${turno === 1 ? '18:30' : '19:15'}</span>`;
+
+        // ── Badge PP bloccato (🔒 SOSP / GITA / ecc.) ──
+        const ppBadge = (statoPP.assente || statoPP.dinnerNo)
+            ? `<span class="pp-badge">🔒 ${statoPP.etichetta || 'PP'}</span>`
+            : "";
+
+        r.innerHTML = `
             <div class="st-header">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="room-badge">room ${s.room}</span>
-                    <button class="btn-switch" onclick="toggleSwitchTurno(this)">⇄</button>
+                <div>
+                    <span class="room-badge">${s.room}</span>
+                    <button class="btn-switch" onclick="toggleSwitchTurno(this)" title="Cambia turno">⇄</button>
+                    ${ppBadge}
                 </div>
-                <span style="font-size:0.75em; color:#666; font-weight:bold;">
-                    ${s.classe} ${s.percorso ? "" + s.percorso + "" : ""} ${s.gruppo || ""} ${isLab ? '<span class="lab-badge">LAB</span>' : ""} 
-                </span>
+                ${turnoHtml}
             </div>
-            <b style="font-size:1.1em">${s.cognome}</b> ${s.nome}
+            <div class="st-name-line">
+                <b>${s.cognome}</b> ${s.nome}
+            </div>
+            <div class="st-meta">
+                ${s.classe}${s.percorso ? ' • ' + s.percorso : ''}${s.gruppo ? ' • ' + s.gruppo : ''}${isLab ? ' • <span class="lab-badge">LAB</span>' : ''}
+            </div>
             <div class="inputs">
                 <input type="text" placeholder="ESCE" class="in-u" onchange="this.value=normalizzaOrario(this.value); salvaDatiLocale();">
                 <input type="text" placeholder="ENTRA" class="in-i" oninput="controllaDinnerAutomatico(this.closest('.student-row'))" onchange="this.value=normalizzaOrario(this.value); salvaDatiLocale();">
@@ -242,25 +274,26 @@ if (localStorage.getItem("ordineAlfabetico") === "true") {
                 <button class="btn-din" onclick="toggleDinnerNo(this)">NON CENA</button>
             </div>`;
 
-                    // ── Assenza programmata (dal side panel) ──
+        // ── Assenza programmata (dal side panel) ──
         if (isAssenteProgrammato(s.cognome, data)) {
             r.classList.add("assente");
             r.dataset.dinnerno = "1";
         }
 
-        // ── Assenza/dinner dedotti dal PP (SOSP, GITA, MAL…) ──
-        const statoPP = analizzaPP(s.cognome, data.getDay());
+        // ── Assenza/dinner dedotti dal PP ──
         if (statoPP.assente) {
             r.classList.add("assente");
-            r.dataset.dinnerno = "1";
             r.classList.add("dinner-no");
+            r.classList.add("pp-locked");   // ← marca la card come bloccata da PP
+            r.dataset.dinnerno = "1";
         } else if (statoPP.dinnerNo) {
-            r.dataset.dinnerno = "1";
             r.classList.add("dinner-no");
+            r.classList.add("pp-locked");   // ← marca la card come bloccata da PP
+            r.dataset.dinnerno = "1";
         }
 
         lista.appendChild(r);
-        });
+    });
 
     caricaDatiLocale();
 }
@@ -2774,36 +2807,83 @@ function popolaSelectClassi() {
  * grazie a pointer-events:none impostato nell'HTML.
  * ─────────────────────────────────────────────────────────────
  */
+/**
+ * ─────────────────────────────────────────────────────────────
+ * SIDE PANEL — Apertura / chiusura
+ * ─────────────────────────────────────────────────────────────
+ */
 function togglePanel() {
-    const panel = document.getElementById("sidePanel");
-    if (!panel) {
-        console.warn("⚠️ #sidePanel non trovato nel DOM");
-        return;
-    }
+    const panel = document.getElementById('sidePanel');
+    if (!panel) return;
 
-    // Legge lo stato attuale: se right è "0px" è aperto
-    const isOpen = panel.style.right === "0px";
+    const isOpening = !panel.classList.contains('open');
+    panel.classList.toggle('open');
 
-    if (isOpen) {
-        // ── CHIUDI ──
-        panel.style.right = "-350px";
-    } else {
-        // ── APRI ──
-        // 1. Popola i contenuti del pannello
+    // All'apertura, popola i contenuti e ricalcola l'overlay
+    if (isOpening) {
         if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
         if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
         if (typeof renderListaAssenze   === "function") renderListaAssenze();
         if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
-
-        // 2. Calcola l'altezza dell'overlay in base agli elementi sopra
         aggiornaAltezzaOverlay();
-
-        // 3. Apri il pannello (animazione CSS transition:right)
-        panel.style.right = "0px";
     }
 }
 
+// Helper opzionale per verificare lo stato del pannello da qualsiasi punto del codice
+function isPanelOpen() {
+    const panel = document.getElementById('sidePanel');
+    return panel ? panel.classList.contains('open') : false;
+}
 
+// Chiusura cliccando fuori dal pannello
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('sidePanel');
+    if (!panel || !panel.classList.contains('open')) return;
+    if (panel.contains(e.target)) return;
+    if (e.target.closest('[onclick*="togglePanel"]')) return;
+    panel.classList.remove('open');
+});
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Calcola l'altezza dell'overlay semi-trasparente del pannello
+ * in base all'altezza reale degli elementi visibili sotto di esso.
+ * ─────────────────────────────────────────────────────────────
+ */
+function aggiornaAltezzaOverlay() {
+    const overlay = document.getElementById("sidePanelOverlay");
+    if (!overlay) return;
+
+    let h = 0;
+
+    const header = document.querySelector("header");
+    if (header) h += header.offsetHeight;
+
+    const note = document.querySelector(".note-toolbar-container");
+    if (note) h += note.offsetHeight;
+
+    const infoReset = document.getElementById("info-reset");
+    if (infoReset) h += infoReset.offsetHeight;
+
+    // Margine di sicurezza
+    h += 70;
+
+    overlay.style.flex = `0 0 ${h}px`;
+
+    console.log(`🔲 Overlay permessi: ${h}px`);
+}
+
+// Ricalcola al resize della finestra (solo se il pannello è aperto)
+window.addEventListener("resize", () => {
+    if (isPanelOpen()) {
+        aggiornaAltezzaOverlay();
+    }
+});
+
+// Ricalcola al caricamento iniziale (con delay per il rendering completo)
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => aggiornaAltezzaOverlay(), 150);
+});
 /**
  * ─────────────────────────────────────────────────────────────
  * Calcola l'altezza dell'overlay semi-trasparente del pannello

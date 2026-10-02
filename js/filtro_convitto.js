@@ -26,4 +26,5 @@
     }));
 
     console.log(`Convittori caricati: ${window.studenticonvittori.length}`);
+
 })();

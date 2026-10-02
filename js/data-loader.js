@@ -68,28 +68,6 @@ window.CALENDARIO_GRUPPI_DINNER = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// 1a PAROLE-CHIAVE PER L'INTERPRETAZIONE DEI PERMESSI PERMANENTI
-// ─────────────────────────────────────────────────────────────
-// Usate da analizzaPP() in campus_hub-script.js.
-//
-// PAROLE_ASSENZA     → se compaiono in OUT o IN del PP
-//                      ⇒ studente ASSENTE + NON CENA
-// PAROLE_NO_RIENTRO  → se compaiono in IN del PP
-//                      ⇒ studente NON CENA (resta presente)
-// ─────────────────────────────────────────────────────────────
-
-window.PAROLE_ASSENZA = [
-   "ass", "assente",
-    "sosp", "sospeso", "sospesa",
-    "gita", "trasferta", "malattia"
-];
-
-window.PAROLE_NO_RIENTRO = [
-    "n", "no", "non", "nor",
-    "no r", "no rientro", "x"
-];
-
-// ─────────────────────────────────────────────────────────────
 // 2. INIZIALIZZAZIONE con OFF
 // ─────────────────────────────────────────────────────────────
 window.tuttiStudenti      = offlineStudenti;
@@ -235,33 +213,19 @@ async function caricaDatiFirebase() {
 async function salvaDatiFirebase() {
     try {
         const chiave = dataKeyFirebase(new Date());
-        const giorno = new Date().getDay();
         const dati = {};
-
         document.querySelectorAll('.student-row').forEach(r => {
-            const cognome = r.dataset.cognome;
-
-            // Deduci lo stato dal PP (se la funzione è disponibile)
-            const statoPP = (typeof window.analizzaPP === 'function')
-                ? window.analizzaPP(cognome, giorno)
-                : { assente: false, dinnerNo: false };
-
-            const assenteNelDom  = r.classList.contains('assente');
-            const dinnerNoNelDom = r.dataset.dinnerno === "1";
-
-            dati[cognome] = {
+            dati[r.dataset.cognome] = {
                 esce:     r.querySelector('.in-u')?.value ?? "",
                 entra:    r.querySelector('.in-i')?.value ?? "",
-                // ── Il PP è legge: non salvare come override ciò che impone ──
-                assente:  statoPP.assente  ? false : assenteNelDom,
-                dinnerno: statoPP.dinnerNo ? "0"   : (dinnerNoNelDom ? "1" : "0"),
-                switch:   window.cambiTurnoManuali?.[cognome] ?? false
+                assente:  r.classList.contains('assente'),
+                dinnerno: r.dataset.dinnerno ?? "0",
+                switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
             };
         });
-
+       
         await set(ref(db, `convitto/${chiave}/dati`), dati);
         await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
-
         console.log(`☁️ Salvato: ${Object.keys(dati).length} studenti (${chiave})`);
         return true;
     } catch (error) {
@@ -269,23 +233,6 @@ async function salvaDatiFirebase() {
         return false;
     }
 }
-
-// ─────────────────────────────────────────────────────────────
-// 5a. DEBOUNCE salvataggio Firebase
-// ─────────────────────────────────────────────────────────────
-let salvaDebounceTimer = null;
-
-function salvaDatiFirebaseDebounced() {
-    clearTimeout(salvaDebounceTimer);
-    salvaDebounceTimer = setTimeout(() => {
-        if (typeof salvaDatiFirebase === 'function') {
-            salvaDatiFirebase();
-        }
-    }, 1000); // 1000ms di debounce
-}
-
-window.salvaDatiFirebaseDebounced = salvaDatiFirebaseDebounced;
-
 // ─────────────────────────────────────────────────────────────
 // 5b. SALVATAGGIO NOTE (realtime)
 // ─────────────────────────────────────────────────────────────
@@ -299,12 +246,20 @@ async function salvaNoteFirebase(testo) {
 window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
-// 6. WRAPPER salvataggio locale → Firebase (RIMOSSO)
+// 6. WRAPPER salvataggio locale → Firebase
 // ─────────────────────────────────────────────────────────────
-// La chiamata a salvaDatiFirebaseDebounced() è già inclusa
-// dentro salvaDatiLocale() in campus_hub-script.js.
-// Non serve un secondo wrapper (evita doppie chiamate).
-// 
+window.addEventListener('load', () => {
+    const _orig = window.salvaDatiLocale;
+    if (typeof _orig === 'function') {
+        window.salvaDatiLocale = function () {
+            _orig();
+            window.salvaDatiFirebase();
+        };
+        console.log('🔗 Wrapper salvataggio attivo');
+    }
+});
+
+
 // ─────────────────────────────────────────────────────────────
 // 7. ESPOSIZIONE GLOBALE
 // ─────────────────────────────────────────────────────────────
@@ -384,139 +339,6 @@ function attivaNoteCondivise() {
 
 window.attivaNoteCondivise = attivaNoteCondivise;
 
-/// ─────────────────────────────────────────────────────────────
-// 8b. SYNC DATI GIORNALIERI (realtime)
-// ─────────────────────────────────────────────────────────────
-
-let syncDatiListenerAttivo = false;
-let syncRemotoInCorso = false;   // evita loop: remoto → DOM → salva → Firebase
-let syncChiaveAttuale = null;
-
-/**
- * Attiva il listener realtime sui dati giornalieri.
- * Va chiamata DOPO che l'utente è autorizzato e l'app è visibile.
- *
- * Quando un altro terminale scrive su `convitto/{chiaveOggi}/dati`,
- * Firebase notifica questo client → aggiorna le card → non riscrive
- * su Firebase (il flag syncRemotoInCorso lo impedisce).
- */
-function attivaSyncDatiGiornalieri() {
-    if (syncDatiListenerAttivo) return;
-    syncDatiListenerAttivo = true;
-
-    const chiave = dataKeyFirebase(new Date());
-    syncChiaveAttuale = chiave;
-
-    console.log(`🔄 Sync dati giornalieri attiva su convitto/${chiave}/dati`);
-
-    const datiRef = ref(db, `convitto/${chiave}/dati`);
-
-    onValue(datiRef, (snap) => {
-        // ─── Cambio giorno a mezzanotte: riattiva su nuova chiave ───
-        const chiaveNuova = dataKeyFirebase(new Date());
-        if (chiaveNuova !== syncChiaveAttuale) {
-            console.log(`🌙 Cambio giorno rilevato: ${syncChiaveAttuale} → ${chiaveNuova}`);
-            // Ricarica i dati per il nuovo giorno
-            syncChiaveAttuale = chiaveNuova;
-            syncDatiListenerAttivo = false;
-            attivaSyncDatiGiornalieri();
-            return;
-        }
-
-        if (!snap.exists()) {
-            console.log('ℹ️ Nessun dato remoto per oggi');
-            return;
-        }
-
-        const datiGiorno = snap.val() || {};
-        console.log(`⬇️ Sync remota: ${Object.keys(datiGiorno).length} studenti`);
-
-        // ─── Evita loop: se stiamo scrivendo noi, salta ───
-        if (syncRemotoInCorso) return;
-
-        // ─── Confronta con i dati locali per evitare re-render inutili ───
-        const datiLocaliStr = localStorage.getItem('datiConvitto') || '{}';
-        let datiLocali;
-        try { datiLocali = JSON.parse(datiLocaliStr); } catch { datiLocali = {}; }
-
-        const diversi = JSON.stringify(datiLocali) !== JSON.stringify(datiGiorno);
-        if (!diversi) return;
-
-        // ─── Aggiorna localStorage con i dati remoti ───
-        localStorage.setItem('datiConvitto', JSON.stringify(datiGiorno));
-
-        // ─── Applica i dati alle card visibili ───
-        syncRemotoInCorso = true;
-        try {
-            if (typeof window.renderDatiRemoti === 'function') {
-                window.renderDatiRemoti(datiGiorno);
-            } else if (typeof caricaDatiLocale === 'function') {
-                caricaDatiLocale();
-            }
-        } finally {
-            syncRemotoInCorso = false;
-        }
-    });
-}
-
-window.attivaSyncDatiGiornalieri = attivaSyncDatiGiornalieri;
-
-
-// ─────────────────────────────────────────────────────────────
-// 8c. SYNC ULTIMO AGGIORNAMENTO (realtime)
-// ─────────────────────────────────────────────────────────────
-// Ascolta il nodo `convitto/{chiaveOggi}/lastUpdate` per mostrare
-// in tempo reale a TUTTI i terminali l'ultima modifica fatta.
-// ─────────────────────────────────────────────────────────────
-
-let lastUpdateListenerAttivo = false;
-
-function attivaUltimoAggiornamento() {
-    if (lastUpdateListenerAttivo) return;
-    lastUpdateListenerAttivo = true;
-
-    const chiave = dataKeyFirebase(new Date());
-    const lastUpdateRef = ref(db, `convitto/${chiave}/lastUpdate`);
-
-    console.log(`🕒 Sync ultimo aggiornamento attiva su convitto/${chiave}/lastUpdate`);
-
-    onValue(lastUpdateRef, (snap) => {
-        if (!snap.exists()) return;
-
-        const timestamp = snap.val();
-        if (!timestamp) return;
-
-        // Formatta data e ora
-        const d = new Date(timestamp);
-        const dataOra = d.toLocaleString("it-IT", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
-
-        // Aggiorna localStorage (per persistenza tra reload)
-        localStorage.setItem("dataUltimaModifica", dataOra);
-
-        // Aggiorna il display se la funzione esiste
-        if (typeof window.aggiornaInfoReset === 'function') {
-            window.aggiornaInfoReset();
-        } else {
-            // Fallback: aggiorna direttamente il testo
-            const el = document.getElementById("info-reset");
-            if (el) {
-                const dReset = localStorage.getItem("dataUltimoReset") || "MAI";
-                el.innerText = `Ultimo reset locale: ${dReset} | Ultima modifica online: ${dataOra}`;
-            }
-        }
-
-        console.log(`🕒 Ultimo aggiornamento: ${dataOra}`);
-    });
-}
-
-window.attivaUltimoAggiornamento = attivaUltimoAggiornamento;
-
 // ─────────────────────────────────────────────────────────────
 // 9. EXPORT per import() dinamico (campus_hub.html)
 // ─────────────────────────────────────────────────────────────
@@ -526,7 +348,5 @@ export {
     salvaNoteFirebase,
     dataKeyFirebase,
     normalizzaPP,
-    attivaNoteCondivise,
-    attivaSyncDatiGiornalieri,   
-    attivaUltimoAggiornamento    
+    attivaNoteCondivise
 };
