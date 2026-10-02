@@ -31,7 +31,7 @@
             font-size: 1.1rem;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            background: linear-gradient(90deg, var(--header-grad-start), var(--header-grad-end));
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -64,7 +64,7 @@
         .login-container button {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(90deg, var(--header-grad-start), var(--header-grad-end));
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
             color: var(--text-inv);
             border: none;
             border-radius: var(--radius);
@@ -95,7 +95,7 @@
 
         /* ─── APP HEADER ──────────────────────────────────────── */
         .app-header {
-            background: var(--bg-2);
+            background: var(--surface);
             border: 1px solid var(--border-2);
             padding: 14px 20px;
             border-radius: var(--radius-xl);
@@ -114,7 +114,7 @@
             font-size: 1.05rem;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            background: linear-gradient(90deg, var(--header-grad-start), var(--header-grad-end));
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -136,7 +136,7 @@
         .stats {
             background: var(--accent-dim);
             color: var(--accent);
-            border: 1px solid rgba(79,142,247,0.25);
+            border: 1px solid var(--accent-dim);
             padding: 5px 14px;
             border-radius: 20px;
             font-size: 0.78rem;
@@ -147,7 +147,8 @@
 
         .button-group { display: flex; gap: 8px; }
 
-        .btn {
+        /* Bottoni app ridenominati .btn-app-* per evitare conflitto con .btn di campus_hub.css */
+        .btn-app {
             padding: 8px 16px;
             border: none;
             border-radius: var(--radius);
@@ -159,12 +160,12 @@
             letter-spacing: 0.03em;
         }
 
-        .btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
+        .btn-app:hover { filter: brightness(1.12); transform: translateY(-1px); }
+        .btn-app:active { transform: translateY(0); }
 
-        .btn-primary  { background: var(--btn-t1); color: white; }
-        .btn-secondary{ background: var(--btn-reset); color: white; }
-        .btn-danger   { background: var(--absent); color: white; }
+        .btn-app-primary   { background: var(--btn-t1);     color: white; }
+        .btn-app-secondary { background: var(--btn-reset);  color: white; }
+        .btn-app-danger    { background: var(--absent);     color: white; }
 
         /* ─── GRIGLIA CAMERE ──────────────────────────────────── */
         .rooms-grid {
@@ -266,26 +267,26 @@
 
         /* Stand-by: giallo ambra */
         .student-item.stato-assente {
-            background: rgba(243,156,18,0.12);
+            background: var(--lab-dim);
             border-left: 3px solid var(--lab);
         }
-        .student-item.stato-assente:hover { background: rgba(243,156,18,0.20); }
+        .student-item.stato-assente:hover { background: var(--lab-dim); filter: brightness(1.08); }
         .status-assente { background: var(--lab-dim); color: var(--lab); }
 
         /* Assente: rosso */
         .student-item.stato-confermato {
-            background: rgba(231,76,60,0.10);
+            background: var(--absent-dim);
             border-left: 3px solid var(--absent);
         }
-        .student-item.stato-confermato:hover { background: rgba(231,76,60,0.18); }
+        .student-item.stato-confermato:hover { background: var(--absent-dim); filter: brightness(1.08); }
         .status-confermato { background: var(--absent-dim); color: var(--absent); }
 
         /* Attività: verde acqua */
         .student-item.stato-attivita {
-            background: rgba(56,217,169,0.10);
+            background: var(--accent-2-dim);
             border-left: 3px solid var(--accent-2);
         }
-        .student-item.stato-attivita:hover { background: rgba(56,217,169,0.18); }
+        .student-item.stato-attivita:hover { background: var(--accent-2-dim); filter: brightness(1.08); }
         .status-attivita { background: var(--accent-2-dim); color: var(--accent-2); }
 
         /* Foresteria occupata */
@@ -296,7 +297,7 @@
 
         /* Note */
         .student-item.nota-row {
-            background: rgba(56,217,169,0.07);
+            background: var(--accent-2-dim);
             border-left: 3px solid var(--accent-2);
             cursor: default;
             font-style: italic;
@@ -305,7 +306,7 @@
 
         /* ─── ROOM 112: legenda statica ───────────────────────── */
         .student-item.nota-room112 {
-            background: rgba(194, 217, 56, 0.15);
+            background: var(--accent-2-dim);
             border-left: 3px solid var(--accent-2);
             padding: 6px 10px;
             cursor: default;
@@ -378,22 +379,22 @@
 
         .modal-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-        .modal-btn-standby  {
+        .modal-btn-standby {
             background: var(--lab-dim);
             color: var(--lab);
-            border: 1px solid rgba(243,156,18,0.35);
+            border: 1px solid var(--lab-dim);
         }
-        .modal-btn-assente  {
+        .modal-btn-assente {
             background: var(--absent-dim);
             color: var(--absent);
-            border: 1px solid rgba(231,76,60,0.35);
+            border: 1px solid var(--absent-dim);
         }
         .modal-btn-attivita {
             background: var(--accent-2-dim);
             color: var(--accent-2);
-            border: 1px solid rgba(56,217,169,0.35);
+            border: 1px solid var(--accent-2-dim);
         }
-        .modal-btn-cancel   {
+        .modal-btn-cancel {
             background: var(--surface-2);
             color: var(--text-2);
             border: 1px solid var(--border-2);
@@ -401,33 +402,6 @@
 
         /* ─── PRINT TIMESTAMP ─────────────────────────────────── */
         .print-timestamp { display: none; }
-
-        /* ─── TEMA CHIARO ─────────────────────────────────────── */
-        @media (prefers-color-scheme: light) {
-            .login-container, .app-header, .room-card {
-                background: var(--surface);
-                border-color: var(--border);
-            }
-
-            .room-title {
-                background: var(--surface-2);
-                border-bottom-color: var(--border);
-                color: var(--accent);
-            }
-
-            .student-item:hover { background: var(--surface-2); }
-
-            .foresteria-input {
-                background: var(--bg-3);
-                border-color: var(--border-2);
-                color: var(--text);
-            }
-
-            .modal-content {
-                background: var(--surface);
-                border-color: var(--border-2);
-            }
-        }
 
         /* ─── STAMPA ──────────────────────────────────────────── */
         @media print {
@@ -584,9 +558,9 @@
             </div>
             <div class="stats" id="statsForesteria">Posti liberi: —</div>
             <div class="button-group">
-                <button type="button" class="btn btn-primary"   id="stampaBtn">Stampa</button>
-                <button type="button" class="btn btn-secondary" id="resetBtn">Reset</button>
-                <button type="button" class="btn btn-danger"    id="logoutBtn">Esci</button>
+                <button type="button" class="btn-app btn-app-primary"   id="stampaBtn">Stampa</button>
+                <button type="button" class="btn-app btn-app-secondary" id="resetBtn">Reset</button>
+                <button type="button" class="btn-app btn-app-danger"    id="logoutBtn">Esci</button>
             </div>
         </div>
 
@@ -624,7 +598,6 @@
         let assenzeData  = {};
         let pendingResolve = null;
 
-        /* Riferimenti listener (per poterli rimuovere al logout) */
         let unsubscribeAnagrafica = null;
         let unsubscribeAssenze    = null;
         let unsubscribeLastReset  = null;
@@ -677,7 +650,6 @@
         cancelBtn.addEventListener('click',   () => closeModal(null));
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(null); });
 
-        /* Chiudi il modale anche con ESC */
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(null);
         });
@@ -767,11 +739,9 @@
                     alert('Nessuna registrazione presente.');
                     return;
                 }
-                
-                // 1. Azzera le assenze
+
                 await set(ref(db, 'assenze'), null);
 
-                // 2. Salva la data e l'ora ISO corrente sul nodo 'ultimoReset'
                 const oraAttuale = new Date().toISOString();
                 await set(ref(db, 'ultimoReset'), oraAttuale);
 
@@ -834,14 +804,14 @@
                 input.className = 'foresteria-input';
                 input.placeholder = 'Nome ospite...';
                 input.value = stato.nomeOccupante || '';
-                
+
                 let debounceTimer = null;
                 input.addEventListener('input', (e) => {
                     clearTimeout(debounceTimer);
                     const value = e.target.value;
                     debounceTimer = setTimeout(() => salvaForesteria(id, value), 600);
                 });
-                
+
                 input.addEventListener('blur', (e) => {
                     clearTimeout(debounceTimer);
                     salvaForesteria(id, e.target.value);
