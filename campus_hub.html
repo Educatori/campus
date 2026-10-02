@@ -4,258 +4,236 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cruscotto Operativo — SyncPanel</title>
-<link rel="stylesheet" href="css/campus-theme.css">
-<link rel="stylesheet" href="css/campus_hub-style.css">
 
-<!-- ═══════════════════════════════════════════════════════════
-     AMBIENTE: deve essere il PRIMO script.
-     Decide se l'app gira in modalità 'online' (Firebase)
-     oppure 'offline' (DEMO + localStorage).
-     ═══════════════════════════════════════════════════════════ -->
+<!-- Foglio di stile unico -->
+<link rel="stylesheet" href="css/campus_hub.css">
+
+<!-- AMBIENTE: deve essere il PRIMO script. -->
 <script src="js/ambiente.js"></script>
 </head>
 <body>
 
 <!-- ============================================================
-     LOGIN OVERLAY — visibile solo in modalità ONLINE
+     LOGIN OVERLAY (online)
      ============================================================ -->
-<div id="loginScreen" style="position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:var(--bg);
-     background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);">
-    <div style="background:var(--surface);padding:36px 32px;border-radius:var(--radius-xl);width:340px;
-                box-shadow:var(--shadow-lg);border:1px solid var(--border-2);">
-        <h2 style="margin:0 0 6px 0;text-align:center;font-size:1.3rem;">🔒 Accesso Riservato</h2>
-        <p style="text-align:center;font-size:0.78rem;color:var(--text-2);margin:0 0 22px 0;">
-            Campus Hub ONLINE
-        </p>
+<div id="loginScreen">
+    <div class="login-card">
+        <h2>🔒 Accesso Riservato</h2>
+        <p class="login-sub">Campus Hub ONLINE</p>
 
-        <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"
-               style="width:100%;padding:12px;margin-bottom:10px;border-radius:var(--radius);
-                      border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);
-                      font-family:var(--font);font-size:0.9rem;outline:none;">
+        <input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
 
-        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"
-               style="width:100%;padding:12px;margin-bottom:16px;border-radius:var(--radius);
-                      border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);
-                      font-family:var(--font);font-size:0.9rem;outline:none;">
+        <button id="loginBtn">ACCEDI</button>
 
-        <button id="loginBtn"
-                style="width:100%;padding:12px;background:var(--accent);color:white;border:none;
-                       border-radius:var(--radius);font-weight:700;cursor:pointer;
-                       font-family:var(--font);font-size:0.9rem;letter-spacing:0.05em;">
-            ACCEDI
-        </button>
-
-        <div id="loginError" style="color:var(--absent);font-size:0.78rem;margin-top:12px;
-                                     text-align:center;min-height:18px;"></div>
+        <div id="loginError"></div>
     </div>
 </div>
 
 <!-- ============================================================
-     CONTENUTO APP — mostrato se online (dopo auth) o offline
+     CONTENUTO APP
      ============================================================ -->
 <div id="appContent" style="display:none;">
 
 <div class="container">
+
+    <!-- ── HEADER ─────────────────────────────────────────── -->
     <header>
-        <div>
+        <div class="header-brand">
             <h1><a href="index.html">Campus hub</a></h1>
-            <div id="todayDate" class="header-meta"><i>giovedì 4 giugno 2026</i></div>
+            <div id="todayDate"><i>giovedì 4 giugno 2026</i></div>
         </div>
-        <div id="digitalClock" class="header-clock">15:55:38</div>
+
+        <div id="digitalClock">15:55:38</div>
+
         <div class="header-actions">
             <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
             <button id="btnLogout" title="Esci"
-                    style="background:rgba(220,38,38,0.1);color:var(--absent);border:1px solid rgba(220,38,38,0.3);
-                           padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;
+                    style="background:rgba(220,38,38,0.1);color:var(--absent);
+                           border:1px solid rgba(220,38,38,0.3);padding:6px 12px;
+                           border-radius:var(--radius-sm);cursor:pointer;
                            font-family:var(--font);font-size:0.72rem;font-weight:700;">
                 ❌ ESCI
             </button>
         </div>
     </header>
 
-    <!-- Note -->
+    <!-- ── NOTE ───────────────────────────────────────────── -->
     <div class="note-toolbar-container">
         <div class="note-content">
             <span class="note-icon">📌</span>
-            <textarea id="dailyNotes" placeholder="Inserisci note condivise..." class="note-input" rows="2"></textarea>
+            <textarea id="dailyNotes" placeholder="Inserisci note condivise..."
+                      class="note-input" rows="2"></textarea>
             <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
         </div>
     </div>
 
-    <div id="info-reset" style="text-align:right;font-size:0.7em;color:var(--absent);margin-top:-10px;margin-bottom:16px;">
-        Ultimo aggiornamento: MAI
-    </div>
+    <div id="info-reset">Ultimo aggiornamento: MAI</div>
 
-    <!-- Toolbar -->
+    <!-- ── TOOLBAR ────────────────────────────────────────── -->
     <div class="toolbar">
-         <div class="dropdown-moduli" style="position: relative; display: inline-block;">
-            <div class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface); color: var(--btn-t4); cursor: pointer; font-weight: bold;">
-                📋 ▾ MODULI ▾
+
+        <!-- Gruppo 1: MODULI + P•PP -->
+        <div class="toolbar-group">
+            <div class="dropdown-moduli">
+                <div class="day-box dropdown-toggle" tabindex="0">
+                    📋 ▾ MODULI ▾
+                </div>
+                <div class="dropdown-content">
+                    <a onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
+                    <a onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
+                    <a onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
+                    <a onclick="generaPopUpStampaPresDin(); return false;">APPELLO DINNER</a>
+                    <a onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>
+                </div>
             </div>
-            <div class="dropdown-content">
-                <a href="#" onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
-                <a href="#" onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
-                <a href="#" onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
-                <a href="#" onclick="generaPopUpStampaPresDin(); return false;">APPELLO DINNER</a>
-                <a href="#" onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>
-            </div>
+            <button class="btn-toolbar" style="background:var(--accent);"
+                    onclick="togglePanel()">⚙️ P•PP</button>
         </div>
-        
-        <button class="btn-toolbar" style="background:var(--accent);" onclick="togglePanel()">P • PP</button>
-        <input type="text" id="search" placeholder="Cerca studente..." onkeyup="applicaFiltri()">
-        <div style="display:flex;align-items:center;gap:6px;">
+
+        <div class="toolbar-sep"></div>
+
+        <!-- Gruppo 2: RICERCA + FILTRI -->
+        <div class="toolbar-group grow">
+            <input type="text" id="search" placeholder="🔍 Cerca studente..."
+                   onkeyup="applicaFiltri()">
+
             <span class="room-label">ROOM</span>
             <input type="number" id="roomInput" placeholder="n°" min="101" max="221"
                    onfocus="this.oldValue=this.value;"
-                   oninput="gestisciSaltoStanze(this);validaERicerca();">
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
+                   oninput="gestisciSaltoStanze(this); validaERicerca();">
+
             <span class="room-label">CLASSE</span>
-            <select id="classeFilter" onchange="filtraPerClasse(this.value)"
-                    style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font);font-size:0.78rem;outline:none;min-width:100px;">
+            <select id="classeFilter" onchange="filtraPerClasse(this.value)">
                 <option value="">Tutte</option>
             </select>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-            <span class="room-label">📅 simula DATA</span>
-            <input type="date" id="simulateDate"
-                   style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font);font-size:0.78rem;outline:none;width:140px;"
-                   onchange="simulaData(this.value)">
+
+        <div class="toolbar-sep"></div>
+
+        <!-- Gruppo 3: DATA + RESET -->
+        <div class="toolbar-group">
+            <span class="room-label">📅 DATA</span>
+            <input type="date" id="simulateDate" onchange="simulaData(this.value)">
+            <button class="btn-reset-complete" style="background:var(--btn-t4);"
+                    onclick="resetSimulazione()">↺ Oggi</button>
+            <button class="btn-reset" onclick="resetDati('soloManuali')"
+                    title="Reset Giornaliero">🗑️ Reset</button>
+        </div>
+    </div>
+
+    <!-- ── TASTI AZIONE ───────────────────────────────────── -->
+    <div class="azioni-grid">
+
+        <!-- Categoria STAMPE -->
+        <div class="azioni-categoria stampe">
+            <div class="azioni-cat-label">STAMPE</div>
+            <div class="azioni-cat-row">
+                <div class="day-box" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
+                <div class="day-box" onclick="generaPopUpStampaDinner()">DINNER</div>
+                <div class="day-box" onclick="generaPopUpStampaBus()">DOMATTINA</div>
+            </div>
         </div>
 
-         
-        <button class="btn-reset-complete" style="background:var(--btn-t4);" onclick="resetSimulazione()">↺ Oggi</button>
-        <button class="btn-reset" onclick="resetDati('soloManuali')" title="Reset Giornaliero">🗑️ Reset</button>
+        <!-- Categoria FILTRI -->
+        <div class="azioni-categoria filtri">
+            <div class="azioni-cat-label">FILTRI</div>
+            <div class="azioni-cat-row">
+                <button class="day-box" onclick="resetSimulazione()">GLOBALE</button>
+                <div class="day-box" onclick="setTurno(1)">1°</div>
+                <div class="day-box" onclick="setTurno(2)">2°</div>
+                <div class="day-box" onclick="filtraAssenti()">ASSENTI</div>
+                <div class="day-box" onclick="filtraNoCena()">CENE</div>
+            </div>
+        </div>
+
+        <!-- Categoria VISTA -->
+        <div class="azioni-categoria vista">
+            <div class="azioni-cat-label">VISTA</div>
+            <div class="azioni-cat-row">
+                <button class="day-box" id="btnOrdineAlfabetico"
+                        onclick="toggleOrdineLista()">room A-Z</button>
+            </div>
+        </div>
     </div>
 
-   
-    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; width: 100%; align-items: center;">
-        <button class="day-box" style="border-bottom: 3px solid var(--accent); background: var(--surface);
-        color: var(--accent); cursor: pointer; font-weight: bold;" 
-        id="btnOrdineAlfabetico" onclick="toggleOrdineLista()">room A-Z</button>  
-        <div class="day-box" style="border-bottom: 3px solid var(--switched);" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--lab);" onclick="generaPopUpStampaDinner()">DINNER</div> 
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t3)" onclick="generaPopUpStampaBus()">DOMATTINA</div>
-      
-      <!-- ALTRI TASTI -->
-      <div class="day-box" style="border-bottom: 3px solid var(--btn-t1);" onclick="setTurno(1)">1°</div>
-        <div class="day-box" style="border-bottom: 3px solid var(--btn-t2);" onclick="setTurno(2)">2°</div>
-       
-    <div class="day-box" style="border-bottom: 3px solid var(--absent);" onclick="filtraAssenti()">ASSENTI</div>
-    <div class="day-box" style="border-bottom: 3px solid var(--btn-t3);" onclick="filtraNoCena()">CENE</div>
-     <button class="day-box" style="border-bottom: 3px solid var(--text-muted); background: var(--surface);
-            color: var(--btn-t4); cursor: pointer; font-weight: bold;" onclick="resetSimulazione()">GLOBALE</button>
-  
+    <!-- ── LEGENDA ────────────────────────────────────────── -->
+    <div class="legenda">
+        <span class="legenda-item"><span class="legenda-dot ok"></span> Presente</span>
+        <span class="legenda-item"><span class="legenda-dot absent"></span> Assente</span>
+        <span class="legenda-item"><span class="legenda-dot dinner"></span> Non cena</span>
+        <span class="legenda-item"><span class="legenda-dot lab"></span> Laboratorio</span>
+        <span class="legenda-item"><span class="legenda-dot pp"></span> 🔒 Bloccato da PP</span>
+        <span class="legenda-item">🍽 Turno cena</span>
     </div>
 
-
-
+    <!-- ── LISTA STUDENTI ─────────────────────────────────── -->
     <div id="listaStudenti"></div>
-</div>
+
+</div><!-- /container -->
 
 <!-- ============================================================
-     SIDE PANEL — Permessi Permanenti (vetro smerigliato)
-     ─────────────────────────────────────────────────────────────
-     #sidePanel: pointer-events:none → i click attraversano il pannello
-     #sidePanelOverlay: zona alta semi-trasparente → i click passano sotto
-     #sidePanelContent: zona bassa opaca → pointer-events:auto per i controlli
+     SIDE PANEL — Gestione Permessi
      ============================================================ -->
-<div id="sidePanel" style="position:fixed;top:0;right:-350px;width:320px;height:100%;
-     transition:right 0.3s ease;z-index:1000;display:flex;flex-direction:column;
-     pointer-events:none;">
+<div id="sidePanel">
 
-    <!-- Zona superiore semi-trasparente — i click passano sotto -->
-    <div id="sidePanelOverlay" style="
-         flex:0 0 300px;
-         background:linear-gradient(180deg,
-             rgba(240,244,248,0.05) 0%,
-             rgba(240,244,248,0.25) 60%,
-             rgba(240,244,248,0.55) 100%);
-         backdrop-filter:blur(4px);
-         -webkit-backdrop-filter:blur(4px);
-         border-bottom:1px solid rgba(0,0,0,0.08);
-         pointer-events:none;">
+    <div id="sidePanelOverlay"></div>
+
+    <div id="sidePanelContent">
+
+        <div class="side-panel-header">
+            <h3 style="border:none;padding:0;margin:0;">Gestione Permessi</h3>
+            <button class="side-panel-close" onclick="togglePanel()" title="Chiudi">&times;</button>
+        </div>
+
+        <h3 style="margin:16px 0 10px 0;">Programmazione Assenze</h3>
+        <select id="selectStudente" style="margin-bottom:8px;">
+            <option value="">-- Seleziona Nome --</option>
+        </select>
+        <select id="selectClasse" style="margin-bottom:8px;">
+            <option value="">-- Seleziona Classe --</option>
+        </select>
+        <input type="date" id="dataDal" style="margin-bottom:8px;">
+        <input type="date" id="dataAl" style="margin-bottom:12px;">
+        <button class="btn-add-assenza" onclick="aggiungiAssenza()">➕ Aggiungi Assenza</button>
+
+        <hr>
+        <h3>Lista Assenze</h3>
+        <div id="listaAssenze" style="margin-bottom:10px;"></div>
+
+        <hr>
+        <h3>Permessi Permanenti</h3>
+        <div style="font-size:0.75rem;color:var(--text-2);margin-bottom:10px;font-style:italic;">
+            Gestire da qui
+        </div>
+        <div id="listaPermessiContent"></div>
+
     </div>
-
-    <!-- Zona inferiore opaca con il contenuto (cliccabile) -->
-    <div id="sidePanelContent" style="
-     flex:1 1 auto;
-     background:var(--bg-2);
-     border-left:1px solid var(--border-2);
-     box-shadow:-8px 0 40px rgba(0,0,0,0.15);
-     padding:24px;
-     overflow-y:auto;
-     display:flex;flex-direction:column;
-     pointer-events:auto;">
-
-    <!-- Titolo + pulsante chiudi -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;">Gestione Permessi</h3>
-        <button onclick="togglePanel()" style="border:none;background:rgba(0,0,0,0.06);
-                color:var(--text-2);border-radius:50%;width:30px;height:30px;cursor:pointer;
-                font-size:1.2em;display:flex;align-items:center;justify-content:center;
-                transition:all 0.2s;">&times;</button>
-    </div>
-
-    <!-- Programmazione Assenze -->
-    <h3 style="margin:16px 0 10px 0;">Programmazione Assenze</h3>
-    <select id="selectStudente" style="margin-bottom:8px;"><option value="">-- Seleziona Nome --</option></select>
-    <select id="selectClasse" style="margin-bottom:8px;"><option value="">-- Seleziona Classe --</option></select>
-    <input type="date" id="dataDal" style="margin-bottom:8px;">
-    <input type="date" id="dataAl" style="margin-bottom:12px;">
-    <button onclick="aggiungiAssenza()" style="width:100%;background:var(--absent);color:white;
-            border:none;padding:10px;border-radius:var(--radius-sm);cursor:pointer;
-            font-family:var(--font);font-weight:700;font-size:0.85rem;">➕ Aggiungi Assenza</button>
-
-    <!-- Lista Assenze -->
-    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0 14px 0;">
-    <h3 style="margin:0 0 10px 0;">Lista Assenze</h3>
-    <div id="listaAssenze" style="margin-bottom:10px;"></div>
-
-    <!-- Permessi Permanenti -->
-    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0 14px 0;">
-    <h3 style="margin:0 0 6px 0;">Permessi Permanenti</h3>
-    <div style="font-size:0.75em; color:var(--text-2); margin-bottom:10px; font-style:italic;">
-        Gestire da qui
-    </div>
-    <div id="listaPermessiContent"></div>
 </div>
-
-
-</div>
-
 
 </div><!-- /#appContent -->
 
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
-
-<!-- 1. Script classici (globali) — SEMPRE caricati.
-     Popolano window.tuttiStudenti, window.ORARI_PP, window.ASSENTI_PERMESSO
-     con i dati DEMO. In modalità online verranno poi sovrascritti da Firebase.
-     Definiscono anche tutte le funzioni globali (init, generaPopUp*, ecc.) -->
 <script src="js/studenti_26_offline.js"></script>
 <script src="js/permessi_26_offline.js"></script>
 <script src="js/campus_hub-script.js"></script>
 
-<!-- 2. Bootstrap condizionale: ONLINE (Firebase) o OFFLINE (DEMO + localStorage) -->
 <script type="module">
-
-/* ══════════════════════════════════════════════════════════════
-   OFFLINE — nessun login, dati DEMO già caricati, note locali
-   ══════════════════════════════════════════════════════════════ */
-    // ─── Aggiungi classe al body per stile condizionale ───
+/* ==============================================================
+   BOOTSTRAP — invariato nella logica, adattato ai nuovi selettori
+   ============================================================== */
 document.body.classList.add('mode-' + window.APP_MODE);
 console.log(`🎨 Body class: mode-${window.APP_MODE}`);
-    
+
+/* ---------- MODALITÀ OFFLINE ---------- */
 if (window.APP_MODE === 'offline') {
     console.log('📴 Bootstrap OFFLINE');
 
-    // ─── Note locali (localStorage) ───
     const NOTE_KEY = 'convitto_note_locali';
 
-    window.salvaNoteFirebase = function (testo) {
+    window.salvaNoteFirebase = (testo) => {
         localStorage.setItem(NOTE_KEY, testo ?? "");
     };
 
@@ -272,31 +250,25 @@ if (window.APP_MODE === 'offline') {
         console.log('📝 Note locali attive');
     };
 
-    // ─── UI: mostra app, nascondi login + logout ───
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appContent').style.display  = 'block';
+
     const btnOut = document.getElementById('btnLogout');
     if (btnOut) btnOut.style.display = 'none';
 
-    // ─── Badge connessione ───
     const badge = document.getElementById('connection-status');
     if (badge) {
-        badge.textContent = '📴 ➖ Locale';
+        badge.textContent = '📴 Locale';
         badge.classList.remove('connected');
         badge.classList.add('disconnected');
-        badge.style.background  = 'rgba(234, 88, 12, 0.15)';
-        badge.style.color       = '#ea580c';
-        badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
     }
 
-    // ─── Filtro convittori dai DEMO ───
     window.studenticonvittori = (window.tuttiStudenti || []).filter(s => {
         const n = parseInt(s.room, 10);
         return !isNaN(n) && n >= 101 && n <= 221;
     });
     console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
-    // ─── Init app al DOM ready ───
     window.addEventListener('DOMContentLoaded', () => {
         try {
             if (typeof init                 === 'function') init();
@@ -313,20 +285,10 @@ if (window.APP_MODE === 'offline') {
     });
 }
 
-
-/* ══════════════════════════════════════════════════════════════
-   ONLINE — login Firebase + autorizzazione + data-loader
-   Gli import() sono dinamici: in offline il browser NON prova
-   mai a scaricare Firebase (niente errori CORS da file://).
-   ══════════════════════════════════════════════════════════════ */
-    
-    
+/* ---------- MODALITÀ ONLINE ---------- */
 if (window.APP_MODE === 'online') {
     console.log('🟢 Bootstrap ONLINE');
 
-    // ─────────────────────────────────────────────
-    // IMPORT Firebase con try/catch diagnostico
-    // ─────────────────────────────────────────────
     let firebaseMod;
     try {
         firebaseMod = await import('./js/firebase-campus_hub-config.js');
@@ -344,13 +306,10 @@ if (window.APP_MODE === 'online') {
     }
 
     const {
-        auth, db, ref, get, set, update,
+        auth, db, ref, get, update,
         signInWithEmailAndPassword, signOut, onAuthStateChanged
     } = firebaseMod;
 
-    // ─────────────────────────────────────────────
-    // LOGIN
-    // ─────────────────────────────────────────────
     window.effettuaLogin = async function () {
         const email = document.getElementById('loginEmail').value.trim();
         const pwd   = document.getElementById('loginPassword').value;
@@ -362,13 +321,10 @@ if (window.APP_MODE === 'online') {
             errEl.textContent = 'Inserisci email e password';
             return;
         }
-
         btn.disabled = true;
         btn.textContent = 'Verifica…';
-
         try {
             await signInWithEmailAndPassword(auth, email, pwd);
-            // onAuthStateChanged gestirà il resto
         } catch (e) {
             console.error('Login error:', e.code);
             const messaggi = {
@@ -385,43 +341,26 @@ if (window.APP_MODE === 'online') {
         }
     };
 
-    // ─────────────────────────────────────────────
-    // LOGOUT
-    // ─────────────────────────────────────────────
     window.effettuaLogout = async function () {
         if (!confirm('Vuoi uscire?')) return;
         try { await signOut(auth); } catch (e) { console.error(e); }
     };
 
-    // ─────────────────────────────────────────────
-    // Aggancio pulsante ACCEDI
-    // ─────────────────────────────────────────────
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => window.effettuaLogin());
-    } else {
-        console.warn('⚠️ loginBtn non trovato nel DOM');
-    }
+    document.getElementById('loginBtn')
+        .addEventListener('click', () => window.effettuaLogin());
 
-    // ─────────────────────────────────────────────
-    // Invio con Enter
-    // ─────────────────────────────────────────────
-    document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') window.effettuaLogin();
-    });
-    document.getElementById('loginEmail').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
-    });
+    document.getElementById('loginPassword')
+        .addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') window.effettuaLogin();
+        });
+    document.getElementById('loginEmail')
+        .addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+        });
 
-    // ─────────────────────────────────────────────
-    // Click sul pulsante ESCI
-    // ─────────────────────────────────────────────
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) btnLogout.onclick = () => window.effettuaLogout();
 
-    // ─────────────────────────────────────────────
-    // AUTORIZZAZIONE
-    // ─────────────────────────────────────────────
     async function isUtenteAutorizzato(uid) {
         try {
             const snap = await get(ref(db, `authorizedUsers/${uid}`));
@@ -432,9 +371,6 @@ if (window.APP_MODE === 'online') {
         }
     }
 
-    // ─────────────────────────────────────────────
-    // SALVA PERMESSI (usato da importaPermessiJSON)
-    // ─────────────────────────────────────────────
     window.salvaPermessiFirebase = async function (permessi) {
         if (!db) throw new Error("Firebase DB non inizializzato");
         if (!permessi || typeof permessi !== "object") {
@@ -449,9 +385,6 @@ if (window.APP_MODE === 'online') {
         }
     };
 
-    // ─────────────────────────────────────────────
-    // AUTH STATE — unico punto di avvio
-    // ─────────────────────────────────────────────
     let appInizializzata = false;
 
     onAuthStateChanged(auth, async (user) => {
@@ -460,7 +393,6 @@ if (window.APP_MODE === 'online') {
         const errEl       = document.getElementById('loginError');
         const btn         = document.getElementById('loginBtn');
 
-        // ── CASO 1: non autenticato ──
         if (!user) {
             loginScreen.style.display = 'flex';
             appContent.style.display  = 'none';
@@ -469,7 +401,6 @@ if (window.APP_MODE === 'online') {
             return;
         }
 
-        // ── CASO 2: autenticato → verifica autorizzazione ──
         console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
         loginScreen.style.display = 'flex';
         appContent.style.display  = 'none';
@@ -489,7 +420,6 @@ if (window.APP_MODE === 'online') {
             return;
         }
 
-        // ── CASO 3: autenticato e autorizzato → avvia app ──
         console.log('✅ Utente autorizzato:', user.uid);
         loginScreen.style.display = 'none';
         appContent.style.display  = 'block';
@@ -499,7 +429,6 @@ if (window.APP_MODE === 'online') {
         if (appInizializzata) return;
         appInizializzata = true;
 
-        // ── Carica data-loader.js (solo online) ──
         let dl;
         try {
             dl = await import('./js/data-loader.js');
@@ -524,7 +453,6 @@ if (window.APP_MODE === 'online') {
             console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
         }
 
-        // ── Fallback DEMO ──
         if (!datiCaricati) {
             console.warn('🔁 Fallback: dati DEMO locali');
             if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
@@ -535,12 +463,9 @@ if (window.APP_MODE === 'online') {
                 });
             }
             if (badge) {
-                badge.textContent = '📴 ➖ ';
+                badge.textContent = '📴 Locale';
                 badge.classList.remove('connected');
                 badge.classList.add('disconnected');
-                badge.style.background  = 'rgba(234, 88, 12, 0.15)';
-                badge.style.color       = '#ea580c';
-                badge.style.borderColor = 'rgba(234, 88, 12, 0.35)';
             }
         } else {
             if (badge) {
@@ -550,7 +475,6 @@ if (window.APP_MODE === 'online') {
             }
         }
 
-        // ── Init app ──
         try {
             if (typeof init                 === 'function') init();
             if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
@@ -563,41 +487,21 @@ if (window.APP_MODE === 'online') {
             console.error('❌ Errore inizializzazione:', e);
         }
 
+        try {
+            if (typeof dl.attivaNoteCondivise === 'function') dl.attivaNoteCondivise();
+            else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
+        } catch (e) { console.error('❌ Errore note condivise:', e); }
 
-// ── Note condivise realtime (dal modulo data-loader) ──
-try {
-    if (typeof dl.attivaNoteCondivise === 'function') {
-        dl.attivaNoteCondivise();
-    } else if (typeof window.attivaNoteCondivise === 'function') {
-        window.attivaNoteCondivise();
-    }
-} catch (e) {
-    console.error('❌ Errore attivazione note condivise:', e);
-}
+        try {
+            if (typeof dl.attivaSyncDatiGiornalieri === 'function') dl.attivaSyncDatiGiornalieri();
+            else if (typeof window.attivaSyncDatiGiornalieri === 'function') window.attivaSyncDatiGiornalieri();
+        } catch (e) { console.error('❌ Errore sync dati:', e); }
 
-// ── Sync dati giornalieri realtime (assenti, presenti, orari, switch) ──
-try {
-    if (typeof dl.attivaSyncDatiGiornalieri === 'function') {
-        dl.attivaSyncDatiGiornalieri();
-    } else if (typeof window.attivaSyncDatiGiornalieri === 'function') {
-        window.attivaSyncDatiGiornalieri();
-    }
-} catch (e) {
-    console.error('❌ Errore attivazione sync dati:', e);
-}
-
-// ── Sync ultimo aggiornamento condiviso (realtime) ──
-try {
-    if (typeof dl.attivaUltimoAggiornamento === 'function') {
-        dl.attivaUltimoAggiornamento();
-    } else if (typeof window.attivaUltimoAggiornamento === 'function') {
-        window.attivaUltimoAggiornamento();
-    }
-} catch (e) {
-    console.error('❌ Errore attivazione sync ultimo aggiornamento:', e);
-}
-
-});
+        try {
+            if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
+            else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
+        } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
+    });
 }
 </script>
 
