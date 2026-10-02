@@ -306,27 +306,27 @@
 
         /* ─── ROOM 112: legenda statica ───────────────────────── */
         .student-item.nota-room112 {
-            background: var(--accent-2-dim);
-            border-left: 3px solid var(--accent-2);
-            padding: 6px 10px;
-            cursor: default;
-            font-size: 0.78rem;
-            line-height: 1.35;
-        }
+    background: #fef9c3;                    /* giallo tenue (Tailwind yellow-100) */
+    border-left: 3px solid #eab308;         /* giallo ambra per il bordo */
+    padding: 6px 10px;
+    cursor: default;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
 
-        .nota-room112-legenda {
-            font-style: italic;
-            color: var(--text);
-            font-weight: 600;
-        }
+.nota-room112-legenda {
+    font-style: italic;
+    color: #78350f;                         /* marrone scuro, leggibile su giallo */
+    font-weight: 600;
+}
 
-        .nota-room112-edu {
-            font-weight: 700;
-            color: var(--accent-2);
-            margin-top: 4px;
-            letter-spacing: 0.03em;
-            font-size: 0.72rem;
-        }
+.nota-room112-edu {
+    font-weight: 700;
+    color: #a16207;                         /* ambra scura */
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    font-size: 0.72rem;
+}
 
         /* ─── MODALE ──────────────────────────────────────────── */
         .modal {
@@ -777,10 +777,14 @@
                     || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
 
                 if (isEducatore) {
-                    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-                } else {
-                    div.innerHTML = `<div class="nota-room112-legenda">Note: 🟡Stand-by 🔴Assente 🟢Attività 🔵Foresteria</div>`;
-                }
+    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
+} else {
+    div.innerHTML = `
+        <div class="nota-room112-legenda">Note:</div>
+        <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
+        <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
+    `;
+}
                 return div;
             }
 
