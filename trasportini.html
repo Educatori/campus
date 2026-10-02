@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trasportini Furgone</title>
 
-    <link rel="stylesheet" href="css/campus-theme.css">
-    <link rel="stylesheet" href="css/campus_hub-style.css">
+    <link rel="stylesheet" href="css/campus_hub.css">
 
     <style>
         #quadroSettimanale {
@@ -22,8 +21,10 @@
             #quadroSettimanale { grid-template-columns: 1fr; }
         }
 
-        /* Struttura interna delle card orarie */
         .day-card { align-self: start; }
+
+        .day-card.student-row::before { display: none; }
+
         .day-header {
             font-size: 1rem;
             font-weight: 700;
@@ -42,23 +43,23 @@
         }
         .time-slot:last-child { margin-bottom: 0; }
 
-        /* Variante "Dalla palestra" */
         .time-slot.special-slot {
             border-left: 4px solid var(--lab);
             background: var(--lab-dim);
         }
-
-        /* Variante "Simulimpresa NO" (Toni del rosso del tema) */
         .time-slot.simula-no-slot {
             border-left: 4px solid var(--absent);
             background: var(--absent-dim);
         }
-
-        /* Variante "Simulimpresa SI" (Toni del verde del tema) */
         .time-slot.simula-si-slot {
             border-left: 4px solid var(--ok);
             background: var(--ok-dim);
         }
+        .time-slot.evento-speciale-slot {
+            border-left: 4px solid var(--switched);
+            background: var(--switched-dim);
+        }
+        .evento-speciale-slot .slot-title { color: var(--switched); }
 
         .slot-title {
             font-size: 0.78rem;
@@ -69,7 +70,6 @@
             display: block;
         }
 
-        /* Colori dinamici dei titoli in base allo stato */
         .special-slot .slot-title { color: var(--lab); }
         .simula-no-slot .slot-title { color: var(--absent); }
         .simula-si-slot .slot-title { color: var(--ok); }
@@ -81,6 +81,41 @@
             color: var(--text-2);
         }
         .slot-data-list li { margin-bottom: 2px; }
+
+        .info-speciali {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent-2);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--gap-block);
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            color: var(--text-2);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+        .info-speciali .info-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+        .info-speciali .info-text { line-height: 1.5; }
+        .info-speciali .info-text strong { color: var(--text); }
+
+        /* Badge modalità simulazione */
+        .sim-badge {
+            display: none;
+            background: var(--switched-dim);
+            border: 1px solid var(--switched);
+            color: var(--switched);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: var(--gap-block);
+            text-align: center;
+            font-family: var(--font-mono);
+            letter-spacing: 0.03em;
+        }
+        .sim-badge.visible { display: block; }
     </style>
 </head>
 <body>
@@ -96,6 +131,9 @@
             </div>
         </header>
 
+        <!-- Badge modalità simulazione -->
+        <div id="simBadge" class="sim-badge"></div>
+
         <div class="note-toolbar-container">
             <div class="note-content">
                 <span class="note-icon">📌</span>
@@ -104,51 +142,141 @@
             </div>
         </div>
 
+        <div class="info-speciali">
+            <span class="info-icon">ℹ️</span>
+            <div class="info-text">
+                <strong>Trasporti speciali 2A / 2B:</strong> le caselle con orario <strong>14:50</strong> sono visibili solo nella settimana in cui si svolgono gli eventi.<br>
+                <strong>Simulimpresa NO:</strong> casella nascosta dal <strong>1 ottobre al 5 dicembre 2026</strong>.<br>
+                <strong>Simulimpresa SI:</strong> casella nascosta dal <strong>6 dicembre 2026 al 1 gennaio 2027</strong>.<br>
+                Fuori da questi periodi entrambe sono visibili.
+            </div>
+        </div>
+
         <div id="quadroSettimanale"></div>
     </div>
 
     <script>
+        // --- SIMULAZIONE DATA ---
+        // Aggiungi ?simula=AAAA-MM-GG all'URL per simulare una data.
+        // Esempio: trasportini.html?simula=2026-10-21
+        function getDataSimulata() {
+            const params = new URLSearchParams(window.location.search);
+            const s = params.get('simula');
+            if (!s) return null;
+            const parts = s.split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return null;
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        const DATA_SIMULATA = getDataSimulata();
+
+        function getOggi() {
+            return DATA_SIMULATA ? new Date(DATA_SIMULATA) : new Date();
+        }
+
         // --- CONFIGURAZIONE DEI DATI ---
         const programmaDati = {
             "lunedì": {
-                "14:30": ["3A 🚕🚕 da Gare x8"],
-                "15:50": ["5A, 5B 🚕🚕 da Gare x23"],
-                "16:40": ["🚂, 🚌 1A, 1B, 3B, 4A, 4B + StV 🚕🅿️"]
+                "14:30": ["3A 🚕🚕 Gare x8"],
+                "15:50": ["5A, 5B 🚕🚕 Gare x23"],
+                "16:40": ["🚌 1A, 1B, 3B, 4A, 4B + StV 🅿️"]
             },
             "martedì": {
-                "14:30": ["3B 🚕🚕 da Gare x9"],
-                "14:10 simulimpresa NO": ["4B 🚕🚕 da Gare x6"],
+                "14:30": ["3B 🚕🚕 Gare x9"],
+                "14:10 simulimpresa NO": ["4B 🚕🚕 Gare x6"],
                 "15:50": ["🚌 3A"],
-                "16:40": ["🚂, 🚌 1A, 1B, 5A, 5B", "4A 🚕🚕 da Gare x5"],
-                "17:00 simulimpresa SI": ["4B 🚕🚕 da Gare x6"],
-                "18:00": ["StV 🚕🅿️"]
+                "16:40": ["🚌 1A, 1B, 5A, 5B", "4A 🚕🚕 Gare x5"],
+                "17:00 simulimpresa SI": ["4B 🚕🚕 StV x6"],
+                "18:00": ["StV 🅿️"]
             },
             "mercoledì": {
-                "14:10 simulimpresa NO": ["4A 🚕🚕 da Gare x5"],
-                "16:40": ["🚂, 🚌 3B", "1A, 4B 🚕🚕 da Gare x11"],
-                "17:00 simulimpresa SI": ["4A 🚕🚕 da Gare x5"],
-                "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🚕🅿️"]
+                "14:10 simulimpresa NO": ["4A 🚕🚕 Gare x5"],
+                "16:40": ["🚌 3B", "1A, 4B 🚕🚕 Gare x11"],
+                "17:00 simulimpresa SI": ["4A 🚕🚕 StV x5"],
+                "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🅿️"]
             },
             "giovedì": {
-                "14:10": ["5A 🚕🚕 da Gare x13"],
-                "15:10": ["4C 🚕🚕 da Gare x9"],
-                "16:10": ["1B 🚕🚕 da Gare x9"],
-                "16:40": ["🚂, 🚌 1A, 3A, 3B, 4A, 4B + StV 🚕🅿️"]
+                "14:10": ["5A 🚕🚕 Gare x13"],
+                "15:10": ["4C 🚕🚕 Gare x9"],
+                "16:10": ["1B 🚕🚕 Gare x9"],
+                "16:40": ["🚌 1A, 3A, 3B, 4A, 4B + StV 🅿️"]
             }
         };
 
         const ordineOrari = [
-            "14:00", "14:10", "14:10 simulimpresa NO", "14:30",
+            "14:00", "14:10", "14:10 simulimpresa NO", "14:30", "14:50",
             "15:10", "15:50", "16:10", "16:40",
             "17:00", "17:00 simulimpresa SI", "17:30", "18:00"
         ];
 
-        // Orari che devono usare lo stile "special-slot" (dalla palestra)
-        // Modifica/aggiungi qui gli orari che vuoi evidenziare con il colore --lab
-        const ORARI_SPECIALI = ["14:10"];
+        const ORARI_SPECIALI = ["14:50"];
+
+        // --- PERIODI SIMULIMPRESA ---
+        // Ogni periodo indica quale casella deve essere NASCOSTA.
+        const PERIODI_SIMULIMPRESA = [
+            {
+                inizio: new Date(2026, 9, 1),   // 1 ottobre 2026
+                fine:   new Date(2026, 11, 5),  // 5 dicembre 2026
+                target: '14:10 simulimpresa NO'
+            },
+            {
+                inizio: new Date(2026, 11, 6),  // 6 dicembre 2026
+                fine:   new Date(2027, 0, 1),   // 1 gennaio 2027
+                target: '17:00 simulimpresa SI'
+            }
+        ];
+
+        function getTargetNascosto(data = getOggi()) {
+            const d = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+            for (const periodo of PERIODI_SIMULIMPRESA) {
+                if (d >= periodo.inizio && d <= periodo.fine) {
+                    return periodo.target;
+                }
+            }
+            return null;
+        }
+
+        // --- EVENTI SPECIALI ---
+        const eventiSpeciali = [
+            { data: new Date(2026, 9, 21), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕, rientro 🚌 16:40" },
+            { data: new Date(2026, 10, 4), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕, rientro 🚌 16:40" },
+            { data: new Date(2026, 11, 16), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕, rientro 🚌 16:40" },
+            { data: new Date(2026, 9, 20), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕, rientro 🚌 16:40" },
+            { data: new Date(2026, 10, 3), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕, rientro BUS da 16:40" },
+            { data: new Date(2026, 11, 15), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕, rientro 🚌 16:40" }
+        ];
+
+        function getMonday(date) {
+            const d = new Date(date);
+            d.setHours(0,0,0,0);
+            const day = d.getDay();
+            const diff = (day === 0 ? -6 : 1 - day);
+            const monday = new Date(d);
+            monday.setDate(d.getDate() + diff);
+            return monday;
+        }
+
+        function getProgrammaCorrente() {
+            const programma = JSON.parse(JSON.stringify(programmaDati));
+            const oggi = getOggi();
+            const mondayOggi = getMonday(oggi);
+
+            eventiSpeciali.forEach(evento => {
+                const mondayEvento = getMonday(evento.data);
+                if (mondayOggi.getTime() === mondayEvento.getTime()) {
+                    const giorno = evento.giorno;
+                    const orario = evento.orario;
+                    if (!programma[giorno]) programma[giorno] = {};
+                    if (!programma[giorno][orario]) programma[giorno][orario] = [];
+                    programma[giorno][orario].push(evento.descrizione);
+                }
+            });
+
+            return programma;
+        }
 
         function init() {
-            const d = new Date();
+            const d = getOggi();
             const dateEl = document.getElementById('todayDate');
             if (dateEl) {
                 dateEl.innerText = d.toLocaleDateString('it-IT', {
@@ -156,12 +284,20 @@
                 });
             }
 
+            if (DATA_SIMULATA) {
+                const badge = document.getElementById('simBadge');
+                if (badge) {
+                    badge.textContent = '🧪 MODALITÀ SIMULAZIONE — data virtuale: ' +
+                        DATA_SIMULATA.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+                    badge.classList.add('visible');
+                }
+            }
+
             setInterval(() => {
                 const clockEl = document.getElementById('digitalClock');
                 if (clockEl) clockEl.innerText = new Date().toLocaleTimeString('it-IT');
             }, 1000);
 
-            // Carica le note salvate nel localStorage all'avvio
             const noteInput = document.getElementById('dailyNotes');
             if (noteInput) {
                 const noteSalvate = localStorage.getItem('note_trasportini');
@@ -169,7 +305,6 @@
                     noteInput.value = noteSalvate;
                 }
 
-                // Salva istantaneamente a ogni carattere inserito
                 noteInput.addEventListener('input', () => {
                     localStorage.setItem('note_trasportini', noteInput.value);
                 });
@@ -193,7 +328,10 @@
             if (!container) return;
             container.innerHTML = "";
 
-            Object.keys(programmaDati).forEach(giorno => {
+            const targetNascosto = getTargetNascosto();
+            const programmaCorrente = getProgrammaCorrente();
+
+            Object.keys(programmaCorrente).forEach(giorno => {
                 const card = document.createElement('div');
                 card.className = 'day-card student-row';
 
@@ -202,13 +340,18 @@
                 header.innerText = giorno;
                 card.appendChild(header);
 
-                const orariDelGiorno = programmaDati[giorno];
+                const orariDelGiorno = programmaCorrente[giorno];
 
                 ordineOrari.forEach(ora => {
                     if (orariDelGiorno[ora] && orariDelGiorno[ora].length > 0) {
+
+                        // Se questa slot è il target del periodo attivo, la salto
+                        if (targetNascosto && ora === targetNascosto) {
+                            return;
+                        }
+
                         const slot = document.createElement('div');
 
-                        // Gestione dinamica delle classi di stile per gli slot speciali
                         let varianteClasse = '';
                         if (ora === '14:10 simulimpresa NO') {
                             varianteClasse = 'simula-no-slot';
@@ -216,6 +359,8 @@
                             varianteClasse = 'simula-si-slot';
                         } else if (ORARI_SPECIALI.includes(ora)) {
                             varianteClasse = 'special-slot';
+                        } else if (ora === '19:10') {
+                            varianteClasse = 'evento-speciale-slot';
                         }
 
                         slot.className = `time-slot ${varianteClasse}`.trim();
