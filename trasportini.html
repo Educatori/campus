@@ -88,7 +88,7 @@
             color: var(--lab); /* stesso colore di ORARI_SPECIALI */
         }
 
-        /* Badge Bus (verde) e Furgone (blu) — coerenti con room-badge/lab-badge */
+        /* Badge Bus (arancione) e Furgone (rosa/grigio) */
         .bus-label,
         .furgone-label {
             display: inline-block;
@@ -144,6 +144,80 @@
             letter-spacing: 0.03em;
         }
         .sim-badge.visible { display: block; }
+
+        /* Toolbar simulazione data */
+        .sim-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: 10px 16px;
+            margin-bottom: var(--gap-block);
+            box-shadow: var(--shadow-sm);
+        }
+        .sim-toolbar-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .sim-toolbar input[type="date"] {
+            background: var(--bg-3);
+            border: 1px solid var(--border-2);
+            border-radius: var(--radius);
+            color: var(--text);
+            padding: 8px 12px;
+            font-family: var(--font);
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color var(--t), box-shadow var(--t);
+        }
+        .sim-toolbar input[type="date"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+        .sim-btn {
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: var(--font);
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 8px 16px;
+            letter-spacing: 0.03em;
+            transition: all var(--t);
+            color: white;
+        }
+        .sim-btn-primary {
+            background: var(--accent);
+            box-shadow: 0 2px 8px var(--accent-dim);
+        }
+        .sim-btn-primary:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .sim-btn-secondary {
+            background: var(--btn-t4);
+            box-shadow: 0 2px 8px rgba(71,85,105,0.25);
+        }
+        .sim-btn-secondary:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Override header per trasportini.html */
+        header {
+            background: var(--accent-dim);
+            border-color: var(--border);
+            box-shadow: var(--shadow-sm);
+        }
     </style>
 </head>
 <body>
@@ -170,12 +244,19 @@
             </div>
         </div>
 
+        <!-- Selettore data simulazione -->
+        <div class="sim-toolbar">
+            <span class="sim-toolbar-label">📅 Simula data</span>
+            <input type="date" id="simDateInput">
+            <button class="sim-btn sim-btn-primary" onclick="applicaSimulazione()">Simula</button>
+            <button class="sim-btn sim-btn-secondary" onclick="resetSimulazione()">↺ Oggi</button>
+        </div>
+
         <div class="info-speciali">
             <span class="info-icon">ℹ️</span>
             <div class="info-text">
                 <strong>Trasporti speciali 2A / 2B:</strong> le caselle <strong>CHIMICA</strong> sono visibili solo nella settimana in cui si svolgono gli eventi.<br>
                 <strong>Simulimpresa NO:</strong> casella nascosta dal <strong>1 ottobre al 5 dicembre 2026</strong>.<br>
-                <strong>Simulimpresa SI:</strong> casella nascosta dal <strong>6 dicembre 2026 al 1 gennaio 2027</strong>.<br>
             </div>
         </div>
 
@@ -184,9 +265,9 @@
 
     <script>
         // --- SIMULAZIONE DATA ---
-        // Aggiungi ?simula=AAAA-MM-GG all'URL per simulare una data.
-        // Esempio: trasportini.html?simula=2026-10-21
-        function getDataSimulata() {
+        let DATA_SIMULATA = null;
+
+        function getDataSimulataDaURL() {
             const params = new URLSearchParams(window.location.search);
             const s = params.get('simula');
             if (!s) return null;
@@ -195,10 +276,64 @@
             return new Date(parts[0], parts[1] - 1, parts[2]);
         }
 
-        const DATA_SIMULATA = getDataSimulata();
-
         function getOggi() {
             return DATA_SIMULATA ? new Date(DATA_SIMULATA) : new Date();
+        }
+
+        function formatDataPerInput(d) {
+            const yyyy = d.getFullYear();
+            const mm   = String(d.getMonth() + 1).padStart(2, '0');
+            const dd   = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function applicaSimulazione() {
+            const input = document.getElementById('simDateInput');
+            if (!input || !input.value) {
+                alert('Seleziona una data da simulare.');
+                return;
+            }
+            const [y, m, d] = input.value.split('-').map(Number);
+            DATA_SIMULATA = new Date(y, m - 1, d);
+
+            aggiornaSimBadge();
+            aggiornaDataHeader();
+            renderTabella();
+        }
+
+        function resetSimulazione() {
+            DATA_SIMULATA = null;
+
+            const input = document.getElementById('simDateInput');
+            if (input) input.value = '';
+
+            aggiornaSimBadge();
+            aggiornaDataHeader();
+            renderTabella();
+        }
+
+        function aggiornaSimBadge() {
+            const badge = document.getElementById('simBadge');
+            if (!badge) return;
+            if (DATA_SIMULATA) {
+                badge.textContent = '🧪 MODALITÀ SIMULAZIONE — data virtuale: ' +
+                    DATA_SIMULATA.toLocaleDateString('it-IT', {
+                        day: 'numeric', month: 'long', year: 'numeric'
+                    });
+                badge.classList.add('visible');
+            } else {
+                badge.textContent = '';
+                badge.classList.remove('visible');
+            }
+        }
+
+        function aggiornaDataHeader() {
+            const dateEl = document.getElementById('todayDate');
+            if (!dateEl) return;
+            const d = getOggi();
+            dateEl.innerText = d.toLocaleDateString('it-IT', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
         }
 
         // --- CONFIGURAZIONE DEI DATI ---
@@ -231,7 +366,8 @@
         };
 
         const ordineOrari = [
-            "14:00", "14:10", "14:10 simulimpresa NO", "14:30", "14:50 CHIMICA", "14:50", "15:10", "15:50", "16:10", "16:40",
+            "14:00", "14:10", "14:10 simulimpresa NO", "14:30", "14:50 CHIMICA", "14:50",
+            "15:10", "15:50", "16:10", "16:40",
             "17:00", "17:00 simulimpresa SI", "17:30", "18:00"
         ];
 
@@ -247,7 +383,7 @@
             },
             {
                 inizio: new Date(2026, 11, 6),  // 6 dicembre 2026
-                fine:   new Date(2027, 0, 1),   // 1 gennaio 2027
+                fine:   new Date(2027, 0, 10),  // 10 gennaio 2027
                 target: '17:00 simulimpresa SI'
             }
         ];
@@ -357,22 +493,16 @@
         }
 
         function init() {
-            const d = getOggi();
-            const dateEl = document.getElementById('todayDate');
-            if (dateEl) {
-                dateEl.innerText = d.toLocaleDateString('it-IT', {
-                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-                });
+            // Legge ?simula=AAAA-MM-GG dall'URL se presente
+            const urlData = getDataSimulataDaURL();
+            if (urlData) {
+                DATA_SIMULATA = urlData;
+                const input = document.getElementById('simDateInput');
+                if (input) input.value = formatDataPerInput(urlData);
             }
 
-            if (DATA_SIMULATA) {
-                const badge = document.getElementById('simBadge');
-                if (badge) {
-                    badge.textContent = '🧪 MODALITÀ SIMULAZIONE — data virtuale: ' +
-                        DATA_SIMULATA.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
-                    badge.classList.add('visible');
-                }
-            }
+            aggiornaDataHeader();
+            aggiornaSimBadge();
 
             setInterval(() => {
                 const clockEl = document.getElementById('digitalClock');
