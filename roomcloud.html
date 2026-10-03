@@ -327,6 +327,15 @@
             font-size: 0.72rem;
         }
 
+        /* Nuovo: contenuto libero per la riga nota personalizzata */
+        .nota-room112-libera {
+            color: var(--lab);
+            font-weight: 500;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
         /* ─── MODALE ──────────────────────────────────────────── */
         .modal {
             display: none;
@@ -541,7 +550,8 @@
                 print-color-adjust: exact;
             }
             .nota-room112-legenda,
-            .nota-room112-edu {
+            .nota-room112-edu,
+            .nota-room112-libera {
                 color: #000 !important;
             }
         }
@@ -671,6 +681,16 @@
                 .replace(/[^a-zA-Z0-9_-]/g, '_');
         }
 
+        /* ── Utility: escape HTML per contenuti dinamici ──────── */
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         /* ── Scritture Firebase ───────────────────────────────── */
         async function setStatoStudente(id, scelta) {
             if (scelta === null) return;
@@ -792,28 +812,45 @@
             const div = document.createElement('div');
             div.className = 'student-item';
 
-            /* ── ROOM 112: legenda statica ── */
+            /* ── ROOM 112 ──
+               Tre varianti gestite dal campo `tipo`:
+                 - 'educatore' → riga educatore/notturno
+                 - 'legenda'   → legenda colori (Stand-by/Assente/Attività/Foresteria)
+                 - altro/assente → contenuto libero, preso dal campo `nome`
+                                   (supporta \n per andare a capo) */
             if (isRoom112) {
                 div.className += ' nota-room112';
+
                 const isEducatore = studente.tipo === 'educatore'
                     || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
 
+                const isLegenda = studente.tipo === 'legenda';
+
                 if (isEducatore) {
                     div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-                } else {
+                } else if (isLegenda) {
                     div.innerHTML = `
                         <div class="nota-room112-legenda">Note:</div>
                         <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
                         <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
                     `;
+                } else {
+                    // Contenuto libero, multilinea. Supporta sia \n nel valore
+                    // sia righe multiple nel campo `nome`.
+                    const testo = String(studente.nome || '');
+                    if (testo.trim() === '') {
+                        div.innerHTML = `<div class="nota-room112-libera">—</div>`;
+                    } else {
+                        div.innerHTML = `<div class="nota-room112-libera">${escapeHtml(testo)}</div>`;
+                    }
                 }
                 return div;
             }
 
-            /* ── NOTE generiche ── */
+            /* ── NOTE generiche (fuori dalla 112) ── */
             if (isNota) {
                 div.className += ' nota-row';
-                div.innerHTML = `<div class="student-name">${studente.nome}</div>`;
+                div.innerHTML = `<div class="student-name">${escapeHtml(studente.nome)}</div>`;
                 return div;
             }
 
@@ -859,8 +896,8 @@
             if (stato.attivita)   statusHtml = '<div class="student-status status-attivita">⚙️ ATTIVITÀ</div>';
 
             div.innerHTML = `
-                <div class="student-name">${studente.cognome} ${studente.nome}</div>
-                <div class="student-class">${studente.classe}</div>
+                <div class="student-name">${escapeHtml(studente.cognome)} ${escapeHtml(studente.nome)}</div>
+                <div class="student-class">${escapeHtml(studente.classe)}</div>
                 ${statusHtml}
             `;
 
