@@ -255,8 +255,9 @@
         <div class="info-speciali">
             <span class="info-icon">ℹ️</span>
             <div class="info-text">
-                <strong>Trasporti speciali 2A / 2B:</strong> le caselle <strong>CHIMICA</strong> sono visibili solo nella settimana in cui si svolgono gli eventi.<br>
-                <strong>Simulimpresa NO:</strong> casella nascosta dal <strong>1 ottobre al 5 dicembre 2026</strong>.<br>
+                <strong>CHIMICA 2A / 2B:</strong> visibile solo nella settimana di riferimento.<br>
+                <strong>Simulimpresa SI</strong> visibile dal 1 ottobre al 5 dicembre 2026.<br>
+                
             </div>
         </div>
 
@@ -374,28 +375,34 @@
         const ORARI_SPECIALI = ["14:50 CHIMICA"];
 
         // --- PERIODI SIMULIMPRESA ---
-        // Ogni periodo indica quale casella deve essere NASCOSTA.
-        const PERIODI_SIMULIMPRESA = [
+        // Le due caselle (14:10 NO e 17:00 SI) sono MUTUAMENTE ESCLUSIVE.
+        // Qui si definisce quando è ATTIVA la simulimpresa:
+        //   - Durante i periodi elencati  → visibile "17:00 SI", nascosta "14:10 NO"
+        //   - Fuori da quei periodi       → visibile "14:10 NO", nascosta "17:00 SI"
+        const PERIODI_SIMULIMPRESA_ATTIVA = [
             {
                 inizio: new Date(2026, 9, 1),   // 1 ottobre 2026
-                fine:   new Date(2026, 11, 5),  // 5 dicembre 2026
-                target: '14:10 simulimpresa NO'
-            },
-            {
-                inizio: new Date(2026, 11, 6),  // 6 dicembre 2026
-                fine:   new Date(2027, 0, 10),  // 10 gennaio 2027
-                target: '17:00 simulimpresa SI'
+                fine:   new Date(2026, 11, 5)   // 5 dicembre 2026
             }
         ];
 
-        function getTargetNascosto(data = getOggi()) {
+        const SLOT_SIMULIMPRESA_NO = '14:10 simulimpresa NO';
+        const SLOT_SIMULIMPRESA_SI = '17:00 simulimpresa SI';
+
+        function isSimulimpresaAttiva(data = getOggi()) {
             const d = new Date(data.getFullYear(), data.getMonth(), data.getDate());
-            for (const periodo of PERIODI_SIMULIMPRESA) {
-                if (d >= periodo.inizio && d <= periodo.fine) {
-                    return periodo.target;
-                }
+            for (const periodo of PERIODI_SIMULIMPRESA_ATTIVA) {
+                if (d >= periodo.inizio && d <= periodo.fine) return true;
             }
-            return null;
+            return false;
+        }
+
+        // Restituisce la chiave della slot da NASCONDERE.
+        // Sempre e solo una delle due: mai entrambe visibili, mai entrambe nascoste.
+        function getTargetNascosto(data = getOggi()) {
+            return isSimulimpresaAttiva(data)
+                ? SLOT_SIMULIMPRESA_NO   // simulimpresa ON → nascondi NO, mostra SI
+                : SLOT_SIMULIMPRESA_SI;  // simulimpresa OFF → nascondi SI, mostra NO
         }
 
         // --- EVENTI SPECIALI ---
@@ -556,7 +563,7 @@
                 ordineOrari.forEach(ora => {
                     if (orariDelGiorno[ora] && orariDelGiorno[ora].length > 0) {
 
-                        // Se questa slot è il target del periodo attivo, la salto
+                        // Nasconde la slot target (una sola delle due simulimpresa)
                         if (targetNascosto && ora === targetNascosto) {
                             return;
                         }
@@ -564,9 +571,9 @@
                         const slot = document.createElement('div');
 
                         let varianteClasse = '';
-                        if (ora === '14:10 simulimpresa NO') {
+                        if (ora === SLOT_SIMULIMPRESA_NO) {
                             varianteClasse = 'simula-no-slot';
-                        } else if (ora === '17:00 simulimpresa SI') {
+                        } else if (ora === SLOT_SIMULIMPRESA_SI) {
                             varianteClasse = 'simula-si-slot';
                         } else if (ORARI_SPECIALI.includes(ora)) {
                             varianteClasse = 'special-slot';
