@@ -327,15 +327,6 @@
             font-size: 0.72rem;
         }
 
-        /* Nuovo: contenuto libero per la riga nota personalizzata */
-        .nota-room112-libera {
-            color: var(--lab);
-            font-weight: 500;
-            font-size: 0.72rem;
-            line-height: 1.45;
-            white-space: pre-wrap;
-        }
-
         /* ─── MODALE ──────────────────────────────────────────── */
         .modal {
             display: none;
@@ -550,14 +541,68 @@
                 print-color-adjust: exact;
             }
             .nota-room112-legenda,
-            .nota-room112-edu,
-            .nota-room112-libera {
+            .nota-room112-edu {
                 color: #000 !important;
             }
         }
     </style>
 </head>
 <body>
+
+    <!-- ============================================================
+         GUARDIA: roomcloud.html richiede un server HTTP
+         Blocca il rendering se la pagina è aperta via file://
+         ============================================================ -->
+    <script>
+    (function () {
+        if (window.location.protocol !== 'file:') return;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.innerHTML = `
+                <div style="
+                    position:fixed; inset:0; z-index:99999;
+                    display:flex; align-items:center; justify-content:center;
+                    background:var(--bg,#f0f4f8);
+                    background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);
+                    font-family:var(--font,'Segoe UI',system-ui,sans-serif;
+                    padding:20px;
+                ">
+                    <div style="
+                        background:var(--surface,#fff);
+                        border:1px solid var(--border-2,#00000024);
+                        border-radius:var(--radius-xl,24px);
+                        box-shadow:var(--shadow-lg,0 8px 32px rgba(0,0,0,0.14));
+                        padding:36px 32px;
+                        max-width:420px;
+                        width:100%;
+                        text-align:center;
+                    ">
+                        <div style="font-size:2.5rem; line-height:1; margin-bottom:14px;">🌐</div>
+                        <h2 style="
+                            margin:0 0 10px 0;
+                            font-size:1.15rem;
+                            letter-spacing:0.05em;
+                            text-transform:uppercase;
+                            background:linear-gradient(90deg,#2563eb,#0d9488);
+                            -webkit-background-clip:text;
+                            -webkit-text-fill-color:transparent;
+                            background-clip:text;
+                        ">Room Cloud</h2>
+                        <p style="
+                            font-size:0.9rem;
+                            color:var(--text,#0f172a);
+                            font-weight:600;
+                            line-height:1.55;
+                            margin:0;
+                        ">
+                            Modulo non disponibile Offline
+                        </p>
+                    </div>
+                </div>
+            `;
+        });
+    })();
+    </script>
 
     <!-- LOGIN -->
     <div id="loginScreen" class="login-container">
@@ -681,16 +726,6 @@
                 .replace(/[^a-zA-Z0-9_-]/g, '_');
         }
 
-        /* ── Utility: escape HTML per contenuti dinamici ──────── */
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
         /* ── Scritture Firebase ───────────────────────────────── */
         async function setStatoStudente(id, scelta) {
             if (scelta === null) return;
@@ -812,45 +847,28 @@
             const div = document.createElement('div');
             div.className = 'student-item';
 
-            /* ── ROOM 112 ──
-               Tre varianti gestite dal campo `tipo`:
-                 - 'educatore' → riga educatore/notturno
-                 - 'legenda'   → legenda colori (Stand-by/Assente/Attività/Foresteria)
-                 - altro/assente → contenuto libero, preso dal campo `nome`
-                                   (supporta \n per andare a capo) */
+            /* ── ROOM 112: legenda statica ── */
             if (isRoom112) {
                 div.className += ' nota-room112';
-
                 const isEducatore = studente.tipo === 'educatore'
                     || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
 
-                const isLegenda = studente.tipo === 'legenda';
-
                 if (isEducatore) {
                     div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-                } else if (isLegenda) {
+                } else {
                     div.innerHTML = `
                         <div class="nota-room112-legenda">Note:</div>
                         <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
                         <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
                     `;
-                } else {
-                    // Contenuto libero, multilinea. Supporta sia \n nel valore
-                    // sia righe multiple nel campo `nome`.
-                    const testo = String(studente.nome || '');
-                    if (testo.trim() === '') {
-                        div.innerHTML = `<div class="nota-room112-libera">—</div>`;
-                    } else {
-                        div.innerHTML = `<div class="nota-room112-libera">${escapeHtml(testo)}</div>`;
-                    }
                 }
                 return div;
             }
 
-            /* ── NOTE generiche (fuori dalla 112) ── */
+            /* ── NOTE generiche ── */
             if (isNota) {
                 div.className += ' nota-row';
-                div.innerHTML = `<div class="student-name">${escapeHtml(studente.nome)}</div>`;
+                div.innerHTML = `<div class="student-name">${studente.nome}</div>`;
                 return div;
             }
 
@@ -896,8 +914,8 @@
             if (stato.attivita)   statusHtml = '<div class="student-status status-attivita">⚙️ ATTIVITÀ</div>';
 
             div.innerHTML = `
-                <div class="student-name">${escapeHtml(studente.cognome)} ${escapeHtml(studente.nome)}</div>
-                <div class="student-class">${escapeHtml(studente.classe)}</div>
+                <div class="student-name">${studente.cognome} ${studente.nome}</div>
+                <div class="student-class">${studente.classe}</div>
                 ${statusHtml}
             `;
 
