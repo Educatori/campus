@@ -82,6 +82,34 @@
         }
         .slot-data-list li { margin-bottom: 2px; }
 
+        /* Evidenzia la classe aggiunta nella corsa di rientro */
+        .classe-aggiunta {
+            font-weight: 700;
+            color: var(--lab); /* stesso colore di ORARI_SPECIALI */
+        }
+
+        /* Badge Bus (verde) e Furgone (blu) — coerenti con room-badge/lab-badge */
+        .bus-label,
+        .furgone-label {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.72rem;
+            line-height: 1.4;
+            vertical-align: middle;
+            letter-spacing: 0.02em;
+            margin-right: 2px;
+        }
+        .bus-label {
+            color: #cb6b34;
+            background: #ffdba8;
+        }
+        .furgone-label {
+            color: #e14392;
+            background: #d7d7d7;
+        }
+
         .info-speciali {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -145,10 +173,9 @@
         <div class="info-speciali">
             <span class="info-icon">ℹ️</span>
             <div class="info-text">
-                <strong>Trasporti speciali 2A / 2B:</strong> le caselle con orario <strong>14:50</strong> sono visibili solo nella settimana in cui si svolgono gli eventi.<br>
+                <strong>Trasporti speciali 2A / 2B:</strong> le caselle <strong>CHIMICA</strong> sono visibili solo nella settimana in cui si svolgono gli eventi.<br>
                 <strong>Simulimpresa NO:</strong> casella nascosta dal <strong>1 ottobre al 5 dicembre 2026</strong>.<br>
                 <strong>Simulimpresa SI:</strong> casella nascosta dal <strong>6 dicembre 2026 al 1 gennaio 2027</strong>.<br>
-                Fuori da questi periodi entrambe sono visibili.
             </div>
         </div>
 
@@ -177,39 +204,38 @@
         // --- CONFIGURAZIONE DEI DATI ---
         const programmaDati = {
             "lunedì": {
-                "14:30": ["3A 🚕🚕 Gare x8"],
-                "15:50": ["5A, 5B 🚕🚕 Gare x23"],
+                "14:30": ["3A 🚕🚕 da Gare x8"],
+                "15:50": ["5A, 5B 🚕🚕 da Gare x23"],
                 "16:40": ["🚌 1A, 1B, 3B, 4A, 4B + StV 🅿️"]
             },
             "martedì": {
-                "14:30": ["3B 🚕🚕 Gare x9"],
-                "14:10 simulimpresa NO": ["4B 🚕🚕 Gare x6"],
+                "14:30": ["3B 🚕🚕 da Gare x9"],
+                "14:10 simulimpresa NO": ["4B 🚕🚕 da Gare x6"],
                 "15:50": ["🚌 3A"],
-                "16:40": ["🚌 1A, 1B, 5A, 5B", "4A 🚕🚕 Gare x5"],
-                "17:00 simulimpresa SI": ["4B 🚕🚕 StV x6"],
+                "16:40": ["🚌 1A, 1B, 5A, 5B", " poi 4A 🚕🚕 da Gare x5"],
+                "17:00 simulimpresa SI": ["4B 🚕🚕 da StV x6"],
                 "18:00": ["StV 🅿️"]
             },
             "mercoledì": {
-                "14:10 simulimpresa NO": ["4A 🚕🚕 Gare x5"],
-                "16:40": ["🚌 3B", "1A, 4B 🚕🚕 Gare x11"],
-                "17:00 simulimpresa SI": ["4A 🚕🚕 StV x5"],
+                "14:10 simulimpresa NO": ["4A 🚕🚕 da Gare x5"],
+                "16:40": ["🚌 3B", " poi 1A, 4B 🚕🚕 da Gare x11"],
+                "17:00 simulimpresa SI": ["4A 🚕🚕 da StV x5"],
                 "17:30": ["🚌 1B, 3A, 5A, 5B + StV 🅿️"]
             },
             "giovedì": {
-                "14:10": ["5A 🚕🚕 Gare x13"],
-                "15:10": ["4C 🚕🚕 Gare x9"],
-                "16:10": ["1B 🚕🚕 Gare x9"],
+                "14:10": ["5A 🚕🚕 da Gare x13"],
+                "15:10": ["4C 🚕🚕 da Gare x9"],
+                "16:10": ["1B 🚕🚕 da Gare x9"],
                 "16:40": ["🚌 1A, 3A, 3B, 4A, 4B + StV 🅿️"]
             }
         };
 
         const ordineOrari = [
-            "14:00", "14:10", "14:10 simulimpresa NO", "14:30", "14:50",
-            "15:10", "15:50", "16:10", "16:40",
+            "14:00", "14:10", "14:10 simulimpresa NO", "14:30", "14:50 CHIMICA", "14:50", "15:10", "15:50", "16:10", "16:40",
             "17:00", "17:00 simulimpresa SI", "17:30", "18:00"
         ];
 
-        const ORARI_SPECIALI = ["14:50"];
+        const ORARI_SPECIALI = ["14:50 CHIMICA"];
 
         // --- PERIODI SIMULIMPRESA ---
         // Ogni periodo indica quale casella deve essere NASCOSTA.
@@ -237,13 +263,50 @@
         }
 
         // --- EVENTI SPECIALI ---
+        // classe: classe che effettua il trasporto speciale delle 14:50
+        // rientro: dove aggiungere la classe nella corsa di ritorno
+        //   orario = slot da modificare
+        //   indice = posizione nella lista dello slot
         const eventiSpeciali = [
-            { data: new Date(2026, 9, 21), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕 x19, rientro 🚌 16:40" },
-            { data: new Date(2026, 10, 4), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕 x19, rientro 🚌 16:40" },
-            { data: new Date(2026, 11, 16), giorno: "mercoledì", orario: "14:50", descrizione: "2A 🚕🚕 x19, rientro 🚌 16:40" },
-            { data: new Date(2026, 9, 20), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕 x21, rientro 🚌 16:40" },
-            { data: new Date(2026, 10, 3), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕 x21, rientro BUS da 16:40" },
-            { data: new Date(2026, 11, 15), giorno: "martedì", orario: "14:50", descrizione: "2B 🚕🚕 x21, rientro 🚌 16:40" }
+            // --- 2A (mercoledì) ---
+            {
+                data: new Date(2026, 9, 21), giorno: "mercoledì", orario: "14:50 CHIMICA",
+                descrizione: "2A 🚕🚕 a StV x19",
+                classe: "2A",
+                rientro: { orario: "16:40", indice: 0 }
+            },
+            {
+                data: new Date(2026, 10, 4), giorno: "mercoledì", orario: "14:50 CHIMICA",
+                descrizione: "2A 🚕🚕 a StV x19",
+                classe: "2A",
+                rientro: { orario: "16:40", indice: 0 }
+            },
+            {
+                data: new Date(2026, 11, 16), giorno: "mercoledì", orario: "14:50 CHIMICA",
+                descrizione: "2A 🚕🚕 a StV x19",
+                classe: "2A",
+                rientro: { orario: "16:40", indice: 0 }
+            },
+
+            // --- 2B (martedì) ---
+            {
+                data: new Date(2026, 9, 20), giorno: "martedì", orario: "14:50 CHIMICA",
+                descrizione: "2B 🚕🚕 a StV x21",
+                classe: "2B",
+                rientro: { orario: "16:40", indice: 0 }
+            },
+            {
+                data: new Date(2026, 10, 3), giorno: "martedì", orario: "14:50 CHIMICA",
+                descrizione: "2B 🚕🚕 a StV x21",
+                classe: "2B",
+                rientro: { orario: "16:40", indice: 0 }
+            },
+            {
+                data: new Date(2026, 11, 15), giorno: "martedì", orario: "14:50 CHIMICA",
+                descrizione: "2B 🚕🚕 a StV x21",
+                classe: "2B",
+                rientro: { orario: "16:40", indice: 0 }
+            }
         ];
 
         function getMonday(date) {
@@ -263,16 +326,34 @@
 
             eventiSpeciali.forEach(evento => {
                 const mondayEvento = getMonday(evento.data);
-                if (mondayOggi.getTime() === mondayEvento.getTime()) {
-                    const giorno = evento.giorno;
-                    const orario = evento.orario;
-                    if (!programma[giorno]) programma[giorno] = {};
-                    if (!programma[giorno][orario]) programma[giorno][orario] = [];
-                    programma[giorno][orario].push(evento.descrizione);
+                if (mondayOggi.getTime() !== mondayEvento.getTime()) return;
+
+                const giorno = evento.giorno;
+                const orario = evento.orario;
+
+                // 1) Inserisce lo slot speciale 14:50 CHIMICA
+                if (!programma[giorno]) programma[giorno] = {};
+                if (!programma[giorno][orario]) programma[giorno][orario] = [];
+                programma[giorno][orario].push(evento.descrizione);
+
+                // 2) Aggiunge la classe nella corsa di rientro indicata
+                if (evento.classe && evento.rientro) {
+                    const { orario: orarioRientro, indice } = evento.rientro;
+                    const lista = programma[giorno] && programma[giorno][orarioRientro];
+                    if (lista && lista[indice] !== undefined && !lista[indice].includes('+' + evento.classe)) {
+                        lista[indice] = lista[indice] + ' <span class="classe-aggiunta">+' + evento.classe + '</span>';
+                    }
                 }
             });
 
             return programma;
+        }
+
+        // Sostituisce le emoji con badge colorati
+        function formatTrasporto(testo) {
+            return testo
+                .replace(/🚌/g, '<span class="bus-label">Bus</span>')
+                .replace(/🚕🚕/g, '<span class="furgone-label">Furgone</span>');
         }
 
         function init() {
@@ -359,14 +440,14 @@
                             varianteClasse = 'simula-si-slot';
                         } else if (ORARI_SPECIALI.includes(ora)) {
                             varianteClasse = 'special-slot';
-                        } else if (ora === '19:10') {
+                        } else if (ora === '00:00') {
                             varianteClasse = 'evento-speciale-slot';
                         }
 
                         slot.className = `time-slot ${varianteClasse}`.trim();
 
                         const elementiLista = orariDelGiorno[ora]
-                            .map(info => `<li>${info}</li>`)
+                            .map(info => `<li>${formatTrasporto(info)}</li>`)
                             .join('');
 
                         slot.innerHTML = `
