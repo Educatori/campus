@@ -147,7 +147,6 @@
 
         .button-group { display: flex; gap: 8px; }
 
-        /* Bottoni app ridenominati .btn-app-* per evitare conflitto con .btn di campus_hub.css */
         .btn-app {
             padding: 8px 16px;
             border: none;
@@ -265,7 +264,7 @@
             letter-spacing: 0.03em;
         }
 
-        /* Stand-by: giallo ambra */
+        /* Stand-by: ambra */
         .student-item.stato-assente {
             background: var(--lab-dim);
             border-left: 3px solid var(--lab);
@@ -281,7 +280,7 @@
         .student-item.stato-confermato:hover { background: var(--absent-dim); filter: brightness(1.08); }
         .status-confermato { background: var(--absent-dim); color: var(--absent); }
 
-        /* Attività: verde acqua */
+        /* Attività: teal */
         .student-item.stato-attivita {
             background: var(--accent-2-dim);
             border-left: 3px solid var(--accent-2);
@@ -289,7 +288,7 @@
         .student-item.stato-attivita:hover { background: var(--accent-2-dim); filter: brightness(1.08); }
         .status-attivita { background: var(--accent-2-dim); color: var(--accent-2); }
 
-        /* Foresteria occupata */
+        /* Foresteria occupata: blu */
         .foresteria-occupato {
             background: var(--accent-dim);
             border-left: 3px solid var(--accent);
@@ -306,34 +305,34 @@
 
         /* ─── ROOM 112: legenda statica ───────────────────────── */
         .student-item.nota-room112 {
-    background: #fef9c3;                    /* giallo tenue (Tailwind yellow-100) */
-    border-left: 3px solid #eab308;         /* giallo ambra per il bordo */
-    padding: 6px 10px;
-    cursor: default;
-    font-size: 0.72rem;
-    line-height: 1.45;
-}
+            background: var(--lab-dim);
+            border-left: 3px solid var(--lab);
+            padding: 6px 10px;
+            cursor: default;
+            font-size: 0.72rem;
+            line-height: 1.45;
+        }
 
-.nota-room112-legenda {
-    font-style: italic;
-    color: #78350f;                         /* marrone scuro, leggibile su giallo */
-    font-weight: 600;
-}
+        .nota-room112-legenda {
+            font-style: italic;
+            color: var(--lab);
+            font-weight: 600;
+        }
 
-.nota-room112-edu {
-    font-weight: 700;
-    color: #a16207;                         /* ambra scura */
-    margin-top: 4px;
-    letter-spacing: 0.03em;
-    font-size: 0.72rem;
-}
+        .nota-room112-edu {
+            font-weight: 700;
+            color: var(--lab);
+            margin-top: 4px;
+            letter-spacing: 0.03em;
+            font-size: 0.72rem;
+        }
 
         /* ─── MODALE ──────────────────────────────────────────── */
         .modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.65);
+            background: rgba(15,23,42,0.55);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -403,7 +402,7 @@
         /* ─── PRINT TIMESTAMP ─────────────────────────────────── */
         .print-timestamp { display: none; }
 
-        /* ─── STAMPA ──────────────────────────────────────────── */
+        /* ─── STAMPA (scala di grigi, minimale) ───────────────── */
         @media print {
             @page { size: A4 portrait; margin: 6mm; }
 
@@ -421,7 +420,7 @@
             .app-header {
                 background: white !important;
                 border: none !important;
-                border-bottom: 1px solid #ccc !important;
+                border-bottom: 1px solid #999 !important;
                 box-shadow: none !important;
                 padding: 4px 6px;
                 margin-bottom: 6px;
@@ -430,16 +429,16 @@
 
             .app-header h1 {
                 background: none !important;
-                -webkit-text-fill-color: #1a2236 !important;
-                color: #1a2236 !important;
+                -webkit-text-fill-color: #000 !important;
+                color: #000 !important;
             }
 
-            .current-date { color: #555 !important; }
+            .current-date { color: #444 !important; }
 
             .stats {
-                background: #e8eef5 !important;
-                color: #1a2236 !important;
-                border-color: #ccc !important;
+                background: #e5e5e5 !important;
+                color: #000 !important;
+                border-color: #999 !important;
             }
 
             .rooms-grid {
@@ -449,16 +448,16 @@
 
             .room-card {
                 background: white !important;
-                border: 1px solid #bbb !important;
+                border: 1px solid #888 !important;
                 box-shadow: none !important;
                 break-inside: avoid;
                 border-radius: 3px !important;
             }
 
             .room-title {
-                background: #d1d9e0 !important;
-                border-bottom: 1px solid #bbb !important;
-                color: #1a2236 !important;
+                background: #d0d0d0 !important;
+                border-bottom: 1px solid #888 !important;
+                color: #000 !important;
                 padding: 3px 6px;
                 font-size: 9px;
                 -webkit-print-color-adjust: exact;
@@ -468,48 +467,59 @@
             .student-item {
                 padding: 3px 4px;
                 break-inside: avoid;
-                border-bottom-color: #eee !important;
+                border-bottom-color: #ddd !important;
                 background: white !important;
                 border-radius: 0 !important;
                 margin-bottom: 0 !important;
             }
 
+            /* ── Stand-by: grigio chiaro + bordo solido ── */
             .student-item.stato-assente {
-                background: #fff9c4 !important;
-                border-left: 3px solid #f1c40f !important;
+                background: #e8e8e8 !important;
+                border-left: 3px solid #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
+            /* ── Assente: grigio scuro + bordo tratteggiato ── */
             .student-item.stato-confermato {
-                background: #ffebee !important;
-                border-left: 3px solid #e74c3c !important;
+                background: #bfbfbf !important;
+                border-left: 3px dashed #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
+            /* ── Attività: grigio medio + bordo puntinato ── */
             .student-item.stato-attivita {
-                background: #e0f2f1 !important;
-                border-left: 3px solid #26a69a !important;
+                background: #d9d9d9 !important;
+                border-left: 3px dotted #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
+            /* ── Foresteria: quasi bianco + bordo doppio ── */
             .foresteria-occupato {
-                background: #e3f2fd !important;
-                border-left: 3px solid #2196f3 !important;
+                background: #f2f2f2 !important;
+                border-left: 6px double #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
-            .student-name { font-size: 9.5px; color: black !important; }
-            .student-class { font-size: 7px; color: #555 !important; }
-            .student-status { font-size: 7px; }
+            .student-name { font-size: 9.5px; color: #000 !important; }
+            .student-class { font-size: 7px; color: #444 !important; }
+
+            .student-status {
+                font-size: 7px;
+                background: white !important;
+                color: #000 !important;
+                border: 1px solid #000 !important;
+                font-weight: 700;
+            }
 
             .foresteria-input {
                 border: none !important;
                 background: transparent !important;
-                color: black !important;
+                color: #000 !important;
                 padding: 0;
             }
 
@@ -517,21 +527,22 @@
                 display: block;
                 text-align: right;
                 font-size: 9px;
-                color: #555;
+                color: #444;
                 margin-top: 16px;
-                border-top: 1px solid #eee;
+                border-top: 1px solid #999;
                 padding-top: 4px;
             }
 
+            /* ── Legenda 112: sfondo chiaro, testo nero ── */
             .student-item.nota-room112 {
-                background: #e8f8f5 !important;
-                border-left: 3px solid #26a69a !important;
+                background: #e8e8e8 !important;
+                border-left: 3px solid #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             .nota-room112-legenda,
             .nota-room112-edu {
-                color: black !important;
+                color: #000 !important;
             }
         }
     </style>
@@ -733,21 +744,32 @@
         async function resetAssenze() {
             if (!confirm('Resettare tutte le assenze, conferme, attività e foresteria?')) return;
 
+            let snapshot;
             try {
-                const snapshot = await get(ref(db, 'assenze'));
-                if (!snapshot.exists()) {
-                    alert('Nessuna registrazione presente.');
-                    return;
-                }
-
-                await set(ref(db, 'assenze'), null);
-
-                const oraAttuale = new Date().toISOString();
-                await set(ref(db, 'ultimoReset'), oraAttuale);
-
+                snapshot = await get(ref(db, 'assenze'));
             } catch (err) {
-                console.error('Errore resetAssenze:', err);
+                console.error('Errore lettura assenze:', err);
+                alert('Impossibile leggere i dati. Riprova.');
+                return;
+            }
+
+            if (!snapshot.exists()) {
+                alert('Nessuna registrazione presente.');
+                return;
+            }
+
+            try {
+                await set(ref(db, 'assenze'), null);
+            } catch (err) {
+                console.error('Errore reset assenze:', err);
                 alert('Impossibile completare il reset. Riprova.');
+                return;
+            }
+
+            try {
+                await set(ref(db, 'ultimoReset'), new Date().toISOString());
+            } catch (err) {
+                console.warn('Reset eseguito, ma timestamp non salvato:', err);
             }
         }
 
@@ -777,14 +799,14 @@
                     || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
 
                 if (isEducatore) {
-    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-} else {
-    div.innerHTML = `
-        <div class="nota-room112-legenda">Note:</div>
-        <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
-        <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
-    `;
-}
+                    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
+                } else {
+                    div.innerHTML = `
+                        <div class="nota-room112-legenda">Note:</div>
+                        <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
+                        <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
+                    `;
+                }
                 return div;
             }
 
