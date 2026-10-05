@@ -133,23 +133,7 @@
         .info-speciali .info-text { line-height: 1.5; }
         .info-speciali .info-text strong { color: var(--text); }
 
-        /* Badge modalità simulazione */
-        .sim-badge {
-            display: none;
-            background: var(--switched-dim);
-            border: 1px solid var(--switched);
-            color: var(--switched);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            margin-bottom: var(--gap-block);
-            text-align: center;
-            font-family: var(--font-mono);
-            letter-spacing: 0.03em;
-        }
-        .sim-badge.visible { display: block; }
-
+       
         /* Toolbar simulazione data */
         .sim-toolbar {
             display: flex;
@@ -217,12 +201,11 @@
             box-shadow: var(--shadow-sm);
         }
 
-        /* Override header per trasportini.html */
-        header {
-            background: var(--accent-dim);
-            border-color: var(--border);
-            box-shadow: var(--shadow-sm);
-        }
+        header:not(.app-header) {
+    background: var(--accent-dim);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+}
     </style>
 </head>
 <body>
