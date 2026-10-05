@@ -250,13 +250,12 @@
         </div>
 
         <!-- Selettore data simulazione -->
-        <div class="sim-toolbar">
-            <span class="sim-toolbar-label">📅 Simula data</span>
-            <input type="date" id="simDateInput">
-            <button class="sim-btn sim-btn-primary" onclick="applicaSimulazione()">Simula</button>
-            <button class="sim-btn sim-btn-secondary" onclick="resetSimulazione()">↺ Oggi</button>
-        </div>
-
+<div class="sim-toolbar">
+    <span class="sim-toolbar-label">📅 Simula data</span>
+    <input type="date" id="simDateInput">
+    <button class="sim-btn sim-btn-secondary" onclick="resetSimulazione()">↺ Oggi</button>
+</div>
+        
         <div class="info-speciali">
             <span class="info-icon">ℹ️</span>
             <div class="info-text">
@@ -506,36 +505,51 @@
         }
 
         function init() {
-            // Legge ?simula=AAAA-MM-GG dall'URL se presente
-            const urlData = getDataSimulataDaURL();
-            if (urlData) {
-                DATA_SIMULATA = urlData;
-                const input = document.getElementById('simDateInput');
-                if (input) input.value = formatDataPerInput(urlData);
-            }
+    // Legge ?simula=AAAA-MM-GG dall'URL se presente
+    const urlData = getDataSimulataDaURL();
+    const inputData = document.getElementById('simDateInput');
+    if (urlData) {
+        DATA_SIMULATA = urlData;
+        if (inputData) inputData.value = formatDataPerInput(urlData);
+    }
 
-            aggiornaDataHeader();
+    // Avvia la simulazione appena viene selezionata una data
+    if (inputData) {
+        inputData.addEventListener('change', () => {
+            if (!inputData.value) {
+                resetSimulazione();
+                return;
+            }
+            const [y, m, d] = inputData.value.split('-').map(Number);
+            DATA_SIMULATA = new Date(y, m - 1, d);
             aggiornaSimBadge();
-
-            setInterval(() => {
-                const clockEl = document.getElementById('digitalClock');
-                if (clockEl) clockEl.innerText = new Date().toLocaleTimeString('it-IT');
-            }, 1000);
-
-            const noteInput = document.getElementById('dailyNotes');
-            if (noteInput) {
-                const noteSalvate = localStorage.getItem('note_trasportini');
-                if (noteSalvate) {
-                    noteInput.value = noteSalvate;
-                }
-
-                noteInput.addEventListener('input', () => {
-                    localStorage.setItem('note_trasportini', noteInput.value);
-                });
-            }
-
+            aggiornaDataHeader();
             renderTabella();
+        });
+    }
+
+    aggiornaDataHeader();
+    aggiornaSimBadge();
+
+    setInterval(() => {
+        const clockEl = document.getElementById('digitalClock');
+        if (clockEl) clockEl.innerText = new Date().toLocaleTimeString('it-IT');
+    }, 1000);
+
+    const noteInput = document.getElementById('dailyNotes');
+    if (noteInput) {
+        const noteSalvate = localStorage.getItem('note_trasportini');
+        if (noteSalvate) {
+            noteInput.value = noteSalvate;
         }
+
+        noteInput.addEventListener('input', () => {
+            localStorage.setItem('note_trasportini', noteInput.value);
+        });
+    }
+
+    renderTabella();
+}
 
         function cancellaNote() {
             if (confirm("⚠️ Cancellare definitivamente le note?")) {
