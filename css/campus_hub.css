@@ -344,14 +344,14 @@ header:not(.app-header) h1 {
 }
 
 /* ============================================================
-   8. INFO RESET
+   8. INFO RESET (spostato sopra le note)
    ============================================================ */
 #info-reset {
     text-align: right;
     font-size: 0.7rem;
     color: var(--absent);
     font-family: var(--font-mono);
-    margin-bottom: var(--gap-block);
+    margin-bottom: 6px;
 }
 
 /* ============================================================
@@ -1308,6 +1308,24 @@ button[type="submit"]:hover {
     color: var(--absent);
     border: 1px solid rgba(220,38,38,0.25);
 }
+
+/* Badge modalità simulazione  */
+.sim-badge {
+    display: none;
+    background: var(--switched-dim);
+    border: 1px solid var(--switched);
+    color: var(--switched);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: var(--gap-block);
+    text-align: center;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+}
+.sim-badge.visible { display: block; }
+
 
 /* ============================================================
    20. ANIMAZIONI
