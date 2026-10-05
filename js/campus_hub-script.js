@@ -78,34 +78,52 @@ function simulaData(dataStr) {
         resetSimulazione();
         return;
     }
-    
-    const data = new Date(dataStr);
+
+    // Parsing LOCALE per evitare shift di fuso orario
+    const [y, m, d] = dataStr.split('-').map(Number);
+    const data = new Date(y, m - 1, d);
+
     if (isNaN(data.getTime())) {
         alert('Data non valida!');
         return;
     }
-    
+
     dataSimulata = data;
-    
-    // Aggiorna il display della data
-    const dateEl = document.getElementById("todayDate");
-    if (dateEl) {
-        dateEl.innerText = data.toLocaleDateString("it-IT", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        });
-        // Aggiungi indicatore di simulazione
-        dateEl.innerHTML += ' <span style="color:var(--lab);font-weight:bold;font-size:0.7rem;">🔮 SIMULAZIONE</span>';
-    }
-    
-    // Ricarica la lista con la data simulata
+
+    aggiornaDataHeader();   // solo data, niente più emoji inline
+    aggiornaSimBadge();     // badge dedicato
     ricaricaListaStudenti();
-    
-    console.log(`📅 Data simulata: ${data.toLocaleDateString('it-IT')} (giorno ${data.getDay()})`);
+    aggiornaAltezzaOverlay(); // ricalcola overlay se il pannello è aperto
+
+    console.log(`📅 Data simulata: ${data.toLocaleDateString('it-IT')}`);
 }
-    
+   
+function aggiornaSimBadge() {
+    const badge = document.getElementById('simBadge');
+    if (!badge) return;
+    if (dataSimulata) {
+        badge.textContent = '🔮 MODALITÀ SIMULAZIONE — data virtuale: ' +
+            dataSimulata.toLocaleDateString('it-IT', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+        badge.classList.add('visible');
+    } else {
+        badge.textContent = '';
+        badge.classList.remove('visible');
+    }
+}
+
+function aggiornaDataHeader() {
+    const dateEl = document.getElementById("todayDate");
+    if (!dateEl) return;
+    const d = getDataCorrente();
+    dateEl.innerText = d.toLocaleDateString("it-IT", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric"
+    });
+}
+
+
+
  /**
  * Popola il menu a tendina delle classi
  */
@@ -160,26 +178,15 @@ function filtraPerClasse(classe) {
  */
 function resetSimulazione() {
     dataSimulata = null;
-    
-    // Aggiorna il campo date
+
     const dateInput = document.getElementById("simulateDate");
     if (dateInput) dateInput.value = '';
-    
-    // Ricarica la data reale
-    const oggi = new Date();
-    const dateEl = document.getElementById("todayDate");
-    if (dateEl) {
-        dateEl.innerText = oggi.toLocaleDateString("it-IT", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        });
-    }
-    
-    // Ricarica la lista
+
+    aggiornaDataHeader();
+    aggiornaSimBadge();
     ricaricaListaStudenti();
-    
+    aggiornaAltezzaOverlay();
+
     console.log('📅 Data reale ripristinata');
 }
 
@@ -309,21 +316,10 @@ function init() {
         }
     }
     
-    const d = getDataCorrente();
     caricaAssenzeProgrammate();
 
-    const dateEl = document.getElementById("todayDate");
-    if (dateEl) {
-        dateEl.innerText = d.toLocaleDateString("it-IT", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        });
-        if (dataSimulata) {
-            dateEl.innerHTML += ' <span style="color:var(--lab);font-weight:bold;font-size:0.7rem;">🔮 SIMULAZIONE</span>';
-        }
-    }
+aggiornaDataHeader();
+aggiornaSimBadge();
 
     updateClock();
     let clockInterval = null;
