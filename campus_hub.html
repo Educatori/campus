@@ -313,10 +313,10 @@ if (window.APP_MODE === 'online') {
         throw err;
     }
 
-    const {
-        auth, db, ref, get, update,
-        signInWithEmailAndPassword, signOut, onAuthStateChanged
-    } = firebaseMod;
+   const {
+    auth, db, ref, get, update, set, onValue,        // ← aggiunti set, onValue
+    signInWithEmailAndPassword, signOut, onAuthStateChanged
+} = firebaseMod;
 
     window.effettuaLogin = async function () {
         const email = document.getElementById('loginEmail').value.trim();
@@ -393,6 +393,19 @@ if (window.APP_MODE === 'online') {
         }
     };
 
+    /* ── Salvataggio assenze programmate su Firebase ── */
+window.salvaAssenzeProgrammateFirebase = async function (dati) {
+    try {
+        const daScrivere = (dati && Object.keys(dati).length > 0) ? dati : null;
+        await set(ref(db, 'assenzeProgrammate'), daScrivere);
+        console.log(`✅ Assenze programmate pubblicate (${dati ? Object.keys(dati).length : 0} studenti)`);
+    } catch (err) {
+        console.error('❌ Errore salvataggio assenze programmate:', err);
+    }
+};
+
+let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
+    
     let appInizializzata = false;
 
     onAuthStateChanged(auth, async (user) => {
@@ -402,12 +415,16 @@ if (window.APP_MODE === 'online') {
         const btn         = document.getElementById('loginBtn');
 
         if (!user) {
-            loginScreen.style.display = 'flex';
-            appContent.style.display  = 'none';
-            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
-            appInizializzata = false;
-            return;
-        }
+    loginScreen.style.display = 'flex';
+    appContent.style.display  = 'none';
+    if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+    appInizializzata = false;
+
+    // Chiudi la sottoscrizione realtime
+    if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }   // ← NUOVO
+
+    return;
+}
 
         console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
         loginScreen.style.display = 'flex';
@@ -505,11 +522,28 @@ if (window.APP_MODE === 'online') {
             else if (typeof window.attivaSyncDatiGiornalieri === 'function') window.attivaSyncDatiGiornalieri();
         } catch (e) { console.error('❌ Errore sync dati:', e); }
 
-        try {
+                try {
             if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
             else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
         } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
+
+        /* ── Sottoscrizione realtime assenze programmate ── */
+        if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }   // evita doppioni al re-login
+
+        let lastAssProgHash = '';
+        unsubAssProg = onValue(ref(db, 'assenzeProgrammate'), (snap) => {
+            const val = snap.val() || {};
+            const hash = JSON.stringify(val);
+            if (hash === lastAssProgHash) return;   // salta l'eco della nostra stessa scrittura
+            lastAssProgHash = hash;
+
+            if (typeof window.setAssenzeProgrammateFromRemote === 'function') {
+                window.setAssenzeProgrammateFromRemote(val);
+            }
+        });
+        console.log('🔔 Sottoscrizione realtime assenzeProgrammate attiva');
     });
+
 }
 </script>
 
