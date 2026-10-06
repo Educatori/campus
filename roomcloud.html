@@ -325,6 +325,7 @@
             margin-top: 4px;
             letter-spacing: 0.03em;
             font-size: 0.72rem;
+            font-style: italic;
         }
 
         /* ─── MODALE ──────────────────────────────────────────── */
@@ -856,22 +857,27 @@
             div.className = 'student-item';
 
             /* ── ROOM 112: legenda statica ── */
-            if (isRoom112) {
-                div.className += ' nota-room112';
-                const isEducatore = studente.tipo === 'educatore'
-                    || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
+if (isRoom112) {
+    div.className += ' nota-room112';
+    const isEducatore = studente.tipo === 'educatore'
+        || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
+    // Riconosce la nota (numero di telefono) tramite tipo "nota"
+    const isNota112 = studente.tipo === 'nota';
 
-                if (isEducatore) {
-                    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-                } else {
-                    div.innerHTML = `
-                        <div class="nota-room112-legenda">Note:</div>
-                        <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
-                        <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
-                    `;
-                }
-                return div;
-            }
+    if (isEducatore) {
+        div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
+    } else if (isNota112) {
+        // Mostra il contenuto della nota (es. 📞3296594920)
+        div.innerHTML = `<div class="nota-room112-legenda">${studente.nome}</div>`;
+    } else {
+        div.innerHTML = `
+            <div class="nota-room112-legenda">Note:</div>
+            <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
+            <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
+        `;
+    }
+    return div;
+}
 
             /* ── NOTE generiche ── */
             if (isNota) {
