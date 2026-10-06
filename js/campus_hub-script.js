@@ -690,7 +690,6 @@ function controllaDinnerAutomatico(riga) {
         riga.classList.remove("dinner-no");
     }
 }
-
 /**
  * Mostra un popup informativo quando l'utente tenta di modificare
  * uno stato imposto da un Permesso Permanente (che è "legge").
@@ -747,16 +746,68 @@ function mostraPopupPPBloccato(cognome, etichetta, motivo) {
     }, 3500);
 }
 
+/**
+ * Popup quando si tenta di modificare uno stato imposto da
+ * un'assenza programmata nel side panel.
+ */
+function mostraPopupAssenzaProgrammata(cognome) {
+    const old = document.getElementById("ppBlockedPopup");
+    if (old) old.remove();
+
+    const popup = document.createElement("div");
+    popup.id = "ppBlockedPopup";
+    popup.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        color: var(--text);
+        padding: 14px 22px;
+        border-radius: 12px;
+        border: 2px solid var(--lab, #d97706);
+        font-family: var(--font);
+        font-size: 0.88rem;
+        z-index: 3000;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        max-width: 420px;
+        text-align: center;
+        animation: ppFadeIn 0.2s ease;
+    `;
+    popup.innerHTML = `
+        <div style="font-size:1.4em;margin-bottom:4px;">📅</div>
+        <div style="font-weight:700;margin-bottom:6px;">
+            Assenza programmata attiva
+        </div>
+        <div style="font-size:0.82em;color:var(--text-2);line-height:1.4;">
+            <b>${cognome}</b> è assente per il periodo programmato.<br>
+            Non è possibile modificarlo manualmente.<br>
+            Per sbloccarlo, rimuovi l'assenza dal pannello laterale.
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        if (popup.parentNode) popup.remove();
+    }, 3500);
+}
+
 function toggleAssenza(btn) {
     const r = btn.closest(".student-row");
     const cognome = r.dataset.cognome;
     const giornoSettimana = getDataCorrente().getDay();
 
-    // ── BLOCCO: se il PP impone l'assenza, l'utente non può sbloccarla ──
+    // ── BLOCCO PP ──
     const statoPP = analizzaPP(cognome, giornoSettimana);
     if (statoPP.assente) {
         mostraPopupPPBloccato(cognome, statoPP.etichetta || "PP");
         return;
+    }
+
+    // ── BLOCCO ASSENZA PROGRAMMATA ──                          ← NUOVO
+    if (isAssenteProgrammato(cognome, getDataCorrente())) {     // ← NUOVO
+        mostraPopupAssenzaProgrammata(cognome);                 // ← NUOVO
+        return;                                                 // ← NUOVO
     }
 
     r.classList.toggle("assente");
@@ -770,7 +821,7 @@ function toggleDinnerNo(btn) {
     const cognome = r.dataset.cognome;
     const giornoSettimana = getDataCorrente().getDay();
 
-    // ── BLOCCO: se il PP impone l'assenza o il dinner-no, l'utente non può sbloccare ──
+    // ── BLOCCO PP ──
     const statoPP = analizzaPP(cognome, giornoSettimana);
     if (statoPP.assente || statoPP.dinnerNo) {
         const motivo = statoPP.assente
@@ -778,6 +829,12 @@ function toggleDinnerNo(btn) {
             : "non cena";
         mostraPopupPPBloccato(cognome, statoPP.etichetta || "PP", motivo);
         return;
+    }
+
+    // ── BLOCCO ASSENZA PROGRAMMATA ──                          ← NUOVO
+    if (isAssenteProgrammato(cognome, getDataCorrente())) {     // ← NUOVO
+        mostraPopupAssenzaProgrammata(cognome);                 // ← NUOVO
+        return;                                                 // ← NUOVO
     }
 
     r.dataset.dinnerno = r.dataset.dinnerno === "1" ? "0" : "1";
@@ -2598,24 +2655,37 @@ function caricaAssenzeProgrammate() {
     assenzeProgrammate = saved ? JSON.parse(saved) : {};
 }
 
+/* ─────────────────────────────────────────────────────────────
+   HELPER: data locale in formato YYYY-MM-DD (immune ai fusi)
+   ───────────────────────────────────────────────────────────── */
+function ymdLocale(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const g = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${g}`;
+}
+
+/**
+ * Verifica se uno studente è assente programmato per la data indicata.
+ * Confronto lessicografico su stringhe YYYY-MM-DD (equivalente a
+ * confronto date, ma immune agli shift di fuso orario).
+ */
 function isAssenteProgrammato(cognome, data) {
     const lista = assenzeProgrammate[cognome.toUpperCase()];
     if (!lista) return false;
 
-    const oggi = new Date(data.toISOString().split("T")[0]);
+    const oggiYmd = ymdLocale(data);
 
     return lista.some((periodo) => {
-        const dal = new Date(periodo.dal);
-        const al = new Date(periodo.al);
-        return oggi >= dal && oggi <= al;
+        return oggiYmd >= periodo.dal && oggiYmd <= periodo.al;
     });
 }
 
 function aggiungiAssenza() {
     const cognomeSel = document.getElementById("selectStudente").value;
-    const classeSel = document.getElementById("selectClasse").value;
-    const dal = document.getElementById("dataDal").value;
-    const al = document.getElementById("dataAl").value;
+    const classeSel  = document.getElementById("selectClasse").value;
+    const dal        = document.getElementById("dataDal").value;
+    const al         = document.getElementById("dataAl").value;
 
     if (!dal || !al) return alert("Seleziona entrambe le date");
 
@@ -2640,6 +2710,7 @@ function aggiungiAssenza() {
 
     salvaAssenzeProgrammate();
     renderListaAssenze();
+    ricaricaListaStudenti();   // ← NUOVO: applica subito il nuovo stato
 }
 
 function renderListaAssenze() {
@@ -2674,6 +2745,7 @@ function rimuoviAssenza(cognome, index) {
     }
     salvaAssenzeProgrammate();
     renderListaAssenze();
+    ricaricaListaStudenti();   // ← NUOVO: rimuove subito lo stato assente
 }
 
 // --- 7. PERMESSI E UTILITY ---
@@ -2840,46 +2912,7 @@ document.addEventListener('click', (e) => {
     panel.classList.remove('open');
 });
 
-/**
- * ─────────────────────────────────────────────────────────────
- * Calcola l'altezza dell'overlay semi-trasparente del pannello
- * in base all'altezza reale degli elementi visibili sotto di esso.
- * ─────────────────────────────────────────────────────────────
- */
-function aggiornaAltezzaOverlay() {
-    const overlay = document.getElementById("sidePanelOverlay");
-    if (!overlay) return;
 
-    let h = 0;
-
-    const header = document.querySelector("header");
-    if (header) h += header.offsetHeight;
-
-    const note = document.querySelector(".note-toolbar-container");
-    if (note) h += note.offsetHeight;
-
-    const infoReset = document.getElementById("info-reset");
-    if (infoReset) h += infoReset.offsetHeight;
-
-    // Margine di sicurezza
-    h += 70;
-
-    overlay.style.flex = `0 0 ${h}px`;
-
-    console.log(`🔲 Overlay permessi: ${h}px`);
-}
-
-// Ricalcola al resize della finestra (solo se il pannello è aperto)
-window.addEventListener("resize", () => {
-    if (isPanelOpen()) {
-        aggiornaAltezzaOverlay();
-    }
-});
-
-// Ricalcola al caricamento iniziale (con delay per il rendering completo)
-window.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => aggiornaAltezzaOverlay(), 150);
-});
 /**
  * ─────────────────────────────────────────────────────────────
  * Calcola l'altezza dell'overlay semi-trasparente del pannello
@@ -3015,6 +3048,7 @@ function salvaDatiLocale() {
 function caricaDatiLocale() {
     const dati = JSON.parse(localStorage.getItem("datiConvitto") || "{}");
     const giornoSettimana = getDataCorrente().getDay();
+    const dataCorrente = getDataCorrente();
 
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
@@ -3023,6 +3057,9 @@ function caricaDatiLocale() {
 
         // ── Analizza il PP per dedurre assenza / no-cena ──
         const statoPP = analizzaPP(cgn, giornoSettimana);
+
+        // ── Assenza programmata dal side panel ──
+        const assenteProgrammato = isAssenteProgrammato(cognome, dataCorrente);  // ← NUOVO
 
         // ── Recupera gli orari PP ──
         let ppOut = "";
@@ -3040,18 +3077,20 @@ function caricaDatiLocale() {
 
         // ════════════════════════════════════════════════════════
         // LOGICA ASSENZA
-        // ────────────────────────────────────────────────────────
-        // Precedenza (PP è legge):
-        //   1. PP dice assente → SEMPRE assente, nessuno può sbloccare
-        //   2. altrimenti override utente (d.assente definito)
-        //   3. altrimenti non assente
+        // Precedenza:
+        //   1. PP dice assente        → SEMPRE assente
+        //   2. Assenza programmata    → SEMPRE assente        ← NUOVO
+        //   3. Override utente
+        //   4. Altrimenti presente
         // ════════════════════════════════════════════════════════
         let assenteFinale;
 
         if (statoPP.assente) {
-            assenteFinale = true;                                   // ← PP vince sempre
+            assenteFinale = true;
+        } else if (assenteProgrammato) {                        // ← NUOVO
+            assenteFinale = true;                               // ← NUOVO
         } else if (d && d.assente !== undefined) {
-            assenteFinale = d.assente === true;                     // ← override utente
+            assenteFinale = d.assente === true;
         } else {
             assenteFinale = false;
         }
@@ -3062,19 +3101,21 @@ function caricaDatiLocale() {
 
         // ════════════════════════════════════════════════════════
         // LOGICA DINNER-NO
-        // ────────────────────────────────────────────────────────
-        // Precedenza (PP è legge):
+        // Precedenza:
         //   1. assente → sempre dinner-no
-        //   2. PP dice dinner-no → SEMPRE dinner-no
-        //   3. altrimenti override utente
-        //   4. altrimenti non dinner-no
+        //   2. PP dice dinner-no        → SEMPRE dinner-no
+        //   3. Assenza programmata      → sempre dinner-no      ← NUOVO
+        //   4. Override utente
+        //   5. Altrimenti presente
         // ════════════════════════════════════════════════════════
         let dinnerNoFinale;
 
         if (assenteFinale) {
             dinnerNoFinale = true;
         } else if (statoPP.dinnerNo) {
-            dinnerNoFinale = true;                                  // ← PP vince sempre
+            dinnerNoFinale = true;
+        } else if (assenteProgrammato) {                        // ← NUOVO
+            dinnerNoFinale = true;                              // ← NUOVO
         } else if (d && d.dinnerno !== undefined) {
             dinnerNoFinale = d.dinnerno === "1";
         } else {
