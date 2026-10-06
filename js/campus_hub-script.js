@@ -3065,8 +3065,9 @@ function salvaDatiLocale() {
 
     // ─── Sync su Firebase (solo in modalità online) ───
     if (window.APP_MODE === 'online' &&
-        typeof window.salvaDatiFirebaseDebounced === 'function') {
-        window.salvaDatiFirebaseDebounced();
+        typeof window.salvaDatiFirebase === 'function') {          // ← nome corretto
+        window.salvaDatiFirebase()
+            .catch(err => console.error('❌ Sync dati giornalieri fallita:', err));
     }
 }
 
