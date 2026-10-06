@@ -2655,6 +2655,23 @@ function caricaAssenzeProgrammate() {
     assenzeProgrammate = saved ? JSON.parse(saved) : {};
 }
 
+/**
+ * Riceve i dati remoti di assenze programmate da Firebase
+ * e li applica all'interfaccia. Chiamata da onValue().
+ */
+window.setAssenzeProgrammateFromRemote = function(val) {
+    assenzeProgrammate = val || {};
+
+    // Aggiorna la cache locale così sopravvive a reload offline
+    localStorage.setItem("assenzeProgrammate", JSON.stringify(assenzeProgrammate));
+
+    // Ridisegna pannello + card
+    if (typeof renderListaAssenze === "function") renderListaAssenze();
+    if (typeof ricaricaListaStudenti === "function") ricaricaListaStudenti();
+
+    console.log(`☁️ Assenze programmate sincronizzate (${Object.keys(assenzeProgrammate).length} studenti)`);
+};
+
 /* ─────────────────────────────────────────────────────────────
    HELPER: data locale in formato YYYY-MM-DD (immune ai fusi)
    ───────────────────────────────────────────────────────────── */
