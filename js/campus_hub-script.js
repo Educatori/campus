@@ -2647,7 +2647,15 @@ if (s.classe === "5A") {
 
 // --- 6. GESTIONE ASSENZE PROGRAMMATE ---
 function salvaAssenzeProgrammate() {
+    // 1. Backup locale (sempre, anche offline)
     localStorage.setItem("assenzeProgrammate", JSON.stringify(assenzeProgrammate));
+
+    // 2. Sync su Firebase (solo in modalità online)
+    if (window.APP_MODE === 'online' &&
+        typeof window.salvaAssenzeProgrammateFirebase === 'function') {
+        window.salvaAssenzeProgrammateFirebase(assenzeProgrammate)
+            .catch((err) => console.error('❌ Sync assenze programmate fallita:', err));
+    }
 }
 
 function caricaAssenzeProgrammate() {
