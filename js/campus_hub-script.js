@@ -1802,7 +1802,7 @@ function generaPopUpStampaUscite() {
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html><head><title>Registro Uscite Convittori - ${oggi.toLocaleDateString("it-IT")}</title><style>
-            @page { size: A4 portrait; margin: 0.6cm 0.3cm 0.3cm 0.3cm; }
+            @page { size: A4 portrait; margin: 0.6cm 0.6cm 0.3cm 0.6cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #000; line-height: 1.1; }
             
             .page-block { page-break-after: always; position: relative; }
