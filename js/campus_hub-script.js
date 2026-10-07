@@ -26,6 +26,19 @@ const PAROLE_NO_RIENTRO = [
     "tardi", "ritardo", "ritardato",
     "dopo", "post"
 ];
+/* ─────────────────────────────────────────────────────────────
+   COGNOMI CON AUTO (🚗) — lista UNICA condivisa da tutte le
+   stampe che mostrano il simbolo auto:
+     • generaPopUpStampaBus           (Bus Domattina)
+     • generaPopUpStampaBusPomeriggio (Bus Pomeriggio)
+     • generaPopUpStampaSchedaRitardi (Ritardi Mattino)
+   Aggiungi qui un cognome → appare in tutte le stampe.
+   ───────────────────────────────────────────────────────────── */
+const COGNOMI_AUTO = [
+    "RASO", "NICOLASI", "DANNA", "CONTA",
+    "CHIADÒ CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
+];
+
 /**
  * Alterna l'ordinamento della lista studenti tra "per room" e "alfabetico per cognome"
  */
@@ -1550,11 +1563,6 @@ function generaPopUpStampaTransfer() {
 
 // --- POMERIGGIO BUS
 function generaPopUpStampaBusPomeriggio() {
-    // 🚗 Cognomi che ricevono il simbolo auto nelle note
-    const COGNOMI_AUTO = [
-        "RASO", "NICOLASI", "DANNA", "CONTA",
-        "CHIADÒ CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
-    ];
 
     const oggi = new Date();
     const dataTestuale = document.getElementById("todayDate").innerText;
@@ -2236,12 +2244,6 @@ function generaPopUpStampaBus(ordinamento) {
     // ordinamento: 'alfabetico' (default) | 'perClasse'
     ordinamento = ordinamento || 'alfabetico';
 
-    // 🚗 Cognomi che ricevono il simbolo auto nelle note
-    const COGNOMI_AUTO = [
-        "RASO", "NICOLASI", "DANNA", "CONTA",
-        "CHIADÒ CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA"
-    ];
-
     const oggi = new Date();
     const dataOggi = oggi.toLocaleDateString("it-IT");
     const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
@@ -2301,15 +2303,17 @@ function generaPopUpStampaBus(ordinamento) {
     // 3. DISTRIBUZIONE IN 3 COLONNE
     const colonneHtml = ["", "", ""];
 
-    // Testo della nota da mettere in cima alla prima colonna
+    // Testo della nota da mettere in fondo all'ultima colonna
     const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A 🍹 GIO 4C+1B";
 
     // Funzione per generare una riga studente (con note automatiche)
     function generaRigaStudente(s) {
-        let bgStyle = "";
+                let bgStyle = "";
         if (s.classe === "5A" || s.classe === "5B") {
             if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8; border-left: 4px solid #2c3e50;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dashed #2c3e50;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dotted #2c3e50;";
+        } else if (s.classe === "4C") {
+            bgStyle = "border-left: 4px dashed #2c3e50;";
         }
 
         // Lookup stand-by dal DOM
@@ -2319,25 +2323,38 @@ function generaPopUpStampaBus(ordinamento) {
             visualizzaStandBy = verificaStudenteStandBy(rigaElemento) ? "➖" : "";
         }
 
-        // ── NOTE ──
+               // ── NOTE ──
         let notaCustom = "";
         const classeUpper = s.classe.toUpperCase();
         const cognomeUpper = s.cognome.toUpperCase();
 
-        if (classeUpper === "4C") {
-            notaCustom = "solo GIO";
-        } else if (classeUpper === "5B") {
-            notaCustom = "mai GIO";
+        // 🚗 Auto PRIMA (se il cognome è nella lista)
+        if (COGNOMI_AUTO.includes(cognomeUpper)) {
+            notaCustom = "🚗";
         }
 
-        // 🚗 Aggiungi auto se il cognome è nella lista
-        if (COGNOMI_AUTO.includes(cognomeUpper)) {
-            notaCustom = notaCustom ? notaCustom + " 🚗" : "🚗";
-        }
+        // Poi "solo GIO" / "mai GIO" accodato dopo l'eventuale 🚗
+        if (classeUpper === "4C") {
+            notaCustom = notaCustom ? notaCustom + " solo GIO" : "solo GIO";
+        } else if (classeUpper === "5B") {
+            notaCustom = notaCustom ? notaCustom + " mai GIO" : "mai GIO";
+        
+       }
+
+        // ── EVIDENZIA 4C e G2 in grassetto (solo classe/gruppo) ──
+        const classeHtml  = classeUpper === "4C"
+            ? `<b>${s.classe}</b>`
+            : s.classe;
+
+        const gruppoHtml = s.gruppo
+            ? (s.gruppo.toUpperCase() === "G2"
+                ? ` • <b>${s.gruppo}</b>`
+                : ` • ${s.gruppo}`)
+            : "";
 
         return `
             <div class="bus-row" style="${bgStyle}">
-                <div class="b-cell b-class">${s.classe}${s.gruppo ? " • " + s.gruppo : ""}</div>
+                <div class="b-cell b-class">${classeHtml}${gruppoHtml}</div>
                 <div class="b-cell b-name"><b>${s.cognome}</b></div>
                 <div class="b-cell b-room">${s.room || ""}</div>
                 <div class="b-cell b-check"></div>
@@ -2347,7 +2364,7 @@ function generaPopUpStampaBus(ordinamento) {
         `;
     }
 
-      // ── DISTRIBUZIONE ──
+    // ── DISTRIBUZIONE ──
     // Colonne 1-2: resto + 4C bilanciati
     // Colonna 3: SOLO 5A + 5B, con nota LAB in fondo
     const gruppoResto  = validi.filter(s => s.classe !== "5A" && s.classe !== "5B");
@@ -2380,8 +2397,9 @@ function generaPopUpStampaBus(ordinamento) {
         if (!rigaElemento || typeof verificaStudenteStandBy !== "function") return true;
         return !verificaStudenteStandBy(rigaElemento);
     }).length;
+
     // 4. POPUP
-    const titolo = ordinamento === 'perClasse' ? "BUS DOMATTINA — per classe" : "BUS DOMATTINA - alfabetico";
+    const titolo = ordinamento === 'perClasse' ? "BUS DOMATTINA — per classe" : "BUS DOMATTINA";
 
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
@@ -2458,6 +2476,10 @@ function generaPopUpStampaBus(ordinamento) {
 
             <div class="toolbar-stampa no-print">
                 <button class="btn-stampa" onclick="window.print()">•STAMPA</button>
+                ${ordinamento === 'perClasse'
+                    ? `<button class="btn-per-classe" onclick="generaPopUpStampaBus('alfabetico'); window.close();">•ALFABETICO</button>`
+                    : `<button class="btn-per-classe" onclick="generaPopUpStampaBus('perClasse'); window.close();">•PER CLASSE</button>`
+                }
             </div>
 
             <div class="grid-container">
@@ -2482,7 +2504,130 @@ function generaPopUpStampaBus(ordinamento) {
         </body></html>
     `);
     popup.document.close();
+
+    // 👇 Rende disponibile generaPopUpStampaBus DENTRO il popup,
+    //    così l'onclick dei pulsanti non dipende da window.opener
+    //    (che spesso è null per policy del browser o se il popup
+    //    è stato aperto da un iframe / con noopener).
+    popup.generaPopUpStampaBus = generaPopUpStampaBus;
+    popup.focus();
 }
+
+        <style>
+            @page { size: A4 portrait; margin: 0.3cm 0.4cm 0.3cm 0.4cm; }
+
+            /* ── Layout flex a tutta pagina ──────────────────── */
+            html { height: 100%; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                margin: 0; padding: 0;
+                color: #000; line-height: 1.05;              /* ← MOD: 1.1 → 1.05 */
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+
+            .header-block { flex: 0 0 auto; position: relative; }
+            .table-wrap   { flex: 1 1 auto; min-height: 0; display: flex; }
+            .footer-block { flex: 0 0 auto; }
+
+            h2 {
+                text-align: center; text-transform: uppercase;
+                margin: 1px 0 0 0; font-size: 0.9rem; letter-spacing: 1px;   /* ← MOD: 1.05 → 0.9 */
+            }
+            .date-subtitle {
+                text-align: center; font-size: 0.68rem;                    /* ← MOD: 0.78 → 0.68 */
+                margin-bottom: 2px; color: #444;                            /* ← MOD: 4px → 2px */
+                text-transform: capitalize; font-style: italic;
+            }
+            .timestamp {
+                position: absolute; top: 1px; right: 6px;
+                font-size: 0.5rem; color: #777;                             /* ← MOD: 0.55 → 0.5 */
+            }
+
+            /* ── Tabella che occupa tutto lo spazio verticale ── */
+            table {
+                width: 100%;
+                height: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                border: 1px solid #000;
+            }
+
+            /* Intestazione a due righe */
+            thead th {
+                background: #333; color: #fff;
+                font-weight: bold; font-size: 0.5rem;                       /* ← MOD: 0.55 → 0.5 */
+                text-transform: uppercase; padding: 1px 1px;                /* ← MOD: 2px 1px → 1px 1px */
+                border: 1px solid #000; text-align: center;
+            }
+            .h-class { width: 38px; }
+            .h-name  { width: 105px; text-align: left; padding-left: 3px; }
+            .h-room  { width: 30px; }
+            .h-notes { width: 65px; text-align: left; padding-left: 3px; }
+
+            .h-day-letter {
+                font-size: 0.52rem; background: #555; color: #fff;          /* ← MOD: 0.58 → 0.52 */
+                padding: 1px 0;
+            }
+            .h-day-num {
+                font-size: 0.45rem; background: #777; color: #fff;          /* ← MOD: 0.5 → 0.45 */
+                padding: 0;                                                  /* ← MOD: 1px → 0 */
+            }
+
+            /* Righe: nessuna altezza fissa → si distribuiscono da sole */
+            tbody tr { height: auto; }
+            .t-cell {
+                padding: 0 2px;                                              /* ← MOD: 1px 3px → 0 2px */
+                font-size: 0.55rem;                                          /* ← MOD: 0.6 → 0.55 */
+                border-right: 1px solid #000;
+                border-bottom: 1px solid #000;
+                overflow: hidden; white-space: nowrap;
+                text-overflow: ellipsis;
+                vertical-align: middle;
+                line-height: 1.05;                                           /* ← MOD: 1.15 → 1.05 */
+            }
+            .t-cell:last-child { border-right: none; }
+
+            .t-class { text-align: center; font-weight: bold; background: #f5f5f5; }
+            .t-name  { text-transform: uppercase; text-align: left; padding-left: 3px; font-size: 0.58rem; }  /* ← MOD */
+            .t-room  { text-align: center; font-weight: bold; background: #fafafa; }
+            .t-notes { font-size: 0.5rem; color: #444; text-align: left; padding-left: 3px; }                /* ← MOD */
+
+            /* Caselle giorni */
+            .t-day {
+                border-right: 1px solid #000;
+                border-bottom: 1px solid #000;
+                background: #fff;
+                padding: 0;
+                vertical-align: middle;
+            }
+            .t-day:last-child { border-right: none; }
+
+            .footer-block {
+                text-align: right; font-size: 0.5rem;
+                margin-top: 1px; font-style: italic; color: #555;
+            }
+
+            .no-print { text-align: center; margin: 3px 0; }
+
+            /* ── REGOLE SPECIFICHE DI STAMPA ─────────────────── */
+            @media print {
+                .no-print { display: none !important; }
+                body { padding: 0; }
+
+                /* In stampa il timestamp non serve: lo nascondo per
+                   recuperare l'altezza di una riga */
+                .timestamp { display: none !important; }                    /* ← MOD */
+
+                /* Comprimo ulteriormente le celle in stampa */
+                .t-cell { padding: 0 2px !important; }                      /* ← MOD */
+                .h-day-letter { padding: 0 !important; }                    /* ← MOD */
+                .h-day-num    { padding: 0 !important; }                    /* ← MOD */
+            }
+        </style>
+
 
 //-- bus generico
 function generaPopUpStampaBusGenerico() {
