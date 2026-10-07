@@ -2513,7 +2513,100 @@ function generaPopUpStampaBus(ordinamento) {
     popup.focus();
 }
 
-        <style>
+// --- SCHEDA RITARDI MESE (RITARDI MATTINO)
+function generaPopUpStampaSchedaRitardi() {
+   
+    const oggi = new Date();
+    const dataOggi = oggi.toLocaleDateString("it-IT");
+    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+    const meseCorrente = oggi.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+    const meseCapitalizzato = meseCorrente.charAt(0).toUpperCase() + meseCorrente.slice(1);
+
+    if (typeof studenticonvittori === "undefined") {
+        console.error("Errore: studenticonvittori non definito.");
+        alert("Errore: database studenti non caricato.");
+        return;
+    }
+
+    // 1. FILTRO CLASSI ESCLUSE
+    const validi = studenticonvittori.filter((s) => {
+        if (!s.cognome) return false;
+        const classe = s.classe.toUpperCase();
+        const escluse = ["2A", "2B"];
+        return !escluse.includes(classe) && !classe.includes("P");
+    });
+
+    // 2. ORDINAMENTO ALFABETICO
+    validi.sort((a, b) => a.cognome.localeCompare(b.cognome, "it", { sensitivity: "base" }));
+
+    // 3. GIORNI DEL MESE — SOLO MARTEDÌ(2), MERCOLEDÌ(3), GIOVEDÌ(4), VENERDÌ(5)
+    const anno = oggi.getFullYear();
+    const mese = oggi.getMonth();
+    const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+
+    const LETTERE_GIORNI = ["D", "L", "M", "M", "G", "V", "S"];
+    const GIORNI_ATTIVI = [2, 3, 4, 5];
+
+    const giorniDaMostrare = [];
+    for (let g = 1; g <= giorniNelMese; g++) {
+        const dataGiorno = new Date(anno, mese, g);
+        if (GIORNI_ATTIVI.includes(dataGiorno.getDay())) {
+            giorniDaMostrare.push({
+                numero: g,
+                lettera: LETTERE_GIORNI[dataGiorno.getDay()]
+            });
+        }
+    }
+
+    const NUM_CASELLE = giorniDaMostrare.length;
+
+    let headerLettere = "";
+    let headerNumeri = "";
+    giorniDaMostrare.forEach(({ numero, lettera }) => {
+        headerLettere += `<th class="h-day-letter">${lettera}</th>`;
+        headerNumeri  += `<th class="h-day-num">${numero}</th>`;
+    });
+
+    // 4. GENERAZIONE RIGHE STUDENTI
+    const righeStudenti = validi.map((s) => {
+        const cognomeUpper = s.cognome.toUpperCase();
+        const classeUpper = (s.classe || "").toUpperCase();
+
+        // NOTE: 🚗 PRIMA, poi eventuale "solo GIO" / "mai GIO"
+        let notaCustom = "";
+        if (COGNOMI_AUTO.includes(cognomeUpper)) {
+            notaCustom = "🚗";
+        }
+        if (classeUpper === "4C") {
+            notaCustom = notaCustom ? notaCustom + " solo GIO" : "solo GIO";
+        } else if (classeUpper === "5B") {
+            notaCustom = notaCustom ? notaCustom + " mai GIO" : "mai GIO";
+        }
+
+        const classeHtml = classeUpper === "4C"
+            ? `<b>${s.classe}</b>`
+            : (s.classe || "");
+
+        let celleGiorni = "";
+        for (let i = 0; i < NUM_CASELLE; i++) {
+            celleGiorni += `<td class="t-day"></td>`;
+        }
+
+        return `
+            <tr>
+                <td class="t-cell t-class">${classeHtml}</td>
+                <td class="t-cell t-name"><b>${s.cognome}</b></td>
+                <td class="t-cell t-room">${s.room || ""}</td>
+                <td class="t-cell t-notes">${notaCustom}</td>
+                ${celleGiorni}
+            </tr>
+        `;
+    }).join("");
+
+    // 5. POPUP — una sola tabella che si stira a tutta pagina
+    const popup = window.open("", "_blank", "width=1200,height=900");
+    popup.document.write(`
+        <html><head><title>Ritardi Mattino - ${meseCapitalizzato}</title>                <style>
             @page { size: A4 portrait; margin: 0.3cm 0.4cm 0.3cm 0.4cm; }
 
             /* ── Layout flex a tutta pagina ──────────────────── */
@@ -2626,7 +2719,48 @@ function generaPopUpStampaBus(ordinamento) {
                 .h-day-letter { padding: 0 !important; }                    /* ← MOD */
                 .h-day-num    { padding: 0 !important; }                    /* ← MOD */
             }
-        </style>
+        </style></head><body>
+
+            <div class="header-block">
+                <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
+                <h2>Ritardi Mattino</h2>
+                <div class="date-subtitle">Trasporto del mese di ${meseCapitalizzato}</div>
+                <div class="no-print">
+                    <button onclick="window.print()" style="padding:4px 24px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        •STAMPA
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="h-class" rowspan="2">Classe</th>
+                            <th class="h-name"  rowspan="2">Cognome</th>
+                            <th class="h-room"  rowspan="2">Room</th>
+                            <th class="h-notes" rowspan="2">Note</th>
+                            ${headerLettere}
+                        </tr>
+                        <tr>
+                            ${headerNumeri}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${righeStudenti}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer-block">
+                Totale studenti: ${validi.length} — Giorni: ${NUM_CASELLE} (Mar-Ven) di ${giorniNelMese}
+            </div>
+
+        </body></html>
+    `);
+    popup.document.close();
+    popup.focus();
+}
 
 
 //-- bus generico
