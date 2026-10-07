@@ -1486,7 +1486,7 @@ function generaPopUpStampaTransfer() {
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html><head><title>Transfer Lunch Completo - ${dataOggi}</title><style>
-            @page { size: A4 portrait; margin: 0.6cm 0.25cm 0.25cm 0.25cm; }
+            @page { size: A4 portrait; margin: 0.6cm 0.4cm 0.5cm 0.4cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #000; line-height: 1.0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             h2 { text-align: center; text-transform: uppercase; margin: 0; font-size: 1.0rem; }
             .date-subtitle { text-align: center; font-size: 0.75rem; margin-bottom: 3px; color: #444; }
