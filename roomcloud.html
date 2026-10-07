@@ -351,7 +351,8 @@
             box-shadow: var(--shadow-lg);
         }
 
-        #modalMessage {
+        #modalMessage,
+        #confirmMessage {
             font-size: 0.9rem;
             font-weight: 600;
             color: var(--text);
@@ -399,6 +400,14 @@
             color: var(--text-2);
             border: 1px solid var(--border-2);
         }
+        .modal-btn-confirm {
+            background: var(--absent-dim);
+            color: var(--absent);
+            border: 1px solid var(--absent-dim);
+        }
+
+        /* la conferma deve stare sopra l'altra modale */
+        #confirmModal { z-index: 1100; }
 
         /* ─── PRINT TIMESTAMP ─────────────────────────────────── */
         .print-timestamp { display: none; }
@@ -645,7 +654,7 @@
     <!-- Timestamp di stampa -->
     <div id="printTimestamp" class="print-timestamp"></div>
 
-    <!-- MODALE -->
+    <!-- MODALE AZIONE -->
     <div id="actionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalMessage">
         <div class="modal-content">
             <p id="modalMessage">Scegli azione</p>
@@ -654,6 +663,17 @@
                 <button type="button" id="modalAssenteBtn"  class="modal-btn modal-btn-assente">❌ ASSENTE</button>
                 <button type="button" id="modalAttivitaBtn" class="modal-btn modal-btn-attivita">⚙️ ATTIVITÀ</button>
                 <button type="button" id="modalCancelBtn"   class="modal-btn modal-btn-cancel">↪️ ANNULLA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE CONFERMA -->
+    <div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
+        <div class="modal-content">
+            <p id="confirmMessage">Sei sicuro?</p>
+            <div class="modal-buttons">
+                <button type="button" id="confirmNoBtn"  class="modal-btn modal-btn-cancel">↪️ ANNULLA</button>
+                <button type="button" id="confirmYesBtn" class="modal-btn modal-btn-confirm">✔️ CONFERMA</button>
             </div>
         </div>
     </div>
@@ -698,6 +718,12 @@
         const resetBtn        = document.getElementById('resetBtn');
         const logoutBtn       = document.getElementById('logoutBtn');
 
+        /* ── Riferimenti DOM: modale conferma ─────────────────── */
+        const confirmModal   = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmYesBtn  = document.getElementById('confirmYesBtn');
+        const confirmNoBtn   = document.getElementById('confirmNoBtn');
+
         /* ── Data corrente in header ──────────────────────────── */
         function updateCurrentDate() {
             const now = new Date();
@@ -707,7 +733,7 @@
         }
         updateCurrentDate();
 
-        /* ── Modale ───────────────────────────────────────────── */
+        /* ── Modale azione studente ───────────────────────────── */
         function showChoiceDialog(studentName) {
             modalMessage.textContent = `Scegli stato per ${studentName}`;
             modal.style.display = 'flex';
@@ -725,8 +751,31 @@
         cancelBtn.addEventListener('click',   () => closeModal(null));
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(null); });
 
+        /* ── Modale conferma generica ─────────────────────────── */
+        let pendingConfirm = null;
+
+        function showConfirmDialog(message) {
+            confirmMessage.textContent = message;
+            confirmModal.style.display = 'flex';
+            return new Promise((resolve) => { pendingConfirm = resolve; });
+        }
+
+        function closeConfirm(result) {
+            confirmModal.style.display = 'none';
+            if (pendingConfirm) { pendingConfirm(result); pendingConfirm = null; }
+        }
+
+        confirmYesBtn.addEventListener('click', () => closeConfirm(true));
+        confirmNoBtn.addEventListener('click',  () => closeConfirm(false));
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) closeConfirm(false);
+        });
+
+        /* ── ESC: chiude la modale in primo piano ─────────────── */
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(null);
+            if (e.key !== 'Escape') return;
+            if (confirmModal.style.display === 'flex') { closeConfirm(false); return; }
+            if (modal.style.display === 'flex')        { closeModal(null); }
         });
 
         /* ── Utility ID studente ──────────────────────────────── */
@@ -801,12 +850,16 @@
         }
 
         async function eseguiLogout() {
-            if (confirm('Vuoi uscire?')) await signOut(auth);
+            const conferma = await showConfirmDialog('Vuoi uscire?');
+            if (conferma) await signOut(auth);
         }
 
         /* ── Reset assenze ────────────────────────────────────── */
         async function resetAssenze() {
-            if (!confirm('Resettare tutte le assenze, conferme, attività e foresteria?')) return;
+            const conferma = await showConfirmDialog(
+                'Resettare tutte le assenze, conferme, attività e foresteria?'
+            );
+            if (!conferma) return;
 
             let snapshot;
             try {
@@ -857,27 +910,27 @@
             div.className = 'student-item';
 
             /* ── ROOM 112: legenda statica ── */
-if (isRoom112) {
-    div.className += ' nota-room112';
-    const isEducatore = studente.tipo === 'educatore'
-        || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
-    // Riconosce la nota (numero di telefono) tramite tipo "nota"
-    const isNota112 = studente.tipo === 'nota';
+            if (isRoom112) {
+                div.className += ' nota-room112';
+                const isEducatore = studente.tipo === 'educatore'
+                    || studente.cognome === '• EDUCATORE • e • NOTTURNO •';
+                // Riconosce la nota (numero di telefono) tramite tipo "nota"
+                const isNota112 = studente.tipo === 'nota';
 
-    if (isEducatore) {
-        div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
-    } else if (isNota112) {
-        // Mostra il contenuto della nota (es. 📞3296594920)
-        div.innerHTML = `<div class="nota-room112-legenda">${studente.nome}</div>`;
-    } else {
-        div.innerHTML = `
-            <div class="nota-room112-legenda">Note:</div>
-            <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
-            <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
-        `;
-    }
-    return div;
-}
+                if (isEducatore) {
+                    div.innerHTML = `<div class="nota-room112-edu">• EDUCATORE • e • NOTTURNO •</div>`;
+                } else if (isNota112) {
+                    // Mostra il contenuto della nota (es. 📞3296594920)
+                    div.innerHTML = `<div class="nota-room112-legenda">${studente.nome}</div>`;
+                } else {
+                    div.innerHTML = `
+                        <div class="nota-room112-legenda">Note:</div>
+                        <div class="nota-room112-legenda">🟡 Stand-by &nbsp; 🔴 Assente</div>
+                        <div class="nota-room112-legenda">🟢 Attività &nbsp; 🔵 Foresteria</div>
+                    `;
+                }
+                return div;
+            }
 
             /* ── NOTE generiche ── */
             if (isNota) {
