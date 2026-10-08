@@ -130,6 +130,8 @@ function renderListaAssenze() {
 
     container.innerHTML = Object.entries(assenzeProgrammate)
         .map(([cognome, periodi]) => {
+            // Escapa l'apostrofo per l'uso dentro onclick="...('...')"
+            const cognomeJs = cognome.replace(/'/g, "\\'");
             return `
             <div style="margin-bottom:10px;">
                 <b>${cognome}</b>
@@ -138,7 +140,7 @@ function renderListaAssenze() {
                         (p, i) => `
                     <div style="font-size:0.8em;">
                         ${p.dal} → ${p.al}
-                        <button onclick="rimuoviAssenza('${cognome}', ${i})">❌</button>
+                        <button onclick="rimuoviAssenza('${cognomeJs}', ${i})">❌</button>
                     </div>
                 `
                     )
