@@ -3561,7 +3561,7 @@ function mostraDataReset() {
     aggiornaInfoReset();
 }
 
-/**
+/*
  * Aggiorna il testo di #info-reset con entrambi i timestamp:
  *   - Ultimo reset manuale (locale, salvato su localStorage)
  *   - Ultima modifica condivisa (da Firebase, salvata su localStorage)
@@ -3573,8 +3573,8 @@ function aggiornaInfoReset() {
     const dReset = localStorage.getItem("dataUltimoReset") || "MAI";
     const dModifica = localStorage.getItem("dataUltimaModifica") || "MAI";
 
-    el.innerText = `Ultimo reset locale: ${dReset} | Ultima modifica online: ${dModifica}`;
-}
+    el.innerText = `Ultimo reset condiviso: ${dReset} | Ultima modifica condivisa: ${dModifica}`;
+}   
 
 window.aggiornaInfoReset = aggiornaInfoReset;
 
@@ -3652,17 +3652,18 @@ function resetDati(tipo) {
         const classeFilter = document.getElementById("classeFilter");
         if (classeFilter) classeFilter.value = "";
 
-        // Pulisci dati manuali da localStorage
+               // Pulisci dati manuali da localStorage
         localStorage.removeItem("datiConvitto");
 
         // Resetta i cambi turno manuali
         cambiTurnoManuali = {};
 
-        // Timestamp reset (locale)
-        localStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
+        // ── Timestamp reset (locale + Firebase) ──
+        const adesso = new Date().toLocaleString("it-IT", {   // ← DEFINITO QUI
             day: "2-digit", month: "2-digit", year: "numeric",
             hour: "2-digit", minute: "2-digit"
-        }));
+        });
+        localStorage.setItem("dataUltimoReset", adesso);
 
         // Ricostruisci le card (riapplica automaticamente PP + assenze programmate)
         ricaricaListaStudenti();
@@ -3674,10 +3675,11 @@ function resetDati(tipo) {
         if (window.APP_MODE === 'online' &&
             typeof window.salvaDatiFirebase === 'function') {
 
-            // Chiamata diretta (senza debounce) per evitare
-            // che modifiche successive si mescolino al reset.
             window.salvaDatiFirebase()
-                .then(() => {
+                .then(async () => {
+                    if (typeof window.pubblicaUltimoReset === 'function') {
+                        await window.pubblicaUltimoReset(adesso);   // ← ora è definita
+                    }
                     console.log('☁️ Reset condiviso pubblicato su Firebase');
                     alert("✅ Reset completato e pubblicato su tutti i terminali.\n\nLe assenze programmate e i permessi permanenti sono stati mantenuti.");
                 })
@@ -3686,13 +3688,13 @@ function resetDati(tipo) {
                     alert("⚠️ Reset locale completato, ma errore nella pubblicazione condivisa:\n" + err.message);
                 });
         } else {
-            // Modalità offline
             alert("✅ Reset completato (modalità locale).\n\nLe assenze programmate e i permessi permanenti sono stati mantenuti.");
         }
     }
     else if (tipo === 'completo') {
         // ═══════════════════════════════════════════════════════════
-        // RESET COMPLETO (cancella tutto) — doppia conferma anche qui
+        // RESET COMPLETO (cancella tutto) — doppia conferma anche qui.
+        // tasto rimosso, codice inutilizzato 
         // ═══════════════════════════════════════════════════════════
         const msgPrimaCompleto =
             "⚠️ RESET COMPLETO ⚠️\n\n" +
