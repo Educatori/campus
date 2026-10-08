@@ -227,7 +227,31 @@
      ============================================================ -->
 <script src="offline/studenti_26_offline.js"></script>
 <script src="offline/permessi_26_offline.js"></script>
+
+<!-- ↓ Core (devono venire prima del main) -->
+<script src="js/core/stato.js"></script>
+<script src="js/core/turni.js"></script>
+<script src="js/core/pp.js"></script>
+<script src="js/core/filtri.js"></script>
+<script src="js/core/persistenza.js"></script>
+
+<!-- ↓ Pannello laterale -->
+<script src="js/pannello/assenze-programmate.js"></script>
+<script src="js/pannello/side-panel.js"></script>
+
+<!-- Script principale -->
 <script src="js/campus_hub-script.js"></script>
+
+<!-- ↓ Moduli di stampa estratti -->
+<script src="js/stampe/dinner.js"></script>
+<script src="js/stampe/bus.js"></script>
+<script src="js/stampe/transfer.js"></script>
+<script src="js/stampe/uscite-rooming.js"></script>
+<script src="js/stampe/ritardi.js"></script>
+<script src="js/stampe/convitto.js"></script>
+
+<!-- ↓ Reset e import/export permessi -->
+<script src="js/reset/reset-permessi.js"></script>
 
 <script type="module">
 /* ==============================================================
@@ -281,7 +305,6 @@ if (window.APP_MODE === 'offline') {
     window.addEventListener('DOMContentLoaded', () => {
         try {
             if (typeof init                 === 'function') init();
-            if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
             if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
             if (typeof renderListaAssenze   === 'function') renderListaAssenze();
             if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
@@ -518,10 +541,7 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
             else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
         } catch (e) { console.error('❌ Errore note condivise:', e); }
 
-        try {
-            if (typeof dl.attivaSyncDatiGiornalieri === 'function') dl.attivaSyncDatiGiornalieri();
-            else if (typeof window.attivaSyncDatiGiornalieri === 'function') window.attivaSyncDatiGiornalieri();
-        } catch (e) { console.error('❌ Errore sync dati:', e); }
+        
 
                 try {
             if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
