@@ -340,7 +340,66 @@ function attivaNoteCondivise() {
 window.attivaNoteCondivise = attivaNoteCondivise;
 
 // ─────────────────────────────────────────────────────────────
-// 9. EXPORT per import() dinamico (campus_hub.html)
+// 9.  ULTIMO RESET / ULTIMA MODIFICA — realtime condiviso
+// ─────────────────────────────────────────────────────────────
+
+let unsubUltimoReset = null;
+let unsubUltimaMod  = null;
+
+/**
+ * Scrive su Firebase il timestamp dell'ultimo reset.
+ * Chiamata da resetDati() dopo il salvataggio dei dati.
+ */
+async function pubblicaUltimoReset(timestampStringa) {
+    try {
+        await set(ref(db, 'convitto/ultimoReset'), timestampStringa);
+        // aggiorna anche in locale, così la UI è coerente
+        localStorage.setItem('dataUltimoReset', timestampStringa);
+        if (typeof window.aggiornaInfoReset === 'function') window.aggiornaInfoReset();
+    } catch (e) {
+        console.error('❌ Errore pubblicazione ultimo reset:', e);
+    }
+}
+window.pubblicaUltimoReset = pubblicaUltimoReset;
+
+/**
+ * Attiva i listener realtime su:
+ *   - convitto/ultimoReset       → dataUltimoReset
+ *   - convitto/{oggi}/lastUpdate → dataUltimaModifica
+ */
+function attivaUltimoAggiornamento() {
+    if (unsubUltimoReset) { unsubUltimoReset(); unsubUltimoReset = null; }
+    if (unsubUltimaMod)  { unsubUltimaMod();  unsubUltimaMod  = null; }
+
+    // 1) Ultimo reset globale
+    unsubUltimoReset = onValue(ref(db, 'convitto/ultimoReset'), (snap) => {
+        const val = snap.exists() ? snap.val() : 'MAI';
+        localStorage.setItem('dataUltimoReset', val);
+        if (typeof window.aggiornaInfoReset === 'function') window.aggiornaInfoReset();
+    });
+
+    // 2) Ultima modifica del giorno corrente
+    const chiave = dataKeyFirebase(new Date());
+    unsubUltimaMod = onValue(ref(db, `convitto/${chiave}/lastUpdate`), (snap) => {
+        if (!snap.exists()) {
+            localStorage.setItem('dataUltimaModifica', 'MAI');
+        } else {
+            const d = new Date(snap.val());
+            localStorage.setItem('dataUltimaModifica',
+                d.toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                }));
+        }
+        if (typeof window.aggiornaInfoReset === 'function') window.aggiornaInfoReset();
+    });
+
+    console.log('🔔 Listener ultimo reset / ultima modifica attivi');
+}
+window.attivaUltimoAggiornamento = attivaUltimoAggiornamento;
+
+// ─────────────────────────────────────────────────────────────
+// 10. EXPORT (sempre per ultimo!)
 // ─────────────────────────────────────────────────────────────
 export {
     caricaDatiFirebase,
@@ -348,5 +407,7 @@ export {
     salvaNoteFirebase,
     dataKeyFirebase,
     normalizzaPP,
-    attivaNoteCondivise
+    attivaNoteCondivise,
+    attivaUltimoAggiornamento,
+    pubblicaUltimoReset
 };
