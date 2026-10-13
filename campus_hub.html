@@ -81,7 +81,7 @@
     <!-- ── TOOLBAR ────────────────────────────────────────── -->
     <div class="toolbar">
 
-        <!-- Gruppo 1: MODULI + P•PP -->
+        <!-- Gruppo 1: MODULI + G•A•P -->
         <div class="toolbar-group">
             <div class="dropdown-moduli">
                  <div class="day-box dropdown-toggle" style="background:#fef9c3;" tabindex="0">
@@ -96,8 +96,8 @@
                     <a onclick="generaPopUpStampaSchedaRitardi(); return false;">RITARDI MATTINO</a>
                 </div>
             </div>
-            <button class="btn-toolbar" style="background:var(--accent);"
-                    onclick="togglePanel()">⚙️ P•PP</button>
+            <button class="btn-toolbar" style="background:var(--btn-t3);"
+                    onclick="togglePanel()">⚙️ G•A•P</button>
         </div>
 
         <div class="toolbar-sep"></div>
@@ -161,7 +161,7 @@
             <div class="azioni-cat-label">VISTA</div>
             <div class="azioni-cat-row">
                 <button class="day-box" id="btnOrdineAlfabetico"
-                        onclick="toggleOrdineLista()">room A-Z</button>
+                        onclick="toggleOrdineLista()">Room / A-Z</button>
             </div>
         </div>
     </div>
@@ -190,34 +190,70 @@
 
     <div id="sidePanelContent">
 
-        <div class="side-panel-header">
-            <h3 style="border:none;padding:0;margin:0;">Gestione Permessi</h3>
-            <button class="side-panel-close" onclick="togglePanel()" title="Chiudi">&times;</button>
+    <div class="side-panel-header">
+        <h3 style="border:none;padding:0;margin:0;">Gestione Assenze e Permessi</h3>
+        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
+                style="width:44px;height:44px;font-size:1.9rem;display:flex;
+                       align-items:center;justify-content:center;border-radius:10px;
+                       background:transparent;border:none;cursor:pointer;
+                       color:var(--text-2);line-height:1;">&times;</button>
+    </div>
+
+    <!-- ── LISTA ASSENZE — sempre visibile in cima ── -->
+    <h3 style="display:flex;justify-content:space-between;align-items:center;
+               margin:16px 0 10px 0;">
+        Programmate
+        <button onclick="pulisciAssenzeScadute()"
+                title="Rimuovi definitivamente i periodi già terminati"
+                style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
+                       padding:4px 10px;border-radius:6px;cursor:pointer;
+                       font-family:var(--font);font-size:0.72rem;font-weight:700;">
+            🧹 Pulisci scadute
+        </button>
+    </h3>
+    <div id="listaAssenze" style="margin-bottom:10px;"></div>
+
+    <hr>
+
+    <!-- ── PROGRAMMAZIONE ASSENZE — collassata ── -->
+    <details id="boxAggiungiAssenza">
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;">
+            Aggiungi Assenza
+        </summary>
+
+        <div style="padding-top:10px;">
+            <select id="selectStudente" style="margin-bottom:8px;">
+                <option value="">-- Seleziona Nome --</option>
+            </select>
+            <select id="selectClasse" style="margin-bottom:8px;">
+                <option value="">-- Seleziona Classe --</option>
+            </select>
+            <input type="date" id="dataDal" style="margin-bottom:8px;">
+            <input type="date" id="dataAl" style="margin-bottom:12px;">
+            <button class="btn-add-assenza" onclick="aggiungiAssenza()">
+                Conferma
+            </button>
         </div>
+    </details>
 
-        <h3 style="margin:16px 0 10px 0;">Programmazione Assenze</h3>
-        <select id="selectStudente" style="margin-bottom:8px;">
-            <option value="">-- Seleziona Nome --</option>
-        </select>
-        <select id="selectClasse" style="margin-bottom:8px;">
-            <option value="">-- Seleziona Classe --</option>
-        </select>
-        <input type="date" id="dataDal" style="margin-bottom:8px;">
-        <input type="date" id="dataAl" style="margin-bottom:12px;">
-        <button class="btn-add-assenza" onclick="aggiungiAssenza()">➕ Aggiungi Assenza</button>
+    <hr>
 
-        <hr>
-        <h3>Lista Assenze</h3>
-        <div id="listaAssenze" style="margin-bottom:10px;"></div>
-
-        <hr>
-        <h3>Permessi Permanenti</h3>
-        <div style="font-size:0.75rem;color:var(--text-2);margin-bottom:10px;font-style:italic;">
-            Gestire da qui
+    <!-- ── PERMESSI PERMANENTI — collassati ── -->
+    <details id="boxPermessiPermanenti">
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;">
+            🔒 Permessi Permanenti
+        </summary>
+        <div style="font-size:0.75rem;color:var(--text-2);
+                    margin:6px 0 10px 0;font-style:italic;">
+            Gestire da questo pannello
         </div>
         <div id="listaPermessiContent"></div>
+    </details>
 
-    </div>
+</div>
+    
 </div>
 
 </div><!-- /#appContent -->
