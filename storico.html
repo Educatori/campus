@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storico Giornaliero — Campus Hub</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+<style>
+    .controls-bar { display:flex; gap:12px; align-items:center; margin-bottom:20px;
+                    flex-wrap:wrap; background:var(--surface); padding:14px 18px;
+                    border-radius:var(--radius-lg); border:1px solid var(--border); }
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+                    gap:12px; margin-bottom:20px; }
+    .summary-card { background:var(--surface); border:1px solid var(--border);
+                    border-radius:var(--radius); padding:16px; text-align:center; }
+    .summary-card .num { font-size:1.8rem; font-weight:700; font-family:var(--font-mono); }
+    .summary-card .lbl { font-size:0.7rem; text-transform:uppercase; color:var(--text-2);
+                         letter-spacing:0.05em; margin-top:4px; }
+    .storico-table { width:100%; border-collapse:collapse; background:var(--surface);
+                     border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm); }
+    .storico-table th, .storico-table td { padding:10px 14px; text-align:left;
+                     border-bottom:1px solid var(--border); font-size:0.85rem; }
+    .storico-table th { background:var(--surface-2); font-weight:700; text-transform:uppercase;
+                     font-size:0.7rem; letter-spacing:0.05em; color:var(--text-2); }
+    .storico-table tr:last-child td { border-bottom:none; }
+    .storico-table tr:hover td { background:var(--surface-2); }
+    .badge-si { background:var(--absent-dim); color:var(--absent); padding:2px 8px;
+                border-radius:6px; font-size:0.72rem; font-weight:700; }
+    .badge-no { background:var(--ok-dim); color:var(--ok); padding:2px 8px;
+                border-radius:6px; font-size:0.72rem; font-weight:700; }
+    .badge-sw { background:var(--switched-dim); color:var(--switched); padding:2px 8px;
+                border-radius:6px; font-size:0.72rem; font-weight:700; }
+    #loading, #empty { text-align:center; padding:40px; color:var(--text-2); display:none; }
+    #empty { color:var(--text-muted); font-style:italic; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-brand">
+            <h1><a href="campus_hub.html">Campus hub</a></h1>
+            <div id="todayDate"><i>Storico giornaliero</i></div>
+        </div>
+        <div id="digitalClock">--:--:--</div>
+        <div class="header-actions">
+            <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
+            <a href="campus_hub.html" style="color:var(--text-2);font-size:0.78rem;font-weight:700;">← Torna all'app</a>
+        </div>
+    </header>
+
+    <div class="controls-bar">
+        <span class="room-label">📅 DATA</span>
+        <input type="date" id="dataSel"
+               style="padding:9px 14px;border-radius:var(--radius);border:1px solid var(--border-2);
+                      background:var(--bg-3);font-family:var(--font);font-size:0.85rem;">
+        <button id="btnCarica" class="btn-toolbar" style="background:var(--accent);">🔍 Carica</button>
+        <button id="btnOggi" class="btn-toolbar" style="background:var(--btn-t4);">↺ Oggi</button>
+        <span id="pathInfo" style="font-family:var(--font-mono);font-size:0.72rem;
+              color:var(--text-muted);margin-left:auto;"></span>
+    </div>
+
+    <div id="lastUpdateInfo" style="font-size:0.75rem;color:var(--text-2);
+     font-family:var(--font-mono);margin-bottom:10px;"></div>
+<div id="summary" class="summary-grid" style="display:none;"></div>
+    <div id="loading">⏳ Caricamento…</div>
+    <div id="empty">Nessun dato per questa data.</div>
+    <div id="tableWrap" style="display:none;"></div>
+</div>
+
+<div id="loginScreen">
+    <div class="login-card">
+        <h2>🔒 Accesso Richiesto</h2>
+        <p class="login-sub">Autenticati per consultare lo storico</p>
+        <input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button id="loginBtn">ACCEDI</button>
+        <div id="loginError"></div>
+    </div>
+</div>
+
+<script type="module">
+import {
+    auth, db, ref, get,
+    signInWithEmailAndPassword, onAuthStateChanged
+} from './js/firebase-campus_hub-config.js';
+
+// ⚠️ SE IL PATH IN CONSOLE È DIVERSO, CAMBIA QUESTA RIGA:
+const PATH_ROOT = 'convitto';
+
+// Oggi in formato DD-MM-YYYY (quello usato da Firebase)
+function oggiDmy() {
+    const d = new Date();
+    const g = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const y = d.getFullYear();
+    return `${g}-${m}-${y}`;
+}
+
+// Converte il valore di <input type="date"> (YYYY-MM-DD) in DD-MM-YYYY
+function ymdToDmy(ymd) {
+    if (!ymd) return '';
+    const [y, m, d] = ymd.split('-');
+    return `${d}-${m}-${y}`;
+}
+
+// Mostra un timestamp Unix (ms) in formato leggibile
+function formattaTimestamp(ms) {
+    if (!ms) return '—';
+    return new Date(Number(ms)).toLocaleString('it-IT', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+const $ = (id) => document.getElementById(id);
+const loginScreen = $('loginScreen');
+const container   = document.querySelector('.container');
+const statusBadge = $('connection-status');
+const dataSel     = $('dataSel');
+const btnCarica   = $('btnCarica');
+const btnOggi     = $('btnOggi');
+const loading     = $('loading');
+const empty       = $('empty');
+const summary     = $('summary');
+const tableWrap   = $('tableWrap');
+const pathInfo    = $('pathInfo');
+
+// Default: oggi
+dataSel.value = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD per l'input
+
+// Clock
+setInterval(() => {
+    $('digitalClock').innerText = new Date().toLocaleTimeString('it-IT');
+}, 1000);
+
+// Login
+$('loginBtn').onclick = async () => {
+    const email = $('loginEmail').value.trim();
+    const pwd   = $('loginPassword').value;
+    $('loginError').textContent = '';
+    try {
+        await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (e) {
+        $('loginError').textContent = 'Credenziali errate';
+    }
+};
+$('loginPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('loginBtn').click();
+});
+
+// Auth
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        loginScreen.style.display = 'flex';
+        container.style.display = 'none';
+        return;
+    }
+    loginScreen.style.display = 'none';
+    container.style.display = 'block';
+    statusBadge.textContent = '🟢 Firebase';
+    carica();
+});
+
+// Carica
+async function carica() {
+    const dataInput = dataSel.value;          // "2026-10-01"
+    if (!dataInput) return;
+    empty.textContent = 'Nessun dato per questa data.';
+    const dataPath = ymdToDmy(dataInput);     // "01-10-2026"
+
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    summary.style.display = 'none';
+    tableWrap.style.display = 'none';
+    pathInfo.textContent = `${PATH_ROOT}/${dataPath}`;
+
+    try {
+        const snap = await get(ref(db, `${PATH_ROOT}/${dataPath}`));
+        loading.style.display = 'none';
+
+        if (!snap.exists()) {
+            empty.style.display = 'block';
+            return;
+        }
+        render(snap.val() || {});
+    } catch (e) {
+        loading.style.display = 'none';
+        empty.textContent = '❌ Errore: ' + e.message;
+        empty.style.display = 'block';
+    }
+}
+
+function render(dati) {
+    // Estrai lastUpdate (o simili) e separa gli studenti
+    const lastUpdate = dati.lastUpdate || null;
+    const entries = Object.entries(dati)
+        .filter(([k, v]) => k !== 'lastUpdate' && v && typeof v === 'object')
+        .sort(([a], [b]) => a.localeCompare(b, 'it'));
+
+    let assenti = 0, nonCena = 0, sw = 0;
+    entries.forEach(([, d]) => {
+        if (d.assente) assenti++;
+        if (d.dinnerno === '1' || d.dinnerno === 1) nonCena++;
+        if (d.switch) sw++;
+    });
+    // Info lastUpdate sopra le card
+    const infoEl = document.getElementById('lastUpdateInfo');
+if (infoEl) {
+    infoEl.innerHTML = lastUpdate
+        ? `🕐 Ultimo aggiornamento: <b>${formattaTimestamp(lastUpdate)}</b>`
+        : '';
+}
+    summary.innerHTML = `
+        <div class="summary-card"><div class="num" style="color:var(--accent)">${entries.length}</div><div class="lbl">Studenti</div></div>
+        <div class="summary-card"><div class="num" style="color:var(--absent)">${assenti}</div><div class="lbl">Assenti</div></div>
+        <div class="summary-card"><div class="num" style="color:var(--accent)">${nonCena}</div><div class="lbl">Non cena</div></div>
+        <div class="summary-card"><div class="num" style="color:var(--switched)">${sw}</div><div class="lbl">Turno cambiato</div></div>
+    `;
+    
+    summary.style.display = 'grid';
+
+    const righe = entries.map(([cognome, d]) => {
+        const ass = d.assente ? '<span class="badge-si">ASSENTE</span>' : '<span class="badge-no">presente</span>';
+        const din = (d.dinnerno === '1' || d.dinnerno === 1) ? '<span class="badge-si">NON CENA</span>' : '<span class="badge-no">cena</span>';
+        const s   = d.switch ? '<span class="badge-sw">SÌ</span>' : '—';
+        return `<tr>
+            <td><b>${cognome}</b></td>
+            <td>${d.esce  || '—'}</td>
+            <td>${d.entra || '—'}</td>
+            <td>${ass}</td>
+            <td>${din}</td>
+            <td>${s}</td>
+        </tr>`;
+    }).join('');
+
+    tableWrap.innerHTML = `
+        <table class="storico-table">
+            <thead><tr>
+                <th>Cognome</th><th>Esce</th><th>Entra</th>
+                <th>Stato</th><th>Cena</th><th>Switch</th>
+            </tr></thead>
+            <tbody>${righe}</tbody>
+        </table>
+    `;
+    tableWrap.style.display = 'block';
+}
+
+btnCarica.onclick = carica;
+btnOggi.onclick = () => {
+    dataSel.value = new Date().toISOString().slice(0, 10); carica();
+};
+dataSel.addEventListener('change', carica);
+</script>
+
+</body>
+</html>
