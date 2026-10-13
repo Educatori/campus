@@ -49,15 +49,17 @@
         <div id="digitalClock">15:55:38</div>
 
         <div class="header-actions">
-            <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
-            <button id="btnLogout" title="Esci"
-                    style="background:rgba(220,38,38,0.1);color:var(--absent);
-                           border:1px solid rgba(220,38,38,0.3);padding:6px 12px;
-                           border-radius:var(--radius-sm);cursor:pointer;
-                           font-family:var(--font);font-size:0.72rem;font-weight:700;">
-                ❌ ESCI
-            </button>
-        </div>
+    <a id="linkStorico" href="storico.html" target="_blank" rel="noopener"
+       title="Consulta lo storico giornaliero"
+       style="background:rgba(37,99,235,0.1);color:var(--accent);
+              border:1px solid rgba(37,99,235,0.3);padding:6px 12px;
+              border-radius:var(--radius-sm);text-decoration:none;
+              font-size:0.72rem;font-weight:700;white-space:nowrap;">
+        📊 Storico
+    </a>
+    <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
+    <button id="btnLogout" title="Esci" ...>❌ ESCI</button>
+</div>
     </header>
 
     <!-- ── BADGE SIMULAZIONE (nascosto di default) ─────────── -->
