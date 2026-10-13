@@ -147,16 +147,20 @@ function ricaricaListaStudenti() {
     const data = getDataCorrente();
     const studenti = [...studenticonvittori];
 
-    // ── Ripristina preferenza ordinamento da localStorage ──
-    if (localStorage.getItem("ordineAlfabetico") === "true") {
-        ordineAlfabetico = true;
-        const btn = document.getElementById("btnOrdineAlfabetico");
-        if (btn) {
-            btn.style.background = "var(--accent)";
-            btn.style.color = "white";
-            btn.textContent = "🔤 A-Z ✓";
-        }
+   // ── Ripristina preferenza ordinamento da localStorage ──
+ordineAlfabetico = localStorage.getItem("ordineAlfabetico") === "true";
+const btn = document.getElementById("btnOrdineAlfabetico");
+if (btn) {
+    if (ordineAlfabetico) {
+        btn.style.background = "var(--accent-2)";
+        btn.style.color = "white";
+        btn.textContent = "A-Z / Room";
+    } else {
+        btn.style.background = "var(--surface)";
+        btn.style.color = "var(--az-active)";
+        btn.textContent = "Room / A-Z";
     }
+}
 
     // ── Ordinamento condizionale (per room o alfabetico) ──
     studenti.sort((a, b) => {
