@@ -1,1 +1,3 @@
-questa cartella deve contenere studenti_26_offline.js e permessi_26_offline.js
+questa cartella deve contenere valide di 
+studenti_26_offline.js
+permessi_26_offline.js
