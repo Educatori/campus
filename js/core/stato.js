@@ -131,13 +131,13 @@ function toggleOrdineLista() {
     const btn = document.getElementById("btnOrdineAlfabetico");
     if (btn) {
         if (ordineAlfabetico) {
-            btn.style.background = "var(--accent)";
+            btn.style.background = "var(--accent-2)"; 
             btn.style.color = "white";
-            btn.textContent = "🔤 A-Z ✓";
+            btn.textContent = "⬆ A-Z";
         } else {
             btn.style.background = "var(--surface)";
             btn.style.color = "var(--accent)";
-            btn.textContent = "🔤 A-Z";
+            btn.textContent = "⬆ 101-221";
         }
     }
 
