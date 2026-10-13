@@ -192,34 +192,72 @@ async function carica() {
 }
 
 function render(dati) {
-    // Estrai lastUpdate (o simili) e separa gli studenti
-    const lastUpdate = dati.lastUpdate || null;
-    const entries = Object.entries(dati)
-        .filter(([k, v]) => k !== 'lastUpdate' && v && typeof v === 'object')
+    // ── 1. Trova il nodo che contiene gli studenti ──
+    // Casi supportati:
+    //   A) flat:    { ROSSI: {...}, BIANCHI: {...}, lastUpdate: ... }
+    //   B) wrapped: { dati: { ROSSI: {...}, ... }, lastUpdate: ... }
+    //   C) wrapped con nome custom (studenti, giornaliero, records)
+    const WRAPPER_CANDIDATI = ['dati', 'studenti', 'giornaliero', 'records', 'data'];
+
+    let studentiNode = dati;
+    let wrapperUsato = null;
+
+    for (const key of WRAPPER_CANDIDATI) {
+        if (dati[key] && typeof dati[key] === 'object' && !Array.isArray(dati[key])) {
+            // verifica che dentro ci siano oggetti (studenti) e non valori scalari
+            const sample = Object.values(dati[key])[0];
+            if (sample && typeof sample === 'object') {
+                studentiNode = dati[key];
+                wrapperUsato = key;
+                break;
+            }
+        }
+    }
+
+    // ── 2. Estrai lastUpdate (in root o dentro il wrapper) ──
+    const lastUpdate = dati.lastUpdate
+        || (wrapperUsato && dati[wrapperUsato]?.lastUpdate)
+        || null;
+
+    // ── 3. Estrai entries degli studenti ──
+    const entries = Object.entries(studentiNode)
+        .filter(([k, v]) => {
+            if (k === 'lastUpdate') return false;
+            if (!v || typeof v !== 'object') return false;
+            // deve avere almeno una proprietà tipica di uno studente
+            return 'esce' in v || 'entra' in v || 'assente' in v || 'dinnerno' in v;
+        })
         .sort(([a], [b]) => a.localeCompare(b, 'it'));
 
+    console.log(`📊 Storico: ${entries.length} studenti` +
+                (wrapperUsato ? ` (wrapper: "${wrapperUsato}")` : ' (flat)'));
+
+    // ── 4. Contatori ──
     let assenti = 0, nonCena = 0, sw = 0;
     entries.forEach(([, d]) => {
         if (d.assente) assenti++;
         if (d.dinnerno === '1' || d.dinnerno === 1) nonCena++;
         if (d.switch) sw++;
     });
-    // Info lastUpdate sopra le card
+
+    // ── 5. Info lastUpdate ──
     const infoEl = document.getElementById('lastUpdateInfo');
-if (infoEl) {
-    infoEl.innerHTML = lastUpdate
-        ? `🕐 Ultimo aggiornamento: <b>${formattaTimestamp(lastUpdate)}</b>`
-        : '';
-}
+    if (infoEl) {
+        infoEl.innerHTML = lastUpdate
+            ? `🕐 Ultimo aggiornamento: <b>${formattaTimestamp(lastUpdate)}</b>`
+            : '';
+    }
+
+    // ── 6. Card riepilogo ──
     summary.innerHTML = `
         <div class="summary-card"><div class="num" style="color:var(--accent)">${entries.length}</div><div class="lbl">Studenti</div></div>
         <div class="summary-card"><div class="num" style="color:var(--absent)">${assenti}</div><div class="lbl">Assenti</div></div>
         <div class="summary-card"><div class="num" style="color:var(--accent)">${nonCena}</div><div class="lbl">Non cena</div></div>
         <div class="summary-card"><div class="num" style="color:var(--switched)">${sw}</div><div class="lbl">Turno cambiato</div></div>
     `;
-    
     summary.style.display = 'grid';
 
+    // ── 7. Tabella ──
     const righe = entries.map(([cognome, d]) => {
         const ass = d.assente ? '<span class="badge-si">ASSENTE</span>' : '<span class="badge-no">presente</span>';
         const din = (d.dinnerno === '1' || d.dinnerno === 1) ? '<span class="badge-si">NON CENA</span>' : '<span class="badge-no">cena</span>';
