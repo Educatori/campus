@@ -10,6 +10,7 @@
 
 <!-- AMBIENTE: deve essere il PRIMO script. -->
 <script src="js/ambiente.js"></script>
+    
 </head>
 <body>
 
@@ -17,17 +18,15 @@
      LOGIN OVERLAY (online)
      ============================================================ -->
 <div id="loginScreen">
-    <div class="login-card">
-        
-        <h2><a href="index.html">🔒 Accesso Riservato</a></h2>
-        <p class="login-sub">Inserire Credenziali</p>
-
-        <input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
-        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-
-        <button id="loginBtn">ACCEDI</button>
-
-        <div id="loginError"></div>
+    <div class="login-container">
+        <h2>Campus Hub</h2>
+        <p>Inserisci le credenziali per continuare</p>
+        <input type="email"    id="loginEmail"    placeholder="Email"
+               autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password"
+               autocomplete="current-password">
+        <button type="button"  id="loginBtn">ACCEDI</button>
+        <div id="loginError" class="error" role="alert"></div>
     </div>
 </div>
 
@@ -48,17 +47,16 @@
 
         <div id="digitalClock">15:55:38</div>
 
-        <div class="header-actions">
+       <div class="header-actions">
     <a id="linkStorico" href="storico.html" target="_blank" rel="noopener"
        title="Consulta lo storico giornaliero"
-       style="background:rgba(37,99,235,0.1);color:var(--accent);
-              border:1px solid rgba(37,99,235,0.3);padding:6px 12px;
-              border-radius:var(--radius-sm);text-decoration:none;
-              font-size:0.72rem;font-weight:700;white-space:nowrap;">
+       class="btn-app btn-app-more">
         📊 Storico
     </a>
     <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
-    <button id="btnLogout" title="Esci" ...>❌ ESCI</button>
+    <button type="button" id="btnLogout" class="btn-app btn-app-danger" title="Esci">
+        ❌ ESCI
+    </button>
 </div>
     </header>
 
