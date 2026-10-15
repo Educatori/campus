@@ -8,7 +8,7 @@
  *   - turnoStudente()            → campus_hub-script.js
  *   - costruisciTurni()          → campus_hub-script.js
  *   - isStudenteInLabOggi()      → campus_hub-script.js
- *   - isPPNoDinnerOggi()         → campus_hub-script.js
+ *   - isPPNoDinnerOggi()         → campus_hub-script.js - dinamico da ORARI_PP
  *   - cambiTurnoManuali          → campus_hub-script.js (let globale)
  *   - TURNI_DINNER               → data-loader.js (window)
  *   - studenticonvittori         → data-loader.js (window)
@@ -142,14 +142,10 @@ function generaPopUpStampaDinner() {
         return `<div class="griglia-nomi">${items}</div>`;
     }
 
-    // ─── TESTO PERMESSI DEL GIORNO ───
-    const testiPermessi = {
-        1: "LAB 2IeFP - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, MENALDINO",
-        2: "LAB 2A - PERMESSI DINNER ORE 20:30 DELL'AQUILA, PAONESSA, CHIADÒ, GIOVANNELLI P",
-        3: "LAB 2B - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, GIOVANNELLI P, MENALDINO",
-        4: "LAB 5A/5B - PERMESSI DINNER ORE 20:30 DELL'AQUILA, CHIADÒ, GIOVANNELLI P, MENALDINO"
-    };
-    const notaGiornoCorrente = testiPermessi[giornoSett] || "";
+    // ─── TESTO PERMESSI LATE DINNER (dinamico da ORARI_PP) ───
+const notaGiornoCorrente =
+    (typeof generaTestoLateDinner === "function" && generaTestoLateDinner(giornoSett))
+    || "NESSUN PERMESSO LATE DINNER OGGI";
 
     // ─── GENERAZIONE POPUP ───
     const popup = window.open("", "_blank", "width=1000,height=900");
@@ -322,7 +318,7 @@ function generaPopUpStampaDinner() {
                 <button onclick="window.print()">• STAMPA</button>
             </div>
             
-            <textarea class="editable-notes" rows="2">${notaGiornoCorrente}</textarea>
+            <textarea class="editable-notes" rows="${(notaGiornoCorrente.match(/\n/g) || []).length + 2}">${notaGiornoCorrente}</textarea>
             
             <!-- ═══════════ TURNO 1 ═══════════ -->
             <div class="section">
