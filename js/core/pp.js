@@ -330,14 +330,20 @@ function verificaStudenteStandBy(r) {
 // generaTestoLateDinner() — Costruisce la stringa "late dinner"
 // ═══════════════════════════════════════════════════════════════
 // Genera il testo dei permessi che richiedono un late dinner,
-// nel formato:
+// SOLO per il LAB previsto nel giorno della settimana corrente.
 //
+//   Lunedì    (1) → LAB 2IeFP
+//   Martedì   (2) → LAB 2A
+//   Mercoledì (3) → LAB 2B
+//   Giovedì   (4) → LAB 5A/5B
+//   Venerdì   (5) → nessun LAB
+//
+// Formato output:
 //   "LAB 2IeFP - PERMESSI CHE RICHIEDONO UN LATE DINNER:
 //    CHIADÒ [18:00 > 21:30], DELL'AQUILA [17:30 > 20:00], ..."
 //
-// I gruppi LAB sono definiti esplicitamente (per controllo ordine e
-// raggruppamenti); gli orari e l'inclusione di ogni cognome vengono
-// invece dedotti da ORARI_PP, filtrando chi ha assenza/no-cena.
+// Gli orari e l'inclusione di ogni cognome vengono dedotti da
+// ORARI_PP, filtrando chi ha assenza/no-cena imposti dal PP.
 //
 // @param {number} giorno - giorno settimana (0=Dom … 6=Sab)
 // @returns {string}      - testo pronto per la textarea della stampa
@@ -345,43 +351,52 @@ function verificaStudenteStandBy(r) {
 function generaTestoLateDinner(giorno) {
     if (typeof ORARI_PP === "undefined" || !ORARI_PP) return "";
 
-    // Mappa etichetta LAB → cognomi attesi.
-    // L'ordine dei cognomi qui dentro determina l'ordine nell'output.
-    const gruppi = {
-        "LAB 2IeFP": ["CHIADÒ", "DELL'AQUILA", "GASPARD", "MENALDINO"],
-        "LAB 2A":    ["DANNA", "DELL'AQUILA", "GIOVANNELLI P", "PAONESSA", "SAITTA"],
-        "LAB 2B":    ["CHIADÒ", "DELL'AQUILA", "MENALDINO"],
-        "LAB 5A/5B": ["CHIADÒ", "DANNA", "DELL'AQUILA", "GIOVANNELLI P", "MENALDINO"]
+    // ─── Mappa giorno → LAB attivo + cognomi da controllare ───
+    const LAB_PER_GIORNO = {
+        1: {   // Lunedì
+            label: "LAB 2IeFP",
+            cognomi: ["CHIADÒ", "DELL'AQUILA", "GASPARD", "MENALDINO"]
+        },
+        2: {   // Martedì
+            label: "LAB 2A",
+            cognomi: ["DANNA", "DELL'AQUILA", "GIOVANNELLI P", "PAONESSA", "SAITTA"]
+        },
+        3: {   // Mercoledì
+            label: "LAB 2B",
+            cognomi: ["CHIADÒ", "DELL'AQUILA", "MENALDINO"]
+        },
+        4: {   // Giovedì
+            label: "LAB 5A/5B",
+            cognomi: ["CHIADÒ", "DANNA", "DELL'AQUILA", "GIOVANNELLI P", "MENALDINO"]
+        }
+        // 5 (Venerdì) → nessun LAB
+        // 0 (Domenica), 6 (Sabato) → nessun LAB
     };
 
-    const righe = [];
+    const config = LAB_PER_GIORNO[giorno];
+    if (!config) return "";   // giorno senza LAB → stringa vuota
 
-    Object.entries(gruppi).forEach(([label, cognomi]) => {
-        const voci = [];
+    const { label, cognomi } = config;
+    const voci = [];
 
-        cognomi.forEach((cognome) => {
-            const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giorno];
-            if (!pp) return;
+    cognomi.forEach((cognome) => {
+        const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giorno];
+        if (!pp) return;
 
-            const out = normalizzaOrario(pp.out || "");
-            const inn = normalizzaOrario(pp.in  || "");
-            if (!out.includes(":") || !inn.includes(":")) return;
+        const out = normalizzaOrario(pp.out || "");
+        const inn = normalizzaOrario(pp.in  || "");
+        if (!out.includes(":") || !inn.includes(":")) return;
 
-            // Esclude chi ha assenza o no-cena imposti dal PP
-            const stato = analizzaPP(cognome, giorno);
-            if (stato.assente || stato.dinnerNo) return;
+        // Esclude chi ha assenza o no-cena imposti dal PP
+        const stato = analizzaPP(cognome, giorno);
+        if (stato.assente || stato.dinnerNo) return;
 
-            voci.push(`${cognome} [${out} > ${inn}]`);
-        });
-
-        if (voci.length) {
-            righe.push(
-                `${label} - PERMESSI CHE RICHIEDONO UN LATE DINNER: ${voci.join(", ")}`
-            );
-        }
+        voci.push(`${cognome} [${out} > ${inn}]`);
     });
 
-    return righe.join("\n");
+    if (!voci.length) return "";
+
+    return `${label} - PERMESSI CHE RICHIEDONO UN LATE DINNER: ${voci.join(", ")}`;
 }
 
 // Espone globalmente (usata da js/stampe/dinner.js)
