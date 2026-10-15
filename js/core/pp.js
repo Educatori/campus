@@ -4,6 +4,7 @@
  * Logica Permessi Permanenti + stato assenza/dinner:
  *   • analizzaPP()                     → deduce assente/dinnerNo da ORARI_PP
  *   • controllaDinnerAutomatico()      → applica dinner-no in base agli orari
+ * -- isPPNoDinnerOggi()         → campus_hub-script.js - dinamico da ORARI_PP
  *   • mostraPopupPPBloccato()          → popup "imposto dal PP"
  *   • mostraPopupAssenzaProgrammata()  → popup "imposto da assenza programmata"
  *   • toggleAssenza()                  → click su ASSENTE
@@ -324,3 +325,64 @@ function verificaStudenteStandBy(r) {
     const tokens = val.split(/[\s,;/\-]+/).filter(Boolean);
     return tokens.some(t => PAROLE_NO_RIENTRO.includes(t));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// generaTestoLateDinner() — Costruisce la stringa "late dinner"
+// ═══════════════════════════════════════════════════════════════
+// Genera il testo dei permessi che richiedono un late dinner,
+// nel formato:
+//
+//   "LAB 2IeFP - PERMESSI CHE RICHIEDONO UN LATE DINNER:
+//    CHIADÒ [18:00 > 21:30], DELL'AQUILA [17:30 > 20:00], ..."
+//
+// I gruppi LAB sono definiti esplicitamente (per controllo ordine e
+// raggruppamenti); gli orari e l'inclusione di ogni cognome vengono
+// invece dedotti da ORARI_PP, filtrando chi ha assenza/no-cena.
+//
+// @param {number} giorno - giorno settimana (0=Dom … 6=Sab)
+// @returns {string}      - testo pronto per la textarea della stampa
+// ═══════════════════════════════════════════════════════════════
+function generaTestoLateDinner(giorno) {
+    if (typeof ORARI_PP === "undefined" || !ORARI_PP) return "";
+
+    // Mappa etichetta LAB → cognomi attesi.
+    // L'ordine dei cognomi qui dentro determina l'ordine nell'output.
+    const gruppi = {
+        "LAB 2IeFP": ["CHIADÒ", "DELL'AQUILA", "GASPARD", "MENALDINO"],
+        "LAB 2A":    ["DANNA", "DELL'AQUILA", "GIOVANNELLI P", "PAONESSA", "SAITTA"],
+        "LAB 2B":    ["CHIADÒ", "DELL'AQUILA", "MENALDINO"],
+        "LAB 5A/5B": ["CHIADÒ", "DANNA", "DELL'AQUILA", "GIOVANNELLI P", "MENALDINO"]
+    };
+
+    const righe = [];
+
+    Object.entries(gruppi).forEach(([label, cognomi]) => {
+        const voci = [];
+
+        cognomi.forEach((cognome) => {
+            const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giorno];
+            if (!pp) return;
+
+            const out = normalizzaOrario(pp.out || "");
+            const inn = normalizzaOrario(pp.in  || "");
+            if (!out.includes(":") || !inn.includes(":")) return;
+
+            // Esclude chi ha assenza o no-cena imposti dal PP
+            const stato = analizzaPP(cognome, giorno);
+            if (stato.assente || stato.dinnerNo) return;
+
+            voci.push(`${cognome} [${out} > ${inn}]`);
+        });
+
+        if (voci.length) {
+            righe.push(
+                `${label} - PERMESSI CHE RICHIEDONO UN LATE DINNER: ${voci.join(", ")}`
+            );
+        }
+    });
+
+    return righe.join("\n");
+}
+
+// Espone globalmente (usata da js/stampe/dinner.js)
+window.generaTestoLateDinner = generaTestoLateDinner;
