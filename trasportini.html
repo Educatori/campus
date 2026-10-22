@@ -6,7 +6,28 @@
     <title>Trasportini Furgone</title>
 
     <link rel="stylesheet" href="css/campus_hub.css">
+   <!-- ===== PWA ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 
+<!-- Standard universale (Chrome, Edge, Android) -->
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Compatibilità iOS (versioni precedenti a 16.4) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Campus">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+<!-- =============== -->
     <style>
         #quadroSettimanale {
             display: grid;
@@ -200,8 +221,7 @@
             transform: translateY(-1px);
             box-shadow: var(--shadow-sm);
         }
-
-    
+        
     </style>
 </head>
 <body>
@@ -223,7 +243,7 @@
         <div class="note-toolbar-container">
             <div class="note-content">
                 <span class="note-icon">📌</span>
-                <textarea id="dailyNotes" placeholder="Note offline..." class="note-input" rows="2"></textarea>
+                <textarea id="dailyNotes" placeholder="Note non condivise..." class="note-input" rows="4"></textarea>
                 <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
             </div>
         </div>
