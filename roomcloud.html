@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Cloud</title>
     <link rel="stylesheet" href="css/campus_hub.css">
+   <!-- ===== PWA ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Standard universale (Chrome, Edge, Android) -->
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Compatibilità iOS (versioni precedenti a 16.4) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Campus">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+<!-- =============== -->
     <style>
         /* ─── LAYOUT ──────────────────────────────────────────── */
         body {
@@ -76,7 +98,67 @@
 
         .button-group { display: flex; gap: 8px; }
 
-      
+        /* ─── NOTE CONDIVISE ──────────────────────────────────── */
+        .note-toolbar-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent-2);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+            padding: 12px 16px;
+        }
+        .note-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .note-icon { font-size: 1.1rem; margin-top: 2px; }
+
+        /* Solo la textarea è gialla: il box resta bianco */
+        .note-input {
+            flex: 1;
+            background: #fef9c3;                        /* 🟡 post-it */
+            border: 1px solid rgba(202, 138, 4, 0.35);
+            border-radius: var(--radius-sm);
+            outline: none;
+            font-family: var(--font);
+            font-size: 0.85rem;
+            color: #422006;                             /* inchiostro scuro */
+            caret-color: #a16207;
+            padding: 8px 10px;
+            resize: vertical;
+            min-height: 48px;
+            line-height: 1.5;
+            transition: border-color var(--t), box-shadow var(--t);
+        }
+        .note-input:focus {
+            border-color: #ca8a04;
+            box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.25);
+        }
+        .note-input::placeholder { color: #92702a; }
+
+        .clear-note-btn {
+            background: rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--t);
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+            font-size: 0.8rem;
+        }
+        .clear-note-btn:hover {
+            background: rgba(220,38,38,0.15);
+            color: var(--absent);
+            border-color: var(--absent);
+        }
 
         /* ─── GRIGLIA CAMERE ──────────────────────────────────── */
         .rooms-grid {
@@ -337,7 +419,8 @@
                 print-color-adjust: exact;
             }
 
-            .button-group, .modal, .login-container { display: none !important; }
+            .button-group, .modal, .login-container,
+            .note-toolbar-container { display: none !important; }
 
             .app-header {
                 background: white !important;
@@ -560,6 +643,18 @@
             </div>
         </div>
 
+        <!-- ── NOTE CONDIVISE ─────────────────────────────────── -->
+        <div class="note-toolbar-container">
+            <div class="note-content">
+                <span class="note-icon">📌</span>
+                <textarea id="dailyNotes"
+                          placeholder="Note condivise visibili a tutti gli utenti Room Cloud..."
+                          class="note-input" rows="4"></textarea>
+                <button type="button" id="clearNoteBtn"
+                        class="clear-note-btn" title="Svuota note">✕</button>
+            </div>
+        </div>
+
         <div id="roomsGrid" class="rooms-grid"></div>
     </div>
 
@@ -608,6 +703,7 @@
         let unsubscribeAnagrafica = null;
         let unsubscribeAssenze    = null;
         let unsubscribeLastReset  = null;
+        let unsubscribeNote       = null;
 
         /* ── Riferimenti DOM ──────────────────────────────────── */
         const lastResetDateSpan = document.getElementById('lastResetDate');
@@ -629,6 +725,11 @@
         const stampaBtn       = document.getElementById('stampaBtn');
         const resetBtn        = document.getElementById('resetBtn');
         const logoutBtn       = document.getElementById('logoutBtn');
+
+        /* ── Riferimenti DOM: note ────────────────────────────── */
+        const noteTextarea = document.getElementById('dailyNotes');
+        const clearNoteBtn = document.getElementById('clearNoteBtn');
+        const noteRef      = ref(db, 'note');
 
         /* ── Riferimenti DOM: modale conferma ─────────────────── */
         const confirmModal   = document.getElementById('confirmModal');
@@ -981,6 +1082,36 @@
         resetBtn.addEventListener('click', resetAssenze);
         logoutBtn.addEventListener('click', eseguiLogout);
 
+        /* ── NOTE CONDIVISE: listener input/blur (una volta sola) ── */
+        if (noteTextarea) {
+            let noteTimer = null;
+
+            noteTextarea.addEventListener('input', () => {
+                clearTimeout(noteTimer);
+                noteTimer = setTimeout(() => {
+                    set(noteRef, noteTextarea.value)
+                        .catch(e => console.warn('❌ Salvataggio note:', e));
+                }, 600);
+            });
+
+            noteTextarea.addEventListener('blur', () => {
+                clearTimeout(noteTimer);
+                set(noteRef, noteTextarea.value)
+                    .catch(e => console.warn('❌ Salvataggio note (blur):', e));
+            });
+        }
+
+        /* ── NOTE CONDIVISE: pulsante ✕ (svuota con '' non null) ── */
+        if (clearNoteBtn) {
+            clearNoteBtn.addEventListener('click', async () => {
+                const ok = await showConfirmDialog('Svuotare le note condivise?');
+                if (!ok) return;
+                if (noteTextarea) noteTextarea.value = '';
+                set(noteRef, '')
+                    .catch(e => console.warn('❌ Pulizia note:', e));
+            });
+        }
+
         /* ── Auth state ───────────────────────────────────────── */
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -990,6 +1121,7 @@
                 unsubscribeAnagrafica?.();
                 unsubscribeAssenze?.();
                 unsubscribeLastReset?.();
+                unsubscribeNote?.();
 
                 unsubscribeAnagrafica = onValue(ref(db, 'anagrafica'), (s) => {
                     const d = s.val();
@@ -1016,11 +1148,23 @@
                     }
                 });
 
+                /* ── Note condivise: realtime ── */
+                unsubscribeNote = onValue(noteRef, (snap) => {
+                    const testo = snap.exists() ? (snap.val() || '') : '';
+                    if (!noteTextarea) return;
+
+                    // Non sovrascrivere mentre l'utente sta digitando
+                    if (document.activeElement === noteTextarea) return;
+
+                    noteTextarea.value = testo;
+                });
+
             } else {
                 unsubscribeAnagrafica?.();
                 unsubscribeAssenze?.();
                 unsubscribeLastReset?.();
-                unsubscribeAnagrafica = unsubscribeAssenze = unsubscribeLastReset = null;
+                unsubscribeNote?.();
+                unsubscribeAnagrafica = unsubscribeAssenze = unsubscribeLastReset = unsubscribeNote = null;
 
                 loginScreen.style.display = 'block';
                 appScreen.style.display   = 'none';
@@ -1029,6 +1173,9 @@
                 passwordInput.value = '';
                 loginError.textContent = '';
                 roomsGrid.innerHTML = '';
+
+                // Pulisce la textarea al logout per non lasciare testo visibile
+                if (noteTextarea) noteTextarea.value = '';
             }
         });
     </script>
