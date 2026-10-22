@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -8,6 +7,28 @@
 
 <!-- Foglio di stile unico -->
 <link rel="stylesheet" href="css/campus_hub.css">
+    <!-- ===== PWA ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Standard universale (Chrome, Edge, Android) -->
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Compatibilità iOS (versioni precedenti a 16.4) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Campus">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+<!-- =============== -->
 
 <!-- AMBIENTE: deve essere il PRIMO script. -->
 <script src="js/ambiente.js"></script>
@@ -71,7 +92,7 @@
     <div class="note-toolbar-container">
         <div class="note-content">
             <span class="note-icon">📌</span>
-            <textarea id="dailyNotes" placeholder="Inserisci note condivise..."
+            <textarea id="dailyNotes" placeholder="Note condivise visibili a tutti gli utenti Campus Hub..."
                       class="note-input" rows="4"></textarea>
             <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
         </div>
@@ -85,7 +106,7 @@
         <!-- Gruppo 1: MODULI + G•A•P -->
         <div class="toolbar-group">
             <div class="dropdown-moduli">
-                 <div class="day-box dropdown-toggle" style="background:#fef9c3;" tabindex="0">
+                 <div class="day-box dropdown-toggle" style="background:#ecb3ec;" tabindex="0">
                     📋 ▾ MODULI ▾
                 </div>
                 <div class="dropdown-content">
@@ -248,7 +269,7 @@
         </summary>
         <div style="font-size:0.75rem;color:var(--text-2);
                     margin:6px 0 10px 0;font-style:italic;">
-            Gestire da questo pannello: Esporta - Modifica - Importa
+            Gestire da questo pannello
         </div>
         <div id="listaPermessiContent"></div>
     </details>
@@ -262,11 +283,11 @@
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
-<script src="offline/studenti_26_offline.js"></script>
-<script src="offline/permessi_26_offline.js"></script>
+
 
 <!-- ↓ Core (devono venire prima del main) -->
 <script src="js/core/stato.js"></script>
+    <script src="js/config-static.js"></script>
 <script src="js/core/turni.js"></script>
 <script src="js/core/pp.js"></script>
 <script src="js/core/filtri.js"></script>
@@ -281,6 +302,7 @@
 
 <!-- ↓ Moduli di stampa estratti -->
 <script src="js/stampe/dinner.js"></script>
+    
 <script src="js/stampe/bus.js"></script>
 <script src="js/stampe/transfer.js"></script>
 <script src="js/stampe/uscite-rooming.js"></script>
@@ -300,6 +322,8 @@ console.log(`🎨 Body class: mode-${window.APP_MODE}`);
 /* ---------- MODALITÀ OFFLINE ---------- */
 if (window.APP_MODE === 'offline') {
     console.log('📴 Bootstrap OFFLINE');
+    await import('./offline/studenti_26_offline.js');
+    await import('./offline/permessi_26_offline.js');
 
     const NOTE_KEY = 'convitto_note_locali';
 
