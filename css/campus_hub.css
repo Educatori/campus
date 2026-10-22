@@ -138,7 +138,7 @@ header:not(.app-header) {
 
 /* OFFLINE → giallo chiaro */
 body.mode-offline header:not(.app-header) {
-    background: #fef9c3;
+    background: #dddddd;
     border-color: rgba(202, 138, 4, 0.25);
 }
 /* ONLINE → bianco (come .app-header) */
@@ -308,17 +308,25 @@ header:not(.app-header) h1 {
 .note-icon { font-size: 1.1rem; margin-top: 2px; }
 .note-input {
     flex: 1;
-    background: transparent;
-    border: none;
+    background: #fef9c3;                        /* 🟡 giallo post-it */
+    border: 1px solid rgba(202, 138, 4, 0.35);  /* bordo ambra leggero */
+    border-radius: var(--radius-sm);
     outline: none;
     font-family: var(--font);
     font-size: 0.85rem;
-    color: var(--text);
+    color: #422006;                             /* testo "inchiostro" scuro */
+    caret-color: #a16207;
+    padding: 8px 10px;
     resize: vertical;
     min-height: 48px;
     line-height: 1.5;
+    transition: border-color var(--t), box-shadow var(--t);
 }
-.note-input::placeholder { color: var(--text-muted); }
+.note-input:focus {
+    border-color: #ca8a04;
+    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.25);
+}
+.note-input::placeholder { color: #92702a; }    /* placeholder leggibile sul giallo */
 .clear-note-btn {
     background: rgba(0,0,0,0.05);
     border: 1px solid var(--border);
