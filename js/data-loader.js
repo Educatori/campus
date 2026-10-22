@@ -3,59 +3,63 @@
 // Carica i dati sensibili (studenti, permessi, assenze) da
 // Firebase Realtime Database, con fallback ai dati locali.
 // Salva automaticamente le modifiche giornaliere su Firebase.
+//
+// 📌 CONFIGURAZIONE STATICA (LAB_PRANZO, TURNI_DINNER, ecc.)
+//    È definita QUI (top-level) come fallback, così in online
+//    è sempre disponibile anche se offline/*.js non viene servito.
+//
+// ⚠️ OVERRIDE_TURNI_DINNER (cognomi → turno) NON è più qui:
+//    viene caricato da Firebase in caricaDatiFirebase() §3c-bis.
 // ─────────────────────────────────────────────────────────────
 
 import { db, ref, get, set, onValue } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
-// 0. BACKUP dei dati OFF
+// 0a. CONFIGURAZIONE STATICA (non sensibile)
+//     Uso `window.X = window.X || {...}` per non sovrascrivere
+//     eventuali definizioni già presenti in modalità offline.
 // ─────────────────────────────────────────────────────────────
-const offlineStudenti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti.slice() : [];
-const offlinePP       = window.ORARI_PP ? { ...window.ORARI_PP } : {};
-const offlineAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO } : {};
+window.PAROLE_ASSENZA = window.PAROLE_ASSENZA || [
+    "ass", "assente",
+    "sosp", "sospeso", "sospesa",
+    "gita", "trasferta", "malattia"
+];
 
-console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.keys(offlinePP).length} PP`);
+window.PAROLE_NO_RIENTRO = window.PAROLE_NO_RIENTRO || [
+    "n", "no", "non", "nor",
+    "no r", "no rientro", "x"
+];
 
-// ─────────────────────────────────────────────────────────────
-// 1. CONFIGURAZIONE LOCALE
-// ─────────────────────────────────────────────────────────────
-window.LAB_PRANZO = {
+window.LAB_PRANZO = window.LAB_PRANZO || {
     "1": ["3A", "5A", "5B"],
     "2": ["3B", "4A"],
     "3": ["1A", "4B"],
     "4": ["1B", "4C"]
 };
 
-window.TURNI_DINNER = {
+window.TURNI_DINNER = window.TURNI_DINNER || {
     "1": ["1A", "1B", "1P", "2A", "2B", "2P", "3P"],
     "2": ["3A", "3B", "4A", "4B", "4C", "5A", "5B"]
 };
 
-window.LAB_DINNER = {
+window.LAB_DINNER = window.LAB_DINNER || {
     "1": ["2P"],
     "2": ["2A"],
     "3": ["2B"],
     "4": ["5A", "5B"]
 };
 
-window.OVERRIDE_TURNI_DINNER_CLASSI = {
+window.OVERRIDE_TURNI_DINNER_CLASSI = window.OVERRIDE_TURNI_DINNER_CLASSI || {
     "1A": { 3: 2 },
     "1B": { 3: 2 }
 };
 
-window.OVERRIDE_TURNI_DINNER = {
-    "GASPARD":    { 1: 2, 2: 2, 3: 2, 4: 2 },
-    "RONCO A":    { 1: 1, 2: 1, 3: 1, 4: 1 },
-    "CONSOL":     { 1: 1, 2: 1, 3: 1, 4: 1 },
-    "CASTELLANO": { 1: 1, 2: 1, 3: 1, 4: 1 },
-    "GHILARDINI": { 1: 1, 2: 1, 3: 1, 4: 1 },
-    "GORREX":     { 1: 1, 2: 1, 3: 1, 4: 1 },
-    "CASTROREALE":{ 1: 1, 2: 1, 3: 1, 4: 1 },
-    "DUROUX":     { 1: 2, 2: 2, 3: 2, 4: 2 },
-    
-};
+// OVERRIDE_TURNI_DINNER: vuoto di default. In online viene
+// popolato da Firebase (§3c-bis). In offline arriva da
+// offline/permessi_26_offline.js prima di questo modulo.
+window.OVERRIDE_TURNI_DINNER = window.OVERRIDE_TURNI_DINNER || {};
 
-window.CALENDARIO_GRUPPI_DINNER = {
+window.CALENDARIO_GRUPPI_DINNER = window.CALENDARIO_GRUPPI_DINNER || {
     "10/09/2026": "gr1", "17/09/2026": "gr2", "24/09/2026": "gr1", "01/10/2026": "gr2",
     "08/10/2026": "gr1", "15/10/2026": "gr2", "22/10/2026": "gr1", "29/10/2026": "gr2",
     "05/11/2026": "gr1", "12/11/2026": "gr2", "19/11/2026": "gr1", "26/11/2026": "gr2",
@@ -68,7 +72,16 @@ window.CALENDARIO_GRUPPI_DINNER = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// 2. INIZIALIZZAZIONE con OFF
+// 0b. BACKUP dei dati OFF
+// ─────────────────────────────────────────────────────────────
+const offlineStudenti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti.slice() : [];
+const offlinePP       = window.ORARI_PP ? { ...window.ORARI_PP } : {};
+const offlineAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO } : {};
+
+console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.keys(offlinePP).length} PP`);
+
+// ─────────────────────────────────────────────────────────────
+// 1. INIZIALIZZAZIONE con OFF (se presente)
 // ─────────────────────────────────────────────────────────────
 window.tuttiStudenti      = offlineStudenti;
 window.studenticonvittori = offlineStudenti.filter(s => {
@@ -79,7 +92,7 @@ window.ORARI_PP         = offlinePP;
 window.ASSENTI_PERMESSO = offlineAssenti;
 
 // ─────────────────────────────────────────────────────────────
-// 3. UTILITY
+// 2. UTILITY
 // ─────────────────────────────────────────────────────────────
 function dataKeyFirebase(data) {
     const d = data || new Date();
@@ -113,13 +126,13 @@ function normalizzaPP(ppData) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 4. CARICAMENTO DA FIREBASE
+// 3. CARICAMENTO DA FIREBASE
 // ─────────────────────────────────────────────────────────────
 async function caricaDatiFirebase() {
     try {
         console.log('🔥 Connessione a Firebase...');
 
-        // 4a. Studenti
+        // 3a. Studenti
         const studentiSnap = await get(ref(db, 'studenti'));
         if (studentiSnap.exists()) {
             const data = studentiSnap.val();
@@ -140,14 +153,14 @@ async function caricaDatiFirebase() {
             console.warn('   ⚠️ Nodo "studenti" assente → uso OFF');
         }
 
-        // 4b. Filtro convittori
+        // 3b. Filtro convittori
         window.studenticonvittori = window.tuttiStudenti.filter(s => {
             const n = parseInt(s.room, 10);
             return !isNaN(n) && n >= 101 && n <= 221;
         });
         console.log(`   🏠 Convittori: ${window.studenticonvittori.length}`);
 
-        // 4c. Permessi PP (con NORMALIZZAZIONE)
+        // 3c. Permessi PP (con NORMALIZZAZIONE)
         const ppSnap = await get(ref(db, 'permessi_pp'));
         if (ppSnap.exists()) {
             const ppData = ppSnap.val();
@@ -157,7 +170,19 @@ async function caricaDatiFirebase() {
             }
         }
 
-        // 4d. Assenti permesso
+        // 3c-bis. Override turni dinner (cognomi → turno per giorno)
+        const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
+        if (ovSnap.exists()) {
+            const ovData = ovSnap.val();
+            if (ovData && Object.keys(ovData).length > 0) {
+                window.OVERRIDE_TURNI_DINNER = ovData;
+                console.log(`   🍽 Override turni: ${Object.keys(ovData).length} studenti`);
+            }
+        } else {
+            console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
+        }
+
+        // 3d. Assenti permesso
         const assSnap = await get(ref(db, 'assenti_permesso'));
         if (assSnap.exists()) {
             const assData = assSnap.val();
@@ -167,7 +192,7 @@ async function caricaDatiFirebase() {
             }
         }
 
-        // 4e. Dati giornalieri
+        // 3e. Dati giornalieri
         const chiaveOggi = dataKeyFirebase(new Date());
         const giornoSnap = await get(ref(db, `convitto/${chiaveOggi}`));
         if (giornoSnap.exists()) {
@@ -188,7 +213,7 @@ async function caricaDatiFirebase() {
             localStorage.setItem('datiConvitto', JSON.stringify(datiLS));
         }
 
-        // 4f. Ultimo reset
+        // 3f. Ultimo reset
         const resetSnap = await get(ref(db, 'convitto/ultimoReset'));
         if (resetSnap.exists()) {
             localStorage.setItem('dataUltimoReset', resetSnap.val());
@@ -203,12 +228,8 @@ async function caricaDatiFirebase() {
     }
 }
 
-// La Promise globale parte solo se qualcuno la invoca esplicitamente,
-// altrimenti si crea un doppione di fetch al primo import.
-// window.firebasePronto = caricaDatiFirebase();
-
 // ─────────────────────────────────────────────────────────────
-// 5. SALVATAGGIO SU FIREBASE
+// 4. SALVATAGGIO SU FIREBASE
 // ─────────────────────────────────────────────────────────────
 async function salvaDatiFirebase() {
     try {
@@ -223,7 +244,7 @@ async function salvaDatiFirebase() {
                 switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
             };
         });
-       
+
         await set(ref(db, `convitto/${chiave}/dati`), dati);
         await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
         console.log(`☁️ Salvato: ${Object.keys(dati).length} studenti (${chiave})`);
@@ -233,8 +254,9 @@ async function salvaDatiFirebase() {
         return false;
     }
 }
+
 // ─────────────────────────────────────────────────────────────
-// 5b. SALVATAGGIO NOTE (realtime)
+// 4b. SALVATAGGIO NOTE (realtime)
 // ─────────────────────────────────────────────────────────────
 async function salvaNoteFirebase(testo) {
     try {
@@ -246,7 +268,7 @@ async function salvaNoteFirebase(testo) {
 window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
-// 6. WRAPPER salvataggio locale → Firebase
+// 5. WRAPPER salvataggio locale → Firebase
 // ─────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
     const _orig = window.salvaDatiLocale;
@@ -259,9 +281,8 @@ window.addEventListener('load', () => {
     }
 });
 
-
 // ─────────────────────────────────────────────────────────────
-// 7. ESPOSIZIONE GLOBALE
+// 6. ESPOSIZIONE GLOBALE
 // ─────────────────────────────────────────────────────────────
 window.caricaDatiFirebase = caricaDatiFirebase;
 window.salvaDatiFirebase  = salvaDatiFirebase;
@@ -271,13 +292,11 @@ window.normalizzaPP       = normalizzaPP;
 console.log('🔧 data-loader.js pronto');
 
 // ─────────────────────────────────────────────────────────────
-// 8. NOTE CONDIVISE (realtime)
+// 7. NOTE CONDIVISE (realtime)
 // ─────────────────────────────────────────────────────────────
 
-// ⚠️ in cima al file importa: onValue, set
-
 let noteListenerAttivo = false;
-let noteRemoteInCorso = false; // evita loop: remoto → input → salva
+let noteRemoteInCorso = false;
 
 /**
  * Attiva il listener realtime sulle note.
@@ -295,13 +314,8 @@ function attivaNoteCondivise() {
         const ta = document.getElementById('dailyNotes');
         if (!ta) return;
 
-        // Non sovrascrivere mentre l'utente sta scrivendo (se ha il focus)
-        // ma aggiorna comunque se il testo è diverso e non sta editando
         if (document.activeElement === ta) {
-            // Salva la posizione del cursore solo se proprio devi aggiornare
             if (ta.value === testo) return;
-            // Se l'utente sta scrivendo, salta l'aggiornamento remoto
-            // per non disturbare (verrà riallineato al blur)
             return;
         }
 
@@ -310,7 +324,7 @@ function attivaNoteCondivise() {
         noteRemoteInCorso = false;
     });
 
-    // 2) Salva su Firebase con debounce quando l'utente scrive
+    // 2) Salva su Firebase con debounce
     const ta = document.getElementById('dailyNotes');
     if (ta) {
         let debounceTimer = null;
@@ -325,10 +339,9 @@ function attivaNoteCondivise() {
                 } catch (e) {
                     console.error('❌ Errore salvataggio note:', e);
                 }
-            }, 600); // 600ms di debounce
+            }, 600);
         });
 
-        // Al blur, forza l'allineamento finale
         ta.addEventListener('blur', async () => {
             try { await set(noteRef, ta.value); } catch (e) {}
         });
@@ -340,20 +353,15 @@ function attivaNoteCondivise() {
 window.attivaNoteCondivise = attivaNoteCondivise;
 
 // ─────────────────────────────────────────────────────────────
-// 9.  ULTIMO RESET / ULTIMA MODIFICA — realtime condiviso
+// 8.  ULTIMO RESET / ULTIMA MODIFICA — realtime condiviso
 // ─────────────────────────────────────────────────────────────
 
 let unsubUltimoReset = null;
 let unsubUltimaMod  = null;
 
-/**
- * Scrive su Firebase il timestamp dell'ultimo reset.
- * Chiamata da resetDati() dopo il salvataggio dei dati.
- */
 async function pubblicaUltimoReset(timestampStringa) {
     try {
         await set(ref(db, 'convitto/ultimoReset'), timestampStringa);
-        // aggiorna anche in locale, così la UI è coerente
         localStorage.setItem('dataUltimoReset', timestampStringa);
         if (typeof window.aggiornaInfoReset === 'function') window.aggiornaInfoReset();
     } catch (e) {
@@ -362,23 +370,16 @@ async function pubblicaUltimoReset(timestampStringa) {
 }
 window.pubblicaUltimoReset = pubblicaUltimoReset;
 
-/**
- * Attiva i listener realtime su:
- *   - convitto/ultimoReset       → dataUltimoReset
- *   - convitto/{oggi}/lastUpdate → dataUltimaModifica
- */
 function attivaUltimoAggiornamento() {
     if (unsubUltimoReset) { unsubUltimoReset(); unsubUltimoReset = null; }
     if (unsubUltimaMod)  { unsubUltimaMod();  unsubUltimaMod  = null; }
 
-    // 1) Ultimo reset globale
     unsubUltimoReset = onValue(ref(db, 'convitto/ultimoReset'), (snap) => {
         const val = snap.exists() ? snap.val() : 'MAI';
         localStorage.setItem('dataUltimoReset', val);
         if (typeof window.aggiornaInfoReset === 'function') window.aggiornaInfoReset();
     });
 
-    // 2) Ultima modifica del giorno corrente
     const chiave = dataKeyFirebase(new Date());
     unsubUltimaMod = onValue(ref(db, `convitto/${chiave}/lastUpdate`), (snap) => {
         if (!snap.exists()) {
@@ -399,7 +400,7 @@ function attivaUltimoAggiornamento() {
 window.attivaUltimoAggiornamento = attivaUltimoAggiornamento;
 
 // ─────────────────────────────────────────────────────────────
-// 10. EXPORT (sempre per ultimo!)
+// 9. EXPORT (sempre per ultimo!)
 // ─────────────────────────────────────────────────────────────
 export {
     caricaDatiFirebase,
