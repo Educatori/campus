@@ -254,8 +254,9 @@ if (btn) {
 
 // --- 1. INIZIALIZZAZIONE ---
 function init() {
-    // In offline rileggi eventuali permessi importati via JSON
-    if (window.APP_MODE === 'offline') {
+    // In modalità locale-reale usa SEMPRE il file, ignorando override vecchi
+    // (l'import via UI aggiorna il file stesso o usa Firebase, non localStorage).
+    if (window.APP_MODE === 'offline' && window.APP_ORIGIN !== 'locale-reale') {
         const ppLocali = localStorage.getItem("ORARI_PP");
         if (ppLocali) {
             try { window.ORARI_PP = JSON.parse(ppLocali); }
