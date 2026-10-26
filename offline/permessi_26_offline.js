@@ -35,7 +35,15 @@
 // ⚠️ Nel repo pubblico restano solo nomi fantoccio.
 // ─────────────────────────────────────────────────────────────
 const OVERRIDE_TURNI_DINNER = {
-   
+
+    "GASPARD":     { 1: 2, 2: 2, 3: 2, 4: 2 },
+    "RONCO A":     { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CONSOL":      { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CASTELLANO":  { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "GHILARDINI":  { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "GORREX":      { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "CASTROREALE": { 1: 1, 2: 1, 3: 1, 4: 1 },
+    "DUROUX":      { 1: 2, 2: 2, 3: 2, 4: 2 },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -45,9 +53,67 @@ const OVERRIDE_TURNI_DINNER = {
 const ORARI_PP = {
 
     
-
+    "BERRUTI": {
+        3: { out: "13:30", in: "NO R" }
+    },
+    
+    "CATTARINUSSI": {
+        1: { out: "18:00", in: "19:00" },
+        2: { out: "20:00", in: "21:00" },
+        3: { out: "18:00", in: "19:00" },
+        4: { out: "18:00", in: "19:00" }
+    },
+    
+    "CHIADÒ CAPONET": {
+        1: { out: "18:00", in: "21:30" },
+        3: { out: "18:00", in: "21:30" },
+        4: { out: "18:00", in: "21:30" }
+    },
+    
+    "DE FRANCESCH": {
+        4: { out: "16:40", in: "NO R" }
+    },
+    "DELL'AQUILA": {
+        1: { out: "17:30", in: "20:00" },
+        2: { out: "17:30", in: "20:00" },
+        3: { out: "17:30", in: "20:00" },
+        4: { out: "17:30", in: "20:00" }   
+    },
+    
+    "GIOVANNELLI P": {  
+        2: { out: "17:30", in: "20:30" },
+        4: { out: "17:00", in: "20:30" }
+    },
+    
+    "MARANGELO": {
+        1: { out: "16:50", in: "19:05" },
+        2: { out: "16:50", in: "19:05" },
+        4: { out: "16:50", in: "19:05" }
+    },
+    
+    "MENALDINO": {
+        1: { out: "16:00", in: "20:45" },
+        2: { out: "17:00", in: "18:45" },
+        3: { out: "18:15", in: "20:15" },
+        4: { out: "20:15", in: "21:30" }
+    },  
+    
+    "PAONESSA": {
+        1: { out: "08:30", in: "11:00" },
+        2: { out: "16:00", in: "21:30" },
+        3: { out: "15:00", in: "18:00" },
+        4: { out: "16:00", in: "18:00" }
+    },
+    
+    "RONCO M": {
+        3: { out: "17:30", in: "NO R" }
+    },
+    
+     "SAITTA": {
+        2: { out: "18:30", in: "20:00" }
+    },
+  
 };
-
 // ─────────────────────────────────────────────────────────────
 // ASSENTI_PERMESSO: studenti che hanno permesso di non cenare
 // In online arriva da Firebase (nodo `assenti_permesso`).
