@@ -109,7 +109,7 @@ const PAROLE_ASSENZA = [
     "ricovero", "ospedale",
     "stage", "alternanza"
 ];
-
+ 
 const PAROLE_NO_RIENTRO = [
     "no", "non", "niente", "noreturn",
     "tardi", "ritardo", "ritardato",
