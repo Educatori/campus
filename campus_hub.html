@@ -22,11 +22,11 @@
 <meta name="apple-mobile-web-app-title" content="Campus">
 
 <script>
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js');
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     });
-  }
+}
 </script>
 <!-- =============== -->
 
@@ -34,6 +34,7 @@
 <script src="js/ambiente.js"></script>
     
 </head>
+    
 <body>
 
 <!-- ============================================================
@@ -56,7 +57,7 @@
      CONTENUTO APP
      ============================================================ -->
 <div id="appContent" style="display:none;">
-
+<div id="modeBanner"></div>
 <div class="container">
 
     <!-- ── HEADER ─────────────────────────────────────────── -->
@@ -285,7 +286,12 @@
      ============================================================ -->
 
 
-<!-- ↓ Core (devono venire prima del main) -->
+
+<!-- dati offline: SEMPRE, come script classici -->
+<script src="offline/studenti_26_offline.js"></script>
+<script src="offline/permessi_26_offline.js"></script>
+
+<!-- core -->
 <script src="js/core/stato.js"></script>
 <script src="js/core/config-static.js"></script>
 <script src="js/core/turni.js"></script>
@@ -293,14 +299,14 @@
 <script src="js/core/filtri.js"></script>
 <script src="js/core/persistenza.js"></script>
 
-<!-- ↓ Pannello laterale -->
+<!-- pannello -->
 <script src="js/pannello/assenze-programmate.js"></script>
 <script src="js/pannello/side-panel.js"></script>
 
-<!-- Script principale -->
+<!-- main -->
 <script src="js/campus_hub-script.js"></script>
 
-<!-- ↓ Moduli di stampa estratti -->
+<!-- stampe -->
 <script src="js/stampe/dinner.js"></script>
 <script src="js/stampe/bus.js"></script>
 <script src="js/stampe/transfer.js"></script>
@@ -308,21 +314,20 @@
 <script src="js/stampe/ritardi.js"></script>
 <script src="js/stampe/convitto.js"></script>
 
-<!-- ↓ Reset e import/export permessi -->
+<!-- reset -->
 <script src="js/reset/reset-permessi.js"></script>
 
-<script type="module">
+
+<script>
 /* ==============================================================
-   BOOTSTRAP — invariato nella logica, adattato ai nuovi selettori
+   BOOTSTRAP — non più modulo: compatibile con file://
    ============================================================== */
 document.body.classList.add('mode-' + window.APP_MODE);
 console.log(`🎨 Body class: mode-${window.APP_MODE}`);
 
-/* ---------- MODALITÀ OFFLINE ---------- */
-if (window.APP_MODE === 'offline') {
+/* ---------- MODALITÀ OFFLINE (sincrona, nessun import) ---------- */
+function avviaOffline() {
     console.log('📴 Bootstrap OFFLINE');
-    await import('./offline/studenti_26_offline.js');
-    await import('./offline/permessi_26_offline.js');
 
     const NOTE_KEY = 'convitto_note_locali';
 
@@ -362,74 +367,61 @@ if (window.APP_MODE === 'offline') {
     });
     console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
-    window.addEventListener('DOMContentLoaded', () => {
-        try {
-            if (typeof init                 === 'function') init();
-            if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
-            if (typeof renderListaAssenze   === 'function') renderListaAssenze();
-            if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
-            if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
-            if (typeof attivaNoteCondivise  === 'function') attivaNoteCondivise();
-            console.log('✅ App OFFLINE pronta');
-        } catch (e) {
-            console.error('❌ Errore init offline:', e);
-        }
-    });
+    try {
+        if (typeof init                 === 'function') init();
+        if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+        if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+        if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+        if (typeof attivaNoteCondivise  === 'function') attivaNoteCondivise();
+        console.log('✅ App OFFLINE pronta');
+    } catch (e) {
+        console.error('❌ Errore init offline:', e);
+    }
 }
 
-/* ---------- MODALITÀ ONLINE ---------- */
-if (window.APP_MODE === 'online') {
+/* ---------- MODALITÀ ONLINE (import dinamici via HTTP) ---------- */
+async function avviaOnline() {
     console.log('🟢 Bootstrap ONLINE');
 
     let firebaseMod;
     try {
         firebaseMod = await import('./js/firebase-campus_hub-config.js');
-        console.log('✅ firebase-campus_hub-config.js importato:', Object.keys(firebaseMod));
     } catch (err) {
-        console.error('❌ Errore import firebase-campus_hub-config.js:', err);
-        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#c00;
-            background:#fff;min-height:100vh;">
+        console.error('❌ Import firebase-campus_hub-config.js:', err);
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#c00;background:#fff;min-height:100vh;">
             <h2>❌ Errore di caricamento Firebase</h2>
             <pre style="background:#f5f5f5;padding:15px;border-radius:6px;overflow:auto;">${err.message}</pre>
-            <p>Apri la console (F12) per i dettagli completi.</p>
-            <p>Verifica che <code>js/firebase-campus_hub-config.js</code> esista e sia raggiungibile.</p>
+            <p>Apri la console (F12) per i dettagli.</p>
         </div>`;
-        throw err;
+        return;
     }
 
-   const {
-    auth, db, ref, get, update, set, onValue,        // ← aggiunti set, onValue
-    signInWithEmailAndPassword, signOut, onAuthStateChanged
-} = firebaseMod;
+    const {
+        auth, db, ref, get, update, set, onValue,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged
+    } = firebaseMod;
 
+    /* --- Login / Logout --- */
     window.effettuaLogin = async function () {
         const email = document.getElementById('loginEmail').value.trim();
         const pwd   = document.getElementById('loginPassword').value;
         const errEl = document.getElementById('loginError');
         const btn   = document.getElementById('loginBtn');
-
         errEl.textContent = '';
-        if (!email || !pwd) {
-            errEl.textContent = 'Inserisci email e password';
-            return;
-        }
-        btn.disabled = true;
-        btn.textContent = 'Verifica…';
+        if (!email || !pwd) { errEl.textContent = 'Inserisci email e password'; return; }
+        btn.disabled = true; btn.textContent = 'Verifica…';
         try {
             await signInWithEmailAndPassword(auth, email, pwd);
         } catch (e) {
-            console.error('Login error:', e.code);
             const messaggi = {
-                'auth/invalid-email':          'Email non valida',
-                'auth/user-not-found':         'Utente non trovato',
-                'auth/wrong-password':         'Password errata',
-                'auth/invalid-credential':     'Credenziali errate',
-                'auth/too-many-requests':      'Troppi tentativi. Riprova più tardi.',
-                'auth/network-request-failed': 'Errore di rete'
+                'auth/invalid-email':'Email non valida','auth/user-not-found':'Utente non trovato',
+                'auth/wrong-password':'Password errata','auth/invalid-credential':'Credenziali errate',
+                'auth/too-many-requests':'Troppi tentativi. Riprova più tardi.',
+                'auth/network-request-failed':'Errore di rete'
             };
             errEl.textContent = messaggi[e.code] || 'Errore di accesso';
-            btn.disabled = false;
-            btn.textContent = 'ACCEDI';
+            btn.disabled = false; btn.textContent = 'ACCEDI';
         }
     };
 
@@ -438,17 +430,13 @@ if (window.APP_MODE === 'online') {
         try { await signOut(auth); } catch (e) { console.error(e); }
     };
 
-    document.getElementById('loginBtn')
-        .addEventListener('click', () => window.effettuaLogin());
-
-    document.getElementById('loginPassword')
-        .addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') window.effettuaLogin();
-        });
-    document.getElementById('loginEmail')
-        .addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') document.getElementById('loginPassword').focus();
-        });
+    document.getElementById('loginBtn').addEventListener('click', () => window.effettuaLogin());
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+        if (e.key === 'Enter') window.effettuaLogin();
+    });
+    document.getElementById('loginEmail').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+    });
 
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) btnLogout.onclick = () => window.effettuaLogout();
@@ -457,39 +445,23 @@ if (window.APP_MODE === 'online') {
         try {
             const snap = await get(ref(db, `authorizedUsers/${uid}`));
             return snap.exists() && snap.val() === true;
-        } catch (e) {
-            console.error('Errore verifica autorizzazione:', e);
-            return false;
-        }
+        } catch (e) { console.error('Errore verifica autorizzazione:', e); return false; }
     }
 
     window.salvaPermessiFirebase = async function (permessi) {
         if (!db) throw new Error("Firebase DB non inizializzato");
-        if (!permessi || typeof permessi !== "object") {
-            throw new Error("Permessi non validi");
-        }
-        try {
-            await update(ref(db, 'permessi_pp'), permessi);
-            console.log(`✅ Permessi aggiornati (${Object.keys(permessi).length} cognomi)`);
-        } catch (err) {
-            console.error("❌ Errore scrittura Firebase:", err);
-            throw err;
-        }
+        if (!permessi || typeof permessi !== "object") throw new Error("Permessi non validi");
+        await update(ref(db, 'permessi_pp'), permessi);
     };
 
-    /* ── Salvataggio assenze programmate su Firebase ── */
-window.salvaAssenzeProgrammateFirebase = async function (dati) {
-    try {
-        const daScrivere = (dati && Object.keys(dati).length > 0) ? dati : null;
-        await set(ref(db, 'assenzeProgrammate'), daScrivere);
-        console.log(`✅ Assenze programmate pubblicate (${dati ? Object.keys(dati).length : 0} studenti)`);
-    } catch (err) {
-        console.error('❌ Errore salvataggio assenze programmate:', err);
-    }
-};
+    window.salvaAssenzeProgrammateFirebase = async function (dati) {
+        try {
+            const daScrivere = (dati && Object.keys(dati).length > 0) ? dati : null;
+            await set(ref(db, 'assenzeProgrammate'), daScrivere);
+        } catch (err) { console.error('❌ Errore salvataggio assenze programmate:', err); }
+    };
 
-let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
-    
+    let unsubAssProg = null;
     let appInizializzata = false;
 
     onAuthStateChanged(auth, async (user) => {
@@ -499,25 +471,21 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
         const btn         = document.getElementById('loginBtn');
 
         if (!user) {
-    loginScreen.style.display = 'flex';
-    appContent.style.display  = 'none';
-    if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
-    appInizializzata = false;
+            loginScreen.style.display = 'flex';
+            appContent.style.display  = 'none';
+            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            appInizializzata = false;
+            if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
+            return;
+        }
 
-    // Chiudi la sottoscrizione realtime
-    if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }   // ← NUOVO
-
-    return;
-}
-
-        console.log('✅ Utente autenticato:', user.email, '| UID:', user.uid);
+        console.log('✅ Utente autenticato:', user.email);
         loginScreen.style.display = 'flex';
         appContent.style.display  = 'none';
         if (errEl) errEl.textContent = 'Verifica autorizzazione…';
         if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
 
         const autorizzato = await isUtenteAutorizzato(user.uid);
-
         if (!autorizzato) {
             console.warn('⛔ Utente non autorizzato:', user.uid);
             if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
@@ -529,7 +497,6 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
             return;
         }
 
-        console.log('✅ Utente autorizzato:', user.uid);
         loginScreen.style.display = 'none';
         appContent.style.display  = 'block';
         if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
@@ -541,7 +508,6 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
         let dl;
         try {
             dl = await import('./js/data-loader.js');
-            console.log('✅ data-loader.js importato:', Object.keys(dl));
         } catch (err) {
             console.error('❌ Impossibile caricare data-loader.js:', err);
             alert('Errore di connessione ai moduli. Ricarica la pagina.');
@@ -550,38 +516,26 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
 
         const badge = document.getElementById('connection-status');
         let datiCaricati = false;
-
         if (typeof dl.caricaDatiFirebase === 'function') {
-            try {
-                datiCaricati = await dl.caricaDatiFirebase();
-            } catch (err) {
-                console.error('❌ Errore caricamento Firebase:', err);
-                datiCaricati = false;
-            }
-        } else {
-            console.warn('⚠️ caricaDatiFirebase non disponibile — uso DEMO');
+            try { datiCaricati = await dl.caricaDatiFirebase(); }
+            catch (err) { console.error('❌ Errore caricamento Firebase:', err); }
         }
 
         if (!datiCaricati) {
-            console.warn('🔁 Fallback: dati DEMO locali');
-            if (Array.isArray(window.tuttiStudenti) && window.tuttiStudenti.length > 0 &&
-                (!Array.isArray(window.studenticonvittori) || window.studenticonvittori.length === 0)) {
-                window.studenticonvittori = window.tuttiStudenti.filter(s => {
-                    const n = parseInt(s.room, 10);
-                    return !isNaN(n) && n >= 101 && n <= 221;
-                });
-            }
+            // Fallback: usa i dati offline già caricati come script classici
+            window.studenticonvittori = (window.tuttiStudenti || []).filter(s => {
+                const n = parseInt(s.room, 10);
+                return !isNaN(n) && n >= 101 && n <= 221;
+            });
             if (badge) {
                 badge.textContent = '📴 Locale';
                 badge.classList.remove('connected');
                 badge.classList.add('disconnected');
             }
-        } else {
-            if (badge) {
-                badge.textContent = '🟢 Firebase';
-                badge.classList.add('connected');
-                badge.classList.remove('disconnected');
-            }
+        } else if (badge) {
+            badge.textContent = '🟢 Firebase';
+            badge.classList.add('connected');
+            badge.classList.remove('disconnected');
         }
 
         try {
@@ -591,42 +545,62 @@ let unsubAssProg = null;   // unsubscribe della onValue su assenzeProgrammate
             if (typeof renderListaAssenze   === 'function') renderListaAssenze();
             if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
             if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
-            console.log('✅ Inizializzazione completata');
-        } catch (e) {
-            console.error('❌ Errore inizializzazione:', e);
-        }
+        } catch (e) { console.error('❌ Errore inizializzazione:', e); }
 
         try {
             if (typeof dl.attivaNoteCondivise === 'function') dl.attivaNoteCondivise();
             else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
         } catch (e) { console.error('❌ Errore note condivise:', e); }
 
-        
-
-                try {
+        try {
             if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
             else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
         } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
 
-        /* ── Sottoscrizione realtime assenze programmate ── */
-        if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }   // evita doppioni al re-login
-
+        if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
         let lastAssProgHash = '';
         unsubAssProg = onValue(ref(db, 'assenzeProgrammate'), (snap) => {
             const val = snap.val() || {};
             const hash = JSON.stringify(val);
-            if (hash === lastAssProgHash) return;   // salta l'eco della nostra stessa scrittura
+            if (hash === lastAssProgHash) return;
             lastAssProgHash = hash;
-
             if (typeof window.setAssenzeProgrammateFromRemote === 'function') {
                 window.setAssenzeProgrammateFromRemote(val);
             }
         });
-        console.log('🔔 Sottoscrizione realtime assenzeProgrammate attiva');
     });
-
 }
+
+/* ---------- Dispatch ---------- */
+if (window.APP_MODE === 'offline') {
+    avviaOffline();
+} else if (window.APP_MODE === 'online') {
+    avviaOnline().catch(err => console.error('❌ Bootstrap online:', err));
+}
+    
 </script>
 
+    <script>
+(function disegnaBanner() {
+    const b = document.getElementById('modeBanner');
+    if (!b) return;
+    const cfg = {
+        'locale-reale':   { bg:'#dcfce7', bd:'#16a34a', fg:'#14532d',
+                            txt:'📁 LOCALE — DATI REALI da \\offline\\*.js' },
+        'github-demo':    { bg:'#fef3c7', bd:'#d97706', fg:'#78350f',
+                            txt:'🎭 DEMO — DATI FANTOCCIO (GitHub offline)' },
+        'localhost-demo': { bg:'#e0e7ff', bd:'#4f46e5', fg:'#1e1b4b',
+                            txt:'🛠️ SVILUPPO — DATI LOCALI (localhost)' },
+        'firebase':       { bg:'#dbeafe', bd:'#2563eb', fg:'#1e3a8a',
+                            txt:'☁️ ONLINE — FIREBASE (dati reali condivisi)' }
+    };
+    const c = cfg[window.APP_ORIGIN] || cfg['firebase'];
+    b.style.background       = c.bg;
+    b.style.borderBottomColor = c.bd;
+    b.style.color            = c.fg;
+    b.textContent            = c.txt;
+    b.classList.add('visible');
+})();
+</script>
 </body>
 </html>
