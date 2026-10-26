@@ -1477,3 +1477,20 @@ button[type="submit"]:hover {
         object-fit: contain;
     }
 }
+
+#modeBanner {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 6px 14px;
+    text-align: center;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border-bottom: 3px solid #2563eb;
+    background: #dbeafe;
+    color: #1e3a8a;
+    display: none; /* nascosto finché non decidiamo il contenuto */
+}
+#modeBanner.visible { display: block; }
