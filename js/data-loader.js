@@ -160,12 +160,23 @@ async function caricaDatiFirebase() {
         });
         console.log(`   🏠 Convittori: ${window.studenticonvittori.length}`);
 
-        // 3c. Permessi PP (con NORMALIZZAZIONE)
+                // 3c. Permessi PP (con NORMALIZZAZIONE)
         const ppSnap = await get(ref(db, 'permessi_pp'));
         if (ppSnap.exists()) {
             const ppData = ppSnap.val();
             if (ppData && Object.keys(ppData).length > 0) {
-                window.ORARI_PP = normalizzaPP(ppData);
+                const normalizzati = normalizzaPP(ppData);
+                
+                // MUTIAMO l'oggetto esistente invece di riassegnarlo.
+                // In questo modo tutti i file (come side-panel.js) 
+                // che puntano a window.ORARI_PP vedranno i nuovi dati.
+                if (window.ORARI_PP && typeof window.ORARI_PP === 'object') {
+                    Object.keys(window.ORARI_PP).forEach(k => delete window.ORARI_PP[k]);
+                    Object.assign(window.ORARI_PP, normalizzati);
+                } else {
+                    window.ORARI_PP = normalizzati;
+                }
+                
                 console.log(`   🔑 Permessi PP: ${Object.keys(window.ORARI_PP).length} (normalizzati)`);
             }
         }
