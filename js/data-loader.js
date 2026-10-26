@@ -224,20 +224,24 @@ async function caricaDatiFirebase() {
             localStorage.setItem('datiConvitto', JSON.stringify(datiLS));
         }
 
-        // 3f. Ultimo reset
+                // 3f. Ultimo reset
         const resetSnap = await get(ref(db, 'convitto/ultimoReset'));
         if (resetSnap.exists()) {
             localStorage.setItem('dataUltimoReset', resetSnap.val());
         }
 
+    
+        // Forza il ridisegno della Side Panel con i dati appena scaricati da Firebase
+        if (typeof window.popolaListaPermessi === 'function') {
+            window.popolaListaPermessi();
+            console.log("🔄 Side Panel aggiornata con i permessi da Firebase");
+        }
+    
+
         console.log('✅ Firebase: caricamento completato');
         return true;
 
-    } catch (error) {
-        console.error('❌ Errore caricamento Firebase:', error);
-        return false;
-    }
-}
+
 
 // ─────────────────────────────────────────────────────────────
 // 4. SALVATAGGIO SU FIREBASE
