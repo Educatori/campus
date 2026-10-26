@@ -1,5 +1,5 @@
 /* Campus Hub — service worker (sw.js)*/
-const VERSION = 'campus-hub-v3';   // ← bump (v2, v3...) per forzare l'aggiornamento
+const VERSION = 'campus-hub-v4';   // ← bump (v2, v3...) per forzare l'aggiornamento
 
 const CORE = [
   // Pagine
