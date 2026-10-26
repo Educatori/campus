@@ -19,20 +19,25 @@
 
 // --- MATTINO BUS
 function generaPopUpStampaBus(ordinamento) {
-    // ordinamento: 'alfabetico' (default) | 'perClasse'
     ordinamento = ordinamento || 'alfabetico';
 
-    const oggi = new Date();
-    const dataOggi = oggi.toLocaleDateString("it-IT");
-    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+    // ── USA LA DATA SIMULATA (se attiva), altrimenti oggi ──
+    const oggi = new Date(
+        (typeof getDataCorrente === 'function') ? getDataCorrente() : new Date()
+    );
 
-    // Data di domani (per il sottotitolo "Trasporto di domani  ...")
+    // Timestamp "generato": usa il momento reale di stampa
+    const adesso = new Date();
+    const dataOggi = adesso.toLocaleDateString("it-IT");
+    const oraEsatta = adesso.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+    // "Domani" = giorno successivo alla data simulata
     const domani = new Date(oggi);
     domani.setDate(oggi.getDate() + 1);
     const dataDomaniTestuale = domani.toLocaleDateString("it-IT", {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
-
+   
     if (typeof studenticonvittori === "undefined") {
         console.error("Errore: studenticonvittori non definito.");
         alert("Errore: database studenti non caricato.");
@@ -453,7 +458,9 @@ function generaPopUpStampaBusPomeriggio() {
 
 //-- bus generico
 function generaPopUpStampaBusGenerico() {
-    const oggi = new Date();
+    const oggi = new Date(
+    (typeof getDataCorrente === 'function') ? getDataCorrente() : new Date()
+);
     const dataTestuale = document.getElementById("todayDate").innerText;
     const dataOggi = oggi.toLocaleDateString("it-IT");
     const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
