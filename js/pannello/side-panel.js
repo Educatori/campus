@@ -139,8 +139,10 @@ window.addEventListener("DOMContentLoaded", () => {
 // CONTENUTO SEZIONE "PERMESSI PERMANENTI"
 // ─────────────────────────────────────────────────────────────
 function popolaListaPermessi() {
-    const container = document.getElementById("listaPermessiContent");
+    const container = document.getElementById('listaPermessiContent');
     if (!container) return;
+    
+    container.innerHTML = '';
 
     const giorniSettimana = ["", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
     const studentiPP = Object.keys(ORARI_PP || {}).sort();
