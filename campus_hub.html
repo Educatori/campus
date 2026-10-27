@@ -21,9 +21,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Campus">
 
-
-<!-- =============== -->
-
 <!-- AMBIENTE: deve essere il PRIMO script. -->
 <script src="js/ambiente.js"></script>
     
@@ -36,17 +33,16 @@
      ============================================================ -->
 <div id="loginScreen">
     <div class="login-container">
-        <h2>Campus Hub</h2>
+       <h2>Storico</h2>
         <p>Inserisci le credenziali per continuare</p>
-        <input type="email"    id="loginEmail"    placeholder="Email"
-               autocomplete="username">
-        <input type="password" id="loginPassword" placeholder="Password"
-               autocomplete="current-password">
-        <button type="button"  id="loginBtn">ACCEDI</button>
+        <input type="email"    id="loginEmail"    placeholder="Email"    autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button id="loginBtn">ACCEDI</button>
         <div id="loginError" class="error" role="alert"></div>
     </div>
 </div>
-
+    
+    
 <!-- ============================================================
      CONTENUTO APP
      ============================================================ -->
@@ -580,13 +576,13 @@ if (window.APP_MODE === 'offline') {
     if (!b) return;
     const cfg = {
         'locale-reale':   { bg:'#dcfce7', bd:'#16a34a', fg:'#14532d',
-                            txt:'📁 LOCALE — DATI REALI da \\offline\\*.js' },
+                            txt:'📁 LOCALE — TRUE DATA (file.js)' },
         'github-demo':    { bg:'#fef3c7', bd:'#d97706', fg:'#78350f',
-                            txt:'🎭 DEMO — DATI FANTOCCIO (GitHub offline)' },
+                            txt:'🎭 DUMMY — NO DATA (GitHub ?offline=1)' },
         'localhost-demo': { bg:'#e0e7ff', bd:'#4f46e5', fg:'#1e1b4b',
                             txt:'🛠️ SVILUPPO — DATI LOCALI (localhost)' },
         'firebase':       { bg:'#dbeafe', bd:'#2563eb', fg:'#1e3a8a',
-                            txt:'☁️ ONLINE — FIREBASE (dati reali condivisi)' }
+                            txt:'☁️ ONLINE — FIREBASE (true data)' }
     };
     const c = cfg[window.APP_ORIGIN] || cfg['firebase'];
     b.style.background       = c.bg;
