@@ -18,9 +18,9 @@ window.tuttiStudenti = [
     {
         "id": 1000,
         "cognome": "DUMMY",
-        "nome": "Data",
+        "nome": "Edu",
         "classe": "X",
-        "room": "1000",
+        "room": "112",
         "percorso": "-"
     }
 ];
