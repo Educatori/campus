@@ -16,13 +16,14 @@
  */
 window.tuttiStudenti = [
     {
-        "id": 1000,
+        "id": 300,
         "cognome": "DUMMY",
-        "nome": "Edu",
-        "classe": "X",
-        "room": "112",
-        "percorso": "-"
-    }
+        "nome": "Rub",
+        "classe": "6H",
+        "room": "122",
+        "percorso": "☣"
+    },
+
 ];
 
 console.warn(
