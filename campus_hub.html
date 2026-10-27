@@ -33,7 +33,7 @@
      ============================================================ -->
 <div id="loginScreen">
     <div class="login-container">
-       <h2>Storico</h2>
+       <h2>Campus Hub</h2>
         <p>Inserisci le credenziali per continuare</p>
         <input type="email"    id="loginEmail"    placeholder="Email"    autocomplete="username">
         <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
@@ -576,13 +576,13 @@ if (window.APP_MODE === 'offline') {
     if (!b) return;
     const cfg = {
         'locale-reale':   { bg:'#dcfce7', bd:'#16a34a', fg:'#14532d',
-                            txt:'📁 LOCALE — TRUE DATA (file.js)' },
+                            txt:'📁 LOCALE — FILE DATA JS' },
         'github-demo':    { bg:'#fef3c7', bd:'#d97706', fg:'#78350f',
-                            txt:'🎭 DUMMY — NO DATA (GitHub ?offline=1)' },
+                            txt:'🎭 DUMMY' },
         'localhost-demo': { bg:'#e0e7ff', bd:'#4f46e5', fg:'#1e1b4b',
-                            txt:'🛠️ SVILUPPO — DATI LOCALI (localhost)' },
+                            txt:'🛠️ SVILUPPO (localhost)' },
         'firebase':       { bg:'#dbeafe', bd:'#2563eb', fg:'#1e3a8a',
-                            txt:'☁️ ONLINE — FIREBASE (true data)' }
+                            txt:'☁️ FIREBASE' }
     };
     const c = cfg[window.APP_ORIGIN] || cfg['firebase'];
     b.style.background       = c.bg;
