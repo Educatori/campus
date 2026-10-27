@@ -20,14 +20,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Campus">
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js');
-    });
-  }
-</script>
-<!-- =============== -->
     <style>
         /* ─── LAYOUT ──────────────────────────────────────────── */
         body {
@@ -555,7 +547,7 @@
 </head>
 <body>
 
-    <!-- ============================================================
+       <!-- ============================================================
          GUARDIA: roomcloud.html richiede un server HTTP
          Blocca il rendering se la pagina è aperta via file://
          ============================================================ -->
@@ -573,7 +565,7 @@
                     font-family:var(--font,'Segoe UI',system-ui,sans-serif;
                     padding:20px;
                 ">
-                    <a href="index.html" style="
+                    <div style="
                         display:block;
                         background:var(--surface,#fff);
                         border:1px solid var(--border-2,#00000024);
@@ -583,10 +575,7 @@
                         max-width:420px;
                         width:100%;
                         text-align:center;
-                        text-decoration:none;
                         color:inherit;
-                        cursor:pointer;
-                        -webkit-tap-highlight-color:transparent;
                     ">
                         <div style="font-size:2.5rem; line-height:1; margin-bottom:14px;">🌐</div>
 
@@ -606,11 +595,39 @@
                             color:var(--text,#0f172a);
                             font-weight:600;
                             line-height:1.55;
-                            margin:0;
+                            margin:0 0 24px 0;
                         ">
-                            Modulo non disponibile Offline
+                            Questo modulo richiede una connessione a Internet per funzionare.<br>
+                            Se sei su un dispositivo locale, usa la versione offline.
                         </p>
-                    </a>
+
+                        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                            <a href="index.html" style="
+                                display:inline-block;
+                                padding:10px 20px;
+                                background:#e2e8f0;
+                                color:#334155;
+                                text-decoration:none;
+                                border-radius:8px;
+                                font-size:0.85rem;
+                                font-weight:700;
+                                transition: background 0.2s;
+                            ">Torna a Index</a>
+                            
+                            <a href="roomlocale.html" style="
+                                display:inline-block;
+                                padding:10px 20px;
+                                background:#2563eb;
+                                color:#ffffff;
+                                text-decoration:none;
+                                border-radius:8px;
+                                font-size:0.85rem;
+                                font-weight:700;
+                                transition: background 0.2s;
+                                box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+                            ">Apri Room Locale</a>
+                        </div>
+                    </div>
                 </div>
             `;
         });
