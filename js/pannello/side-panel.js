@@ -145,7 +145,7 @@ function popolaListaPermessi() {
     container.innerHTML = '';
 
     const giorniSettimana = ["", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
-    const studentiPP = Object.keys(ORARI_PP || {}).sort();
+    const studentiPP = Object.keys(window.ORARI_PP || {}).sort();
 
     // ─────────────────────────────────────────────────────────────
     // BLOCCO IMPORT/EXPORT — sempre visibile in cima alla sezione
@@ -174,7 +174,7 @@ function popolaListaPermessi() {
 
     const listaHtml = studentiPP
         .map((cognome) => {
-            const orari = ORARI_PP[cognome];
+            const orari = window.ORARI_PP[cognome];
             if (!orari) return "";
 
             // ── NORMALIZZAZIONE ──
