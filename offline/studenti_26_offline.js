@@ -1,4 +1,4 @@
-/**
+P/**
  * ⚠️  DUMMY FILE — DATI FANTOCCIO
  * ─────────────────────────────────────────────────────────────
  * Questo file contiene SOLO nomi inventati
@@ -16,7 +16,12 @@
  */
 window.tuttiStudenti = [
     {
-       
+        "id": 1000,
+        "cognome": "DUMMY",
+        "nome": "Data",
+        "classe": "X",
+        "room": "1000",
+        "percorso": "-"
     }
 ];
 
