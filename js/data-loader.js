@@ -247,9 +247,14 @@ async function caricaDatiFirebase() {
             }
         }, 500);
 
-        console.log('✅ Firebase: caricamento completato');
+                console.log('✅ Firebase: caricamento completato');
         return true;
 
+    } catch (error) {                                      
+        console.error('❌ Errore caricamento Firebase:', error); 
+        return false;                                      
+    }                                                      
+}                                                         
 
 // ─────────────────────────────────────────────────────────────
 // 4. SALVATAGGIO SU FIREBASE
