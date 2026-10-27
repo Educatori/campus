@@ -74,10 +74,32 @@ function costruisciTurni() {
 }
 
 function setTurno(turno) {
+    // 1. Rimuove l'evidenziazione dai bottoni (se cliccati)
+    if (typeof rimuoviEvidenziazioneTasti === 'function') {
+        rimuoviEvidenziazioneTasti();
+    }
+    if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add("tasto-attivo");
+    }
+
+    let count = 0; // Contatore per il popup
+
     document.querySelectorAll(".student-row").forEach((r) => {
         const classe = r.dataset.classe;
         const cognome = r.dataset.cognome;
         const turnoEffettivo = turnoStudente(classe, cognome);
-        r.style.display = (turnoEffettivo === turno) ? "block" : "none";
+        
+        if (turnoEffettivo === turno) {
+            r.style.display = "block";
+            count++;
+        } else {
+            r.style.display = "none";
+        }
     });
+
+    // 2. Mostra il popup col conteggio (usando la funzione già presente in filtri.js)
+    if (typeof mostraFeedbackFiltro === 'function') {
+        const nomeTurno = turno === 1 ? "1° TURNO" : "2° TURNO";
+        mostraFeedbackFiltro(nomeTurno, count);
+    }
 }
