@@ -1,4 +1,4 @@
-P/**
+/**
  * ⚠️  DUMMY FILE — DATI FANTOCCIO
  * ─────────────────────────────────────────────────────────────
  * Questo file contiene SOLO nomi inventati
