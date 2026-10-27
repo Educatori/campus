@@ -3,23 +3,38 @@
 // Carica i dati sensibili (studenti, permessi, assenze) da
 // Firebase Realtime Database, con fallback ai dati locali.
 // Salva automaticamente le modifiche giornaliere su Firebase.
+//
+// 📌 CONFIGURAZIONE STATICA (LAB_PRANZO, TURNI_DINNER, ecc.)
+//    È definita QUI (top-level) come fallback, così in online
+//    è sempre disponibile anche se offline/*.js non viene servito.
+//
+// ⚠️ OVERRIDE_TURNI_DINNER (cognomi → turno) NON è più qui:
+//    viene caricato da Firebase in caricaDatiFirebase() §3c-bis.
 // ─────────────────────────────────────────────────────────────
 
 import { db, ref, get, set, onValue } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
 // 0a. CONFIGURAZIONE STATICA (non sensibile)
+//     Uso `window.X = window.X || {...}` per non sovrascrivere
+//     eventuali definizioni già presenti in modalità offline.
 // ─────────────────────────────────────────────────────────────
 window.PAROLE_ASSENZA = window.PAROLE_ASSENZA || [
-    "ass", "assente", "sosp", "sospeso", "sospesa", "gita", "trasferta", "malattia"
+    "ass", "assente",
+    "sosp", "sospeso", "sospesa",
+    "gita", "trasferta", "malattia"
 ];
 
 window.PAROLE_NO_RIENTRO = window.PAROLE_NO_RIENTRO || [
-    "n", "no", "non", "nor", "no r", "no rientro", "x"
+    "n", "no", "non", "nor",
+    "no r", "no rientro", "x"
 ];
 
 window.LAB_PRANZO = window.LAB_PRANZO || {
-    "1": ["3A", "5A", "5B"], "2": ["3B", "4A"], "3": ["1A", "4B"], "4": ["1B", "4C"]
+    "1": ["3A", "5A", "5B"],
+    "2": ["3B", "4A"],
+    "3": ["1A", "4B"],
+    "4": ["1B", "4C"]
 };
 
 window.TURNI_DINNER = window.TURNI_DINNER || {
@@ -28,13 +43,20 @@ window.TURNI_DINNER = window.TURNI_DINNER || {
 };
 
 window.LAB_DINNER = window.LAB_DINNER || {
-    "1": ["2P"], "2": ["2A"], "3": ["2B"], "4": ["5A", "5B"]
+    "1": ["2P"],
+    "2": ["2A"],
+    "3": ["2B"],
+    "4": ["5A", "5B"]
 };
 
 window.OVERRIDE_TURNI_DINNER_CLASSI = window.OVERRIDE_TURNI_DINNER_CLASSI || {
-    "1A": { 3: 2 }, "1B": { 3: 2 }
+    "1A": { 3: 2 },
+    "1B": { 3: 2 }
 };
 
+// OVERRIDE_TURNI_DINNER: vuoto di default. In online viene
+// popolato da Firebase (§3c-bis). In offline arriva da
+// offline/permessi_26_offline.js prima di questo modulo.
 window.OVERRIDE_TURNI_DINNER = window.OVERRIDE_TURNI_DINNER || {};
 
 window.CALENDARIO_GRUPPI_DINNER = window.CALENDARIO_GRUPPI_DINNER || {
@@ -80,6 +102,11 @@ function dataKeyFirebase(data) {
     return `${g}-${m}-${a}`;
 }
 
+/**
+ * Normalizza i permessi PP da Firebase.
+ * Firebase trasforma {"1":{...},"2":{...}} in [null,{...},{...}].
+ * Questo li riconverte in oggetto.
+ */
 function normalizzaPP(ppData) {
     const risultato = {};
     for (const [cognome, orari] of Object.entries(ppData || {})) {
@@ -122,6 +149,8 @@ async function caricaDatiFirebase() {
                 window.tuttiStudenti = studentiArray;
                 console.log(`   📚 Studenti: ${studentiArray.length}`);
             }
+        } else {
+            console.warn('   ⚠️ Nodo "studenti" assente → uso OFF');
         }
 
         // 3b. Filtro convittori
@@ -131,24 +160,28 @@ async function caricaDatiFirebase() {
         });
         console.log(`   🏠 Convittori: ${window.studenticonvittori.length}`);
 
-        // 3c. Permessi PP (con NORMALIZZAZIONE)
+                // 3c. Permessi PP (con NORMALIZZAZIONE)
         const ppSnap = await get(ref(db, 'permessi_pp'));
         if (ppSnap.exists()) {
             const ppData = ppSnap.val();
             if (ppData && Object.keys(ppData).length > 0) {
                 const normalizzati = normalizzaPP(ppData);
                 
+                // MUTIAMO l'oggetto esistente invece di riassegnarlo.
+                // In questo modo tutti i file (come side-panel.js) 
+                // che puntano a window.ORARI_PP vedranno i nuovi dati.
                 if (window.ORARI_PP && typeof window.ORARI_PP === 'object') {
                     Object.keys(window.ORARI_PP).forEach(k => delete window.ORARI_PP[k]);
                     Object.assign(window.ORARI_PP, normalizzati);
                 } else {
                     window.ORARI_PP = normalizzati;
                 }
+                
                 console.log(`   🔑 Permessi PP: ${Object.keys(window.ORARI_PP).length} (normalizzati)`);
             }
         }
 
-        // 3c-bis. Override turni dinner
+        // 3c-bis. Override turni dinner (cognomi → turno per giorno)
         const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
         if (ovSnap.exists()) {
             const ovData = ovSnap.val();
@@ -156,6 +189,8 @@ async function caricaDatiFirebase() {
                 window.OVERRIDE_TURNI_DINNER = ovData;
                 console.log(`   🍽 Override turni: ${Object.keys(ovData).length} studenti`);
             }
+        } else {
+            console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
         }
 
         // 3d. Assenti permesso
@@ -189,62 +224,32 @@ async function caricaDatiFirebase() {
             localStorage.setItem('datiConvitto', JSON.stringify(datiLS));
         }
 
-        // 3f. Ultimo reset
+                // 3f. Ultimo reset
         const resetSnap = await get(ref(db, 'convitto/ultimoReset'));
         if (resetSnap.exists()) {
             localStorage.setItem('dataUltimoReset', resetSnap.val());
         }
 
-        // 👇 FIX NUCLEARE PER LA SIDE PANEL 👇
+    
+        // Forza il ridisegno della Side Panel con i dati appena scaricati da Firebase
         if (typeof window.popolaListaPermessi === 'function') {
             window.popolaListaPermessi();
+            console.log("🔄 Side Panel aggiornata con i permessi da Firebase");
         }
-
+    
+        // 👇 FORZA IL RIDISEGNO DELLA LISTA 👇
+        // Aspetta mezzo secondo per essere sicuro che il DOM sia pronto, 
+        // poi ridisegna la lista con i 121 studenti appena scaricati.
         setTimeout(() => {
-            const container = document.getElementById('listaPermessiContent');
-            if (container && (container.innerHTML.includes('DRACULA') || container.innerHTML.includes('FRANKENSTEIN') || container.innerHTML.includes('Dracula'))) {
-                console.warn("⚠️ Trovato Dracula! Eseguo override manuale con i dati veri.");
-                
-                const permessi = window.ORARI_PP || {};
-                const giorni = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
-                let html = '';
-                
-                for (const [cognome, orari] of Object.entries(permessi)) {
-                    let orariHtml = '';
-                    if (Array.isArray(orari)) {
-                        orari.forEach((o, i) => {
-                            if (i > 0 && o && (o.out || o.in)) {
-                                orariHtml += `<div style="font-size:0.75rem;color:#555;"><b>${giorni[i]}</b>: ${o.out||''} ➔ ${o.in||''}</div>`;
-                            }
-                        });
-                    } else if (typeof orari === 'object') {
-                        for (const [g, o] of Object.entries(orari)) {
-                            if (o && (o.out || o.in)) {
-                                orariHtml += `<div style="font-size:0.75rem;color:#555;"><b>${giorni[g]||g}</b>: ${o.out||''} ➔ ${o.in||''}</div>`;
-                            }
-                        }
-                    }
-                    html += `
-                        <div style="border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:8px; background:#fff;">
-                            <div style="font-weight:800; font-size:0.9rem; color:#1f2937; text-transform:uppercase; margin-bottom:4px;">${cognome}</div>
-                            ${orariHtml || '<div style="font-size:0.75rem;color:#9ca3af;font-style:italic;">Nessun orario</div>'}
-                        </div>
-                    `;
-                }
-                if (html) container.innerHTML = html;
-                console.log("🔥 PANNELLO SOVRASCRITTO MANUALMENTE CON I DATI VERI.");
+            if (typeof window.ricaricaListaStudenti === 'function') {
+                window.ricaricaListaStudenti();
+                console.log("🔄 Lista studenti forzata al ridisegno con successo!");
             }
         }, 500);
-        // 👆 FINE FIX NUCLEARE 👆
 
         console.log('✅ Firebase: caricamento completato');
         return true;
 
-    } catch (error) {
-        console.error('❌ Errore caricamento Firebase:', error);
-        return false;
-    }
-}
 
 // ─────────────────────────────────────────────────────────────
 // 4. SALVATAGGIO SU FIREBASE
@@ -312,15 +317,21 @@ console.log('🔧 data-loader.js pronto');
 // ─────────────────────────────────────────────────────────────
 // 7. NOTE CONDIVISE (realtime)
 // ─────────────────────────────────────────────────────────────
+
 let noteListenerAttivo = false;
 let noteRemoteInCorso = false;
 
+/**
+ * Attiva il listener realtime sulle note.
+ * Va chiamata DOPO che l'utente è autorizzato e l'app è visibile.
+ */
 function attivaNoteCondivise() {
     if (noteListenerAttivo) return;
     noteListenerAttivo = true;
 
     const noteRef = ref(db, 'convitto/note');
 
+    // 1) Ascolta i cambiamenti remoti
     onValue(noteRef, (snap) => {
         const testo = snap.exists() ? (snap.val() || "") : "";
         const ta = document.getElementById('dailyNotes');
@@ -336,6 +347,7 @@ function attivaNoteCondivise() {
         noteRemoteInCorso = false;
     });
 
+    // 2) Salva su Firebase con debounce
     const ta = document.getElementById('dailyNotes');
     if (ta) {
         let debounceTimer = null;
@@ -360,11 +372,13 @@ function attivaNoteCondivise() {
 
     console.log('📝 Note condivise attive (realtime)');
 }
+
 window.attivaNoteCondivise = attivaNoteCondivise;
 
 // ─────────────────────────────────────────────────────────────
 // 8.  ULTIMO RESET / ULTIMA MODIFICA — realtime condiviso
 // ─────────────────────────────────────────────────────────────
+
 let unsubUltimoReset = null;
 let unsubUltimaMod  = null;
 
@@ -409,7 +423,7 @@ function attivaUltimoAggiornamento() {
 window.attivaUltimoAggiornamento = attivaUltimoAggiornamento;
 
 // ─────────────────────────────────────────────────────────────
-// 9. EXPORT
+// 9. EXPORT (sempre per ultimo!)
 // ─────────────────────────────────────────────────────────────
 export {
     caricaDatiFirebase,
