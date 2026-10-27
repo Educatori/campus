@@ -212,19 +212,25 @@
                        color:var(--text-2);line-height:1;">&times;</button>
     </div>
 
-    <!-- ── LISTA ASSENZE — sempre visibile in cima ── -->
-    <h3 style="display:flex;justify-content:space-between;align-items:center;
-               margin:16px 0 10px 0;">
-        Programmate
-        <button onclick="pulisciAssenzeScadute()"
-                title="Rimuovi definitivamente i periodi già terminati"
-                style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
-                       padding:4px 10px;border-radius:6px;cursor:pointer;
-                       font-family:var(--font);font-size:0.72rem;font-weight:700;">
-            🧹 Pulisci scadute
-        </button>
-    </h3>
-    <div id="listaAssenze" style="margin-bottom:10px;"></div>
+     <!-- ── LISTA ASSENZE — ora collassata ── -->
+    <details id="boxProgrammate" open>
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;
+                        display:list-item; list-style-position: inside;
+                        marker: var(--accent);">
+            <span style="display:inline-flex; justify-content:space-between; align-items:center; width: calc(100% - 20px); vertical-align: middle; margin-left: 6px;">
+                <span>Programmate</span>
+                <button onclick="event.preventDefault(); pulisciAssenzeScadute()"
+                        title="Rimuovi definitivamente i periodi già terminati"
+                        style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
+                               padding:4px 10px;border-radius:6px;cursor:pointer;
+                               font-family:var(--font);font-size:0.72rem;font-weight:700;">
+                    🧹 Pulisci scadute
+                </button>
+            </span>
+        </summary>
+        <div id="listaAssenze" style="margin-bottom:10px; margin-top:10px;"></div>
+    </details>
 
     <hr>
 
