@@ -1,8 +1,7 @@
 /**
  * ⚠️  DUMMY FILE — DATI FANTOCCIO (solo dati personali)
  * ─────────────────────────────────────────────────────────────
- * Questo file contiene nomi inventati (Frankenstein, Dracula,
- * Mummia, Wolf…) e permessi fantoccio.
+ * Questo file contiene nomi inventati e permessi fantoccio.
  * Serve a proteggere la privacy degli studenti reali su repository
  * pubblici (GitHub).
  *
@@ -35,9 +34,7 @@
 // ⚠️ Nel repo pubblico restano solo nomi fantoccio.
 // ─────────────────────────────────────────────────────────────
 const OVERRIDE_TURNI_DINNER = {
-
-    "DUMMY":     { 1: 2, 2: 2, 3: 2, 4: 2 },
-    
+    "DUMMY": { 1: 2, 2: 2, 3: 2, 4: 2 }
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -46,21 +43,21 @@ const OVERRIDE_TURNI_DINNER = {
 // ─────────────────────────────────────────────────────────────
 const ORARI_PP = {
 
-    
-     "DUMMY": {
-        1: { out: "10:00", in: "20:00" },
-        2: { out: "10:00", in: "20:00" },
-        3: { out: "10:00", in: "20:00" },
-        4: { out: "10:00", in: "20:00" }
-    },
-  
+    "DUMMY": {
+        1: { out: "12:00", in: "15:00" },
+        2: { out: "17:00", in: "20:00" },
+        3: { out: "18:15", in: "19:45" },
+        4: { out: "20:15", in: "21:30" }
+    }
+
 };
+
 // ─────────────────────────────────────────────────────────────
 // ASSENTI_PERMESSO: studenti che hanno permesso di non cenare
 // In online arriva da Firebase (nodo `assenti_permesso`).
 // ─────────────────────────────────────────────────────────────
 const ASSENTI_PERMESSO = {
-    1: [''],
+    1: ['DUMMY'],
     2: [''],
     3: [''],
     4: ['']
