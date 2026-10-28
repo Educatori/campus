@@ -324,7 +324,7 @@ const notaGiornoCorrente =
             <div class="section">
                 <h3>1° turno — 18:30</h3>
                 <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI 1A, 1B, 1P, 2A, 2B, 2FP, 3FP [mercoledì escluse 1A, 1B]
+                    CLASSI 1A, 1B (no mercoledì), 1P, 2A, 2B, 2FP, 3FP
                 </div>
                 
                 <div class="stats-row">
@@ -344,7 +344,7 @@ const notaGiornoCorrente =
             <div class="section">
                 <h3>2° turno — 19:15</h3>
                 <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI 3A, 3B, 4A, 4B, 4C, 5A, 5B [mercoledì comprese 1A, 1B]
+                    CLASSI 1A, 1B (solo mercoledì), 3A, 3B, 4A, 4B, 4C, 5A, 5B
                 </div>
                 
                 <div class="stats-row">
