@@ -87,7 +87,7 @@ function generaPopUpStampaBus(ordinamento) {
     const colonneHtml = ["", "", ""];
 
     // Testo della nota da mettere in fondo all'ultima colonna
-    const notaInTesta = "LABORATORI <br> LUN 5A+3A 🍸 MAR 4A+3B <br> MER 4B+1A 🍹 GIO 4C+1B";
+    const notaInTesta = "LABORATORI <br> LUN 5A + 3A ━🍸━ MAR 4A + 3B <br> MER 4B + 1A ━🍹━ GIO 4C + 1B";
 
     // Funzione per generare una riga studente (con note automatiche)
     function generaRigaStudente(s) {
