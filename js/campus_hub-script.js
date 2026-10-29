@@ -208,7 +208,7 @@ if (btn) {
             <div class="st-header">
                 <div>
                     <span class="room-badge">${s.room}</span>
-                    <button class="btn-switch" onclick="toggleSwitchTurno(this)" title="Cambia turno">⇄</button>
+                    <button class="btn-switch" onclick="toggleSwitchTurno(this)" title="Cambia turno" aria-label="Cambia turno cena per ${s.cognome}">⇄</button>
                     ${ppBadge}
                 </div>
                 ${turnoHtml}
