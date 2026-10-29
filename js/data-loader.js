@@ -80,14 +80,12 @@ const offlineAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO }
 
 console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.keys(offlinePP).length} PP`);
 
+
 // ─────────────────────────────────────────────────────────────
 // 1. INIZIALIZZAZIONE con OFF (se presente)
 // ─────────────────────────────────────────────────────────────
 window.tuttiStudenti      = offlineStudenti;
-window.studenticonvittori = offlineStudenti.filter(s => {
-    const n = parseInt(s.room, 10);
-    return !isNaN(n) && n >= 101 && n <= 221;
-});
+window.studenticonvittori = window.filtraConvittori(offlineStudenti);
 window.ORARI_PP         = offlinePP;
 window.ASSENTI_PERMESSO = offlineAssenti;
 
@@ -132,7 +130,7 @@ async function caricaDatiFirebase() {
     try {
         console.log('🔥 Connessione a Firebase...');
 
-        // 3a. Studenti
+    // 3a. Studenti
         const studentiSnap = await get(ref(db, 'studenti'));
         if (studentiSnap.exists()) {
             const data = studentiSnap.val();
@@ -153,14 +151,11 @@ async function caricaDatiFirebase() {
             console.warn('   ⚠️ Nodo "studenti" assente → uso OFF');
         }
 
-        // 3b. Filtro convittori
-        window.studenticonvittori = window.tuttiStudenti.filter(s => {
-            const n = parseInt(s.room, 10);
-            return !isNaN(n) && n >= 101 && n <= 221;
-        });
+    // 3b. Filtro convittori (funzione condivisa)
+        window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti);
         console.log(`   🏠 Convittori: ${window.studenticonvittori.length}`);
 
-                // 3c. Permessi PP (con NORMALIZZAZIONE)
+    // 3c. Permessi PP (con NORMALIZZAZIONE)
         const ppSnap = await get(ref(db, 'permessi_pp'));
         if (ppSnap.exists()) {
             const ppData = ppSnap.val();
@@ -181,7 +176,7 @@ async function caricaDatiFirebase() {
             }
         }
 
-        // 3c-bis. Override turni dinner (cognomi → turno per giorno)
+    // 3c-bis. Override turni dinner (cognomi → turno per giorno)
         const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
         if (ovSnap.exists()) {
             const ovData = ovSnap.val();
@@ -193,7 +188,7 @@ async function caricaDatiFirebase() {
             console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
         }
 
-        // 3d. Assenti permesso
+    // 3d. Assenti permesso
         const assSnap = await get(ref(db, 'assenti_permesso'));
         if (assSnap.exists()) {
             const assData = assSnap.val();
@@ -203,7 +198,7 @@ async function caricaDatiFirebase() {
             }
         }
 
-        // 3e. Dati giornalieri
+    // 3e. Dati giornalieri
         const chiaveOggi = dataKeyFirebase(new Date());
         const giornoSnap = await get(ref(db, `convitto/${chiaveOggi}`));
         if (giornoSnap.exists()) {
@@ -224,7 +219,7 @@ async function caricaDatiFirebase() {
             localStorage.setItem('datiConvitto', JSON.stringify(datiLS));
         }
 
-                // 3f. Ultimo reset
+    // 3f. Ultimo reset
         const resetSnap = await get(ref(db, 'convitto/ultimoReset'));
         if (resetSnap.exists()) {
             localStorage.setItem('dataUltimoReset', resetSnap.val());
