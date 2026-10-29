@@ -20,25 +20,57 @@
  * ⚠️ Caricare DOPO pannello/assenze-programmate.js.
  * ─────────────────────────────────────────────────────────────
  */
-
 // ─────────────────────────────────────────────────────────────
 // APERTURA / CHIUSURA
 // ─────────────────────────────────────────────────────────────
+
+// Zone del background che diventano inerte quando il pannello è aperto.
+// Header (ESCI) e note restano cliccabili: fa parte del design.
+const ZONE_INERT = [
+    '.toolbar',
+    '.azioni-grid',
+    '.legenda',
+    '#listaStudenti'
+];
+
+function impostaInertBackground(attivo) {
+    ZONE_INERT.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+            if (attivo) el.setAttribute('inert', '');
+            else        el.removeAttribute('inert');
+        });
+    });
+}
+
+function apriPannello(panel) {
+    panel.classList.add('open');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Gestione assenze e permessi');
+
+    if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
+    if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
+    if (typeof renderListaAssenze   === "function") renderListaAssenze();
+    if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
+    aggiornaAltezzaOverlay();
+    impostaInertBackground(true);
+}
+
+function chiudiPannello(panel) {
+    panel.classList.remove('open');
+    panel.removeAttribute('aria-modal');
+    // role="dialog" e aria-label li lasciamo: sono statici, non fanno danno
+    impostaInertBackground(false);
+}
 
 function togglePanel() {
     const panel = document.getElementById('sidePanel');
     if (!panel) return;
 
-    const isOpening = !panel.classList.contains('open');
-    panel.classList.toggle('open');
-
-    // All'apertura, popola i contenuti e ricalcola l'overlay
-    if (isOpening) {
-        if (typeof popolaListaPermessi  === "function") popolaListaPermessi();
-        if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
-        if (typeof renderListaAssenze   === "function") renderListaAssenze();
-        if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
-        aggiornaAltezzaOverlay();
+    if (panel.classList.contains('open')) {
+        chiudiPannello(panel);
+    } else {
+        apriPannello(panel);
     }
 }
 
@@ -54,7 +86,7 @@ document.addEventListener('click', (e) => {
     if (!panel || !panel.classList.contains('open')) return;
     if (panel.contains(e.target)) return;
     if (e.target.closest('[onclick*="togglePanel"]')) return;
-    panel.classList.remove('open');
+    chiudiPannello(panel);
 });
 
 // ─────────────────────────────────────────────────────────────
