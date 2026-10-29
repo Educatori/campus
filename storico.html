@@ -50,14 +50,116 @@
 </style>
 </head>
 <body>
+<body>
 
-    <div id="authLoading" style="
+<!-- ============================================================
+     GUARDIA: storico.html richiede un server HTTP (non file://)
+     ============================================================ -->
+<script>
+(function () {
+    if (window.location.protocol !== 'file:') return;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.body.innerHTML = `
+            <div style="
+                position:fixed; inset:0; z-index:99999;
+                display:flex; align-items:center; justify-content:center;
+                background:var(--bg,#f0f4f8);
+                background-image:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);
+                font-family:var(--font,'Segoe UI',system-ui,sans-serif;
+                padding:20px;
+            ">
+                <div style="
+                    display:block;
+                    background:var(--surface,#fff);
+                    border:1px solid var(--border-2,#00000024);
+                    border-radius:var(--radius-xl,24px);
+                    box-shadow:var(--shadow-lg,0 8px 32px rgba(0,0,0,0.14));
+                    padding:36px 32px;
+                    max-width:460px;
+                    width:100%;
+                    text-align:center;
+                    color:inherit;
+                ">
+                    <div style="font-size:2.5rem; line-height:1; margin-bottom:14px;">📊</div>
+
+                    <h2 style="
+                        margin:0 0 10px 0;
+                        font-size:1.15rem;
+                        letter-spacing:0.05em;
+                        text-transform:uppercase;
+                        background:linear-gradient(90deg,#2563eb,#0d9488);
+                        -webkit-background-clip:text;
+                        background-clip:text;
+                        -webkit-text-fill-color:transparent;
+                    ">Storico Giornaliero</h2>
+
+                    <p style="
+                        font-size:0.9rem;
+                        color:var(--text,#0f172a);
+                        font-weight:600;
+                        line-height:1.55;
+                        margin:0 0 20px 0;
+                    ">
+                        Questa pagina richiede un server HTTP per funzionare.<br>
+                        Aperta come file locale (<code style="font-size:0.82em;color:#64748b;">file://</code>) non può caricare Firebase.
+                    </p>
+
+                    <div style="
+                        background:#f8fafc;
+                        border:1px solid #e2e8f0;
+                        border-radius:8px;
+                        padding:14px;
+                        margin-bottom:20px;
+                        text-align:left;
+                        font-family:ui-monospace,monospace;
+                        font-size:0.78rem;
+                        color:#334155;
+                        line-height:1.6;
+                    ">
+                        
+
+                    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <a href="campus_hub.html" style="
+                            display:inline-block;
+                            padding:10px 20px;
+                            background:#e2e8f0;
+                            color:#334155;
+                            text-decoration:none;
+                            border-radius:8px;
+                            font-size:0.85rem;
+                            font-weight:700;
+                        ">← Torna all'app</a>
+
+                        <a href="index.html" style="
+                            display:inline-block;
+                            padding:10px 20px;
+                            background:#2563eb;
+                            color:#ffffff;
+                            text-decoration:none;
+                            border-radius:8px;
+                            font-size:0.85rem;
+                            font-weight:700;
+                            box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+                        ">Vai alla Home</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+})();
+</script>
+
+<div id="authLoading" style="...">
+<div id="authLoading" style="
     position: fixed; inset: 0; z-index: 99998;
     display: flex; align-items: center; justify-content: center;
     background: var(--bg);
     font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-2);
+    text-align: center; padding: 20px;
 ">
-    ⏳ Autenticazione…
+    <!-- ← NUOVO: testo separato in uno span per poterlo aggiornare -->
+    <span id="authLoadingText">⏳ Autenticazione (disponibile solo online)…</span>
 </div>
 <div class="container" style="display:none;">
     <header>
@@ -101,6 +203,65 @@
         <div id="loginError" class="error" role="alert"></div>
     </div>
 </div>
+
+<!-- ============================================================
+     ← NUOVO: Script classico (non-module) che parte PRIMA del
+     module. Cattura l'offline, gestisce timeout, ascolta il
+     ritorno online. Non dipende da Firebase.
+     ============================================================ -->
+<script>
+(function () {
+    'use strict';
+
+    const loader     = document.getElementById('authLoading');
+    const loaderText = document.getElementById('authLoadingText');
+    if (!loader || !loaderText) return;
+
+    // Flag settata dal module quando onAuthStateChanged scatta
+    window._storicoAuthAvviato = false;
+
+    function setLoaderMessage(msg) {
+        loaderText.textContent = msg;
+    }
+
+    // 1) Check offline immediato (prima che il module provi a caricare Firebase)
+    if (!navigator.onLine) {
+        setLoaderMessage('📴 Offline — lo storico richiede connessione');
+        console.log('[Storico] Offline all\'avvio: Firebase non verrà caricato');
+    }
+
+    // 2) Safety timeout: se dopo 10s l'auth non è partita, mostra errore
+    //    (caso: captive portal, DNS bloccato, Firebase SDK non raggiungibile)
+
+    setTimeout(function () {
+        if (window._storicoAuthAvviato) return;
+        if (!navigator.onLine) return;
+
+        // ← NUOVO: distinguere file:// (modulo non caricato) da rete lenta
+        if (location.protocol === 'file:') {
+            setLoaderMessage('📁 Apri questa pagina via HTTP (non file://)');
+        } else {
+            setLoaderMessage('⚠️ Connessione assente o Firebase non raggiungibile');
+        }
+        console.warn('[Storico] Timeout: onAuthStateChanged non scattato');
+    }, 10000);
+
+    // 3) Se l'utente torna online, ricarica la pagina per riprovare
+    window.addEventListener('online', function () {
+        if (window._storicoAuthAvviato) return;
+        setLoaderMessage('🌐 Connessione ripristinata — ricarico…');
+        setTimeout(function () { location.reload(); }, 800);
+    });
+
+    // 4) Se va offline dopo essere stato online, avvisa (soft)
+    window.addEventListener('offline', function () {
+        if (window._storicoAuthAvviato) {
+            // Auth già partita: mostra un avviso ma non bloccare
+            console.warn('[Storico] Connessione persa durante la sessione');
+        }
+    });
+})();
+</script>
 
 <script type="module">
 import {
@@ -162,10 +323,22 @@ $('loginBtn').onclick = async () => {
     const email = $('loginEmail').value.trim();
     const pwd   = $('loginPassword').value;
     $('loginError').textContent = '';
+
+    // ← NUOVO: distinguere errore di rete da credenziali errate
+    if (!navigator.onLine) {
+        $('loginError').textContent = '📴 Sei offline — impossibile accedere';
+        return;
+    }
+
     try {
         await signInWithEmailAndPassword(auth, email, pwd);
     } catch (e) {
-        $('loginError').textContent = 'Credenziali errate';
+        const code = e?.code || '';
+        if (code === 'auth/network-request-failed') {
+            $('loginError').textContent = '📴 Errore di rete — controlla la connessione';
+        } else {
+            $('loginError').textContent = 'Credenziali errate';
+        }
     }
 };
 $('loginPassword').addEventListener('keydown', (e) => {
@@ -174,7 +347,9 @@ $('loginPassword').addEventListener('keydown', (e) => {
 
 // Auth
 onAuthStateChanged(auth, (user) => {
-    // ── NEW: nasconde il loader in ogni caso ──
+    // ← NUOVO: segnala al safety timeout che l'auth è partita
+    window._storicoAuthAvviato = true;
+
     const authLoading = document.getElementById('authLoading');
     if (authLoading) authLoading.style.display = 'none';
 
@@ -213,17 +388,24 @@ async function carica() {
         render(snap.val() || {});
     } catch (e) {
         loading.style.display = 'none';
-        empty.textContent = '❌ Errore: ' + e.message;
+
+        // ← NUOVO: distinguere errore di rete da errore applicativo
+        const isNetworkError =
+            !navigator.onLine ||
+            (e?.code === 'auth/network-request-failed') ||
+            /network|failed to fetch|offline/i.test(e?.message || '');
+
+        if (isNetworkError) {
+            empty.textContent = '📴 Connessione assente — impossibile caricare i dati. Riprova quando sei online.';
+        } else {
+            empty.textContent = '❌ Errore: ' + e.message;
+        }
         empty.style.display = 'block';
     }
 }
 
 function render(dati) {
     // ── 1. Trova il nodo che contiene gli studenti ──
-    // Casi supportati:
-    //   A) flat:    { ROSSI: {...}, BIANCHI: {...}, lastUpdate: ... }
-    //   B) wrapped: { dati: { ROSSI: {...}, ... }, lastUpdate: ... }
-    //   C) wrapped con nome custom (studenti, giornaliero, records)
     const WRAPPER_CANDIDATI = ['dati', 'studenti', 'giornaliero', 'records', 'data'];
 
     let studentiNode = dati;
@@ -231,7 +413,6 @@ function render(dati) {
 
     for (const key of WRAPPER_CANDIDATI) {
         if (dati[key] && typeof dati[key] === 'object' && !Array.isArray(dati[key])) {
-            // verifica che dentro ci siano oggetti (studenti) e non valori scalari
             const sample = Object.values(dati[key])[0];
             if (sample && typeof sample === 'object') {
                 studentiNode = dati[key];
@@ -241,7 +422,7 @@ function render(dati) {
         }
     }
 
-    // ── 2. Estrai lastUpdate (in root o dentro il wrapper) ──
+    // ── 2. Estrai lastUpdate ──
     const lastUpdate = dati.lastUpdate
         || (wrapperUsato && dati[wrapperUsato]?.lastUpdate)
         || null;
@@ -251,7 +432,6 @@ function render(dati) {
         .filter(([k, v]) => {
             if (k === 'lastUpdate') return false;
             if (!v || typeof v !== 'object') return false;
-            // deve avere almeno una proprietà tipica di uno studente
             return 'esce' in v || 'entra' in v || 'assente' in v || 'dinnerno' in v;
         })
         .sort(([a], [b]) => a.localeCompare(b, 'it'));
