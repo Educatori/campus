@@ -202,6 +202,12 @@
         .student-item:active { transform: scale(0.99); }
         .student-item:hover { background: var(--surface-2); }
 
+        /* ← NUOVO: focus ring per navigazione da tastiera */
+.student-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    background: var(--surface-2);
+}
         /* Foresteria */
         .student-item.foresteria-row {
             display: flex;
@@ -366,6 +372,11 @@
         }
 
         .modal-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        .modal-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
         .modal-btn-standby {
             background: var(--lab-dim);
@@ -717,6 +728,71 @@
         let studentiData = [];
         let assenzeData  = {};
         let pendingResolve = null;
+        
+        /* ── FOCUS TRAP — utility riutilizzabile per le modali ──── */
+
+// Salva l'elemento che aveva il focus prima di aprire una modale
+let _focusPrecedente = null;
+
+const FOCUSABILI = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+].join(',');
+
+function getFocusabili(container) {
+    return Array.from(container.querySelectorAll(FOCUSABILI))
+        .filter(el => el.offsetParent !== null);  // visibile
+}
+
+function attivaFocusTrap(modalEl) {
+    _focusPrecedente = document.activeElement;
+
+    const focusabili = getFocusabili(modalEl);
+    if (focusabili.length > 0) {
+        // Focus sul primo elemento dopo il render
+        requestAnimationFrame(() => focusabili[0].focus());
+    }
+
+    const handler = (e) => {
+        if (e.key !== 'Tab') return;
+        const items = getFocusabili(modalEl);
+        if (items.length === 0) return;
+
+        const primo = items[0];
+        const ultimo = items[items.length - 1];
+
+        if (e.shiftKey) {
+            if (document.activeElement === primo) {
+                e.preventDefault();
+                ultimo.focus();
+            }
+        } else {
+            if (document.activeElement === ultimo) {
+                e.preventDefault();
+                primo.focus();
+            }
+        }
+    };
+
+    modalEl.addEventListener('keydown', handler);
+    modalEl._focusTrapHandler = handler;
+}
+
+function disattivaFocusTrap(modalEl) {
+    if (modalEl._focusTrapHandler) {
+        modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+        delete modalEl._focusTrapHandler;
+    }
+    if (_focusPrecedente && typeof _focusPrecedente.focus === 'function') {
+        _focusPrecedente.focus();
+    }
+    _focusPrecedente = null;
+}
+        
 
         let unsubscribeAnagrafica = null;
         let unsubscribeAssenze    = null;
@@ -765,17 +841,19 @@
         updateCurrentDate();
 
         /* ── Modale azione studente ───────────────────────────── */
-        function showChoiceDialog(studentName) {
-            modalMessage.textContent = `Scegli stato per ${studentName}`;
-            modal.style.display = 'flex';
-            return new Promise((resolve) => { pendingResolve = resolve; });
-        }
+       function showChoiceDialog(studentName) {
+    modalMessage.textContent = `Scegli stato per ${studentName}`;
+    modal.style.display = 'flex';
+    attivaFocusTrap(modal);
+    return new Promise((resolve) => { pendingResolve = resolve; });
+}
 
-        function closeModal(resolveValue = null) {
-            modal.style.display = 'none';
-            if (pendingResolve) { pendingResolve(resolveValue); pendingResolve = null; }
-        }
-
+function closeModal(resolveValue = null) {
+    modal.style.display = 'none';
+    disattivaFocusTrap(modal);
+    if (pendingResolve) { pendingResolve(resolveValue); pendingResolve = null; }
+}
+        
         standbyBtn.addEventListener('click',  () => closeModal('standby'));
         assenteBtn.addEventListener('click',  () => closeModal('assente'));
         attivitaBtn.addEventListener('click', () => closeModal('attivita'));
@@ -786,15 +864,17 @@
         let pendingConfirm = null;
 
         function showConfirmDialog(message) {
-            confirmMessage.textContent = message;
-            confirmModal.style.display = 'flex';
-            return new Promise((resolve) => { pendingConfirm = resolve; });
-        }
+    confirmMessage.textContent = message;
+    confirmModal.style.display = 'flex';
+    attivaFocusTrap(confirmModal);
+    return new Promise((resolve) => { pendingConfirm = resolve; });
+}
 
-        function closeConfirm(result) {
-            confirmModal.style.display = 'none';
-            if (pendingConfirm) { pendingConfirm(result); pendingConfirm = null; }
-        }
+function closeConfirm(result) {
+    confirmModal.style.display = 'none';
+    disattivaFocusTrap(confirmModal);
+    if (pendingConfirm) { pendingConfirm(result); pendingConfirm = null; }
+}
 
         confirmYesBtn.addEventListener('click', () => closeConfirm(true));
         confirmNoBtn.addEventListener('click',  () => closeConfirm(false));
@@ -804,10 +884,17 @@
 
         /* ── ESC: chiude la modale in primo piano ─────────────── */
         document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            if (confirmModal.style.display === 'flex') { closeConfirm(false); return; }
-            if (modal.style.display === 'flex')        { closeModal(null); }
-        });
+    if (e.key !== 'Escape') return;
+    if (confirmModal.style.display === 'flex') {
+        e.stopPropagation();
+        closeConfirm(false);
+        return;
+    }
+    if (modal.style.display === 'flex') {
+        e.stopPropagation();
+        closeModal(null);
+    }
+});
 
         /* ── Utility ID studente ──────────────────────────────── */
         function getStudentId(studente, room) {
@@ -971,8 +1058,9 @@
             }
 
             /* ── FORESTERIA ── */
-            if (isForesteria) {
+                    if (isForesteria) {
                 div.className = `student-item foresteria-row ${stato.occupato ? 'foresteria-occupato' : ''}`;
+                div.dataset.foresteriaId = id;   // ← NUOVO: identificatore univoco
 
                 const nomeSpan = document.createElement('span');
                 nomeSpan.className = 'student-name';
@@ -1011,85 +1099,132 @@
             if (stato.confermato) statusHtml = '<div class="student-status status-confermato">❌ ASSENTE</div>';
             if (stato.attivita)   statusHtml = '<div class="student-status status-attivita">⚙️ ATTIVITÀ</div>';
 
-            div.innerHTML = `
+                        div.innerHTML = `
                 <div class="student-name">${studente.cognome} ${studente.nome}</div>
                 <div class="student-class">${studente.classe}</div>
                 ${statusHtml}
             `;
 
+            // ← NUOVO: semantica pulsante + accessibilità tastiera
+            div.setAttribute('role', 'button');
+            div.setAttribute('tabindex', '0');
+            div.dataset.studentId = id; 
+            
+            const statoLabel = stato.assente    ? 'stand-by'
+                             : stato.confermato ? 'assente'
+                             : stato.attivita   ? 'attività'
+                             : 'presente';
+            div.setAttribute('aria-label',
+                `${studente.cognome} ${studente.nome}, classe ${studente.classe}, ${statoLabel}`);
+
+            // Click (mouse o attivato da tastiera)
+            const apriModaleStudente = async () => {
+                const scelta = await showChoiceDialog(`${studente.cognome} ${studente.nome}`);
+                if (scelta !== null) setStatoStudente(id, scelta);
+            };
+
             div.addEventListener('click', async (e) => {
                 if (e.target.tagName === 'INPUT') return;
-                const scelta = await showChoiceDialog(`${studente.cognome} ${studente.nome}`);
-                if (scelta !== null) await setStatoStudente(id, scelta);
+                await apriModaleStudente();
+            });
+
+            // ← NUOVO: Enter e Space attivano come un vero pulsante
+            div.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    await apriModaleStudente();
+                }
             });
 
             return div;
         }
 
         /* ── Rendering griglia ────────────────────────────────── */
-        function generaGriglia() {
-            if (!studentiData.length) return;
+       function generaGriglia() {
+    if (!studentiData.length) return;
 
-            const focused = document.activeElement;
-            let focusInfo = null;
-            if (focused && focused.classList.contains('foresteria-input')) {
-                const row = focused.closest('.student-item');
-                const roomCard = focused.closest('.room-card');
-                if (row && roomCard) {
-                    focusInfo = {
-                        room: roomCard.querySelector('.room-title')?.textContent,
-                        value: focused.value,
-                        selectionStart: focused.selectionStart,
-                        selectionEnd: focused.selectionEnd,
-                    };
-                }
-            }
+    // ── 1. Cattura il focus corrente PRIMA di ricostruire ──
+    const focused = document.activeElement;
+    let focusInfo = null;
 
-            const stanze = {};
-            let fTot = 0, fOcc = 0;
-
-            studentiData.forEach(s => {
-                if (!stanze[s.room]) stanze[s.room] = [];
-                stanze[s.room].push(s);
-                if (s.classe === 'Foresteria') {
-                    fTot++;
-                    if (assenzeData[getStudentId(s, s.room)]?.occupato) fOcc++;
-                }
-            });
-
-            statsForesteria.textContent = `Posti liberi: ${fTot - fOcc}/${fTot}`;
-            roomsGrid.innerHTML = '';
-
-            Object.keys(stanze)
-                .sort((a, b) => Number(a) - Number(b))
-                .forEach(room => {
-                    const card = document.createElement('div');
-                    card.className = 'room-card';
-                    card.dataset.room = room;
-
-                    const title = document.createElement('div');
-                    title.className = 'room-title';
-                    title.textContent = room;
-                    card.appendChild(title);
-
-                    const list = document.createElement('div');
-                    list.className = 'students-list';
-                    stanze[room].forEach(s => list.appendChild(creaStudenteElement(s, room)));
-                    card.appendChild(list);
-                    roomsGrid.appendChild(card);
-                });
-
-            if (focusInfo && focusInfo.room) {
-                const card = roomsGrid.querySelector(`.room-card[data-room="${CSS.escape(focusInfo.room)}"]`);
-                if (card) {
-                    const input = card.querySelector('.foresteria-input');
-                    if (input) {
-                        input.focus();
-                        input.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
-                    }
-                }
+    if (focused) {
+        // Caso A: input foresteria
+        if (focused.classList.contains('foresteria-input')) {
+            const row = focused.closest('.student-item');
+            if (row && row.dataset.foresteriaId) {
+                focusInfo = {
+                    type: 'foresteria',
+                    id: row.dataset.foresteriaId,
+                    selectionStart: focused.selectionStart,
+                    selectionEnd: focused.selectionEnd,
+                };
             }
         }
+        // Caso B: card studente
+        else if (focused.dataset && focused.dataset.studentId) {
+            focusInfo = {
+                type: 'studente',
+                id: focused.dataset.studentId,
+            };
+        }
+    }
+
+    // ── 2. Ricostruzione DOM ──
+    const stanze = {};
+    let fTot = 0, fOcc = 0;
+
+    studentiData.forEach(s => {
+        if (!stanze[s.room]) stanze[s.room] = [];
+        stanze[s.room].push(s);
+        if (s.classe === 'Foresteria') {
+            fTot++;
+            if (assenzeData[getStudentId(s, s.room)]?.occupato) fOcc++;
+        }
+    });
+
+    statsForesteria.textContent = `Posti liberi: ${fTot - fOcc}/${fTot}`;
+    roomsGrid.innerHTML = '';
+
+    Object.keys(stanze)
+        .sort((a, b) => Number(a) - Number(b))
+        .forEach(room => {
+            const card = document.createElement('div');
+            card.className = 'room-card';
+            card.dataset.room = room;
+
+            const title = document.createElement('div');
+            title.className = 'room-title';
+            title.textContent = room;
+            card.appendChild(title);
+
+            const list = document.createElement('div');
+            list.className = 'students-list';
+            stanze[room].forEach(s => list.appendChild(creaStudenteElement(s, room)));
+            card.appendChild(list);
+            roomsGrid.appendChild(card);
+        });
+
+    // ── 3. Ripristina il focus DOPO la ricostruzione ──
+    if (focusInfo) {
+        if (focusInfo.type === 'foresteria') {
+            const row = roomsGrid.querySelector(
+                `[data-foresteria-id="${CSS.escape(focusInfo.id)}"]`
+            );
+            const input = row ? row.querySelector('.foresteria-input') : null;
+            if (input) {
+                input.focus();
+                try {
+                    input.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
+                } catch (e) { /* setSelectionRange può fallire su type=text in alcuni browser */ }
+            }
+        } else if (focusInfo.type === 'studente') {
+            const target = roomsGrid.querySelector(
+                `[data-student-id="${CSS.escape(focusInfo.id)}"]`
+            );
+            if (target && typeof target.focus === 'function') target.focus();
+        }
+    }
+}
 
         /* ── Listener UI ──────────────────────────────────────── */
         loginBtn.addEventListener('click', eseguiLogin);

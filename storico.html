@@ -51,7 +51,15 @@
 </head>
 <body>
 
-<div class="container">
+    <div id="authLoading" style="
+    position: fixed; inset: 0; z-index: 99998;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-2);
+">
+    ⏳ Autenticazione…
+</div>
+<div class="container" style="display:none;">
     <header>
         <div class="header-brand">
             <h1><a href="campus_hub.html">Campus hub</a></h1>
@@ -166,6 +174,10 @@ $('loginPassword').addEventListener('keydown', (e) => {
 
 // Auth
 onAuthStateChanged(auth, (user) => {
+    // ── NEW: nasconde il loader in ogni caso ──
+    const authLoading = document.getElementById('authLoading');
+    if (authLoading) authLoading.style.display = 'none';
+
     if (!user) {
         loginScreen.style.display = 'flex';
         container.style.display = 'none';

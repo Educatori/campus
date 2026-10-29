@@ -66,8 +66,9 @@
        class="btn-app btn-app-more">
         📊 Storico
     </a>
-    <div id="connection-status" class="status-badge connected">🟢 Caricamento…</div>
-    <button type="button" id="btnLogout" class="btn-app btn-app-danger" title="Esci">
+    <div id="connection-status" class="status-badge connected"
+     role="status" aria-live="polite">🟢 Caricamento…</div>
+    <button type="button" id="btnLogout" class="btn-app btn-app-danger" title="Esci" aria-label="Esci dall'account">
         ❌ ESCI
     </button>
 </div>
@@ -85,7 +86,7 @@
             <span class="note-icon">📌</span>
             <textarea id="dailyNotes" placeholder="Note condivise visibili a tutti gli utenti Campus Hub..."
                       class="note-input" rows="4"></textarea>
-            <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note">✕</button>
+            <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note" aria-label="Svuota note condivise">✕</button>
         </div>
     </div>
 
@@ -137,8 +138,8 @@
         <div class="toolbar-group">
             <span class="room-label">📅 DATA</span>
             <input type="date" id="simulateDate" onchange="simulaData(this.value)">
-            <button class="btn-reset-complete" style="background:var(--btn-t4);"
-                    onclick="resetSimulazione()">↺ Oggi</button>
+            <button class="btn-reset-sim"
+        onclick="resetSimulazione()">↺ Oggi</button>
             <button class="btn-reset" onclick="resetDati('soloManuali')"
                     title="Reset Giornaliero">🗑️ Reset</button>
         </div>
@@ -205,7 +206,7 @@
 
     <div class="side-panel-header">
         <h3 style="border:none;padding:0;margin:0;">Gestione Assenze e Permessi</h3>
-        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
+        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi" aria-label="Chiudi pannello gestione permessi"
                 style="width:44px;height:44px;font-size:1.9rem;display:flex;
                        align-items:center;justify-content:center;border-radius:10px;
                        background:transparent;border:none;cursor:pointer;
@@ -290,6 +291,7 @@
 <!-- core -->
 <script src="js/core/stato.js"></script>
 <script src="js/core/config-static.js"></script>
+<script src="js/core/a11y.js"></script>        
 <script src="js/core/turni.js"></script>
 <script src="js/core/pp.js"></script>
 <script src="js/core/filtri.js"></script>
@@ -357,10 +359,7 @@ function avviaOffline() {
         badge.classList.add('disconnected');
     }
 
-    window.studenticonvittori = (window.tuttiStudenti || []).filter(s => {
-        const n = parseInt(s.room, 10);
-        return !isNaN(n) && n >= 101 && n <= 221;
-    });
+        window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
     console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
     try {
@@ -519,10 +518,7 @@ async function avviaOnline() {
 
         if (!datiCaricati) {
             // Fallback: usa i dati offline già caricati come script classici
-            window.studenticonvittori = (window.tuttiStudenti || []).filter(s => {
-                const n = parseInt(s.room, 10);
-                return !isNaN(n) && n >= 101 && n <= 221;
-            });
+            window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
             if (badge) {
                 badge.textContent = '📴 Locale';
                 badge.classList.remove('connected');
@@ -582,11 +578,11 @@ if (window.APP_MODE === 'offline') {
     if (!b) return;
     const cfg = {
         'locale-reale':   { bg:'#dcfce7', bd:'#16a34a', fg:'#14532d',
-                            txt:'📁 LOCALE — FILE DATA JS' },
+                            txt:'📁 LOCALE' },
         'github-demo':    { bg:'#fef3c7', bd:'#d97706', fg:'#78350f',
                             txt:'🎭 DUMMY' },
         'localhost-demo': { bg:'#e0e7ff', bd:'#4f46e5', fg:'#1e1b4b',
-                            txt:'🛠️ SVILUPPO (localhost)' },
+                            txt:'🛠️ SVILUPPO' },
         'firebase':       { bg:'#dbeafe', bd:'#2563eb', fg:'#1e3a8a',
                             txt:'☁️ FIREBASE' }
     };
