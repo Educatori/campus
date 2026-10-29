@@ -43,3 +43,17 @@ window.CALENDARIO_GRUPPI_DINNER = {
 
 // OVERRIDE_TURNI_DINNER: vuoto qui — arriva da Firebase
 window.OVERRIDE_TURNI_DINNER = window.OVERRIDE_TURNI_DINNER || {};
+// ─────────────────────────────────────────────────────────────
+// Helper condivisi (disponibili in entrambe le modalità)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Filtra un array di studenti restituendo solo i convittori (room 101–221).
+ * Usato da: data-loader.js (§1, §3b), avviaOffline() in campus_hub.html.
+ */
+window.filtraConvittori = function(studenti) {
+    return (studenti || []).filter(s => {
+        const n = parseInt(s.room, 10);
+        return !isNaN(n) && n >= 101 && n <= 221;
+    });
+};

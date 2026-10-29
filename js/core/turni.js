@@ -19,7 +19,7 @@
  *   - stampe/convitto.js? No, quello non lo usa
  *   - core/pp.js (controllaDinnerAutomatico)
  *
- * ⚠️ Caricare DOPO core/stato.js (usa getDataCorrente).
+ * ⚠️ Caricare DOPO core/stato.js (usa getDataCorrente). 
  * ─────────────────────────────────────────────────────────────
  */
 

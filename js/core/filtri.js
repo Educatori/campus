@@ -219,6 +219,9 @@ function mostraFeedbackFiltro(tipo, count) {
         z-index: 2000;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     `;
+    feedback.setAttribute('role', 'status');
+feedback.setAttribute('aria-live', 'polite');
+    
     feedback.innerHTML = `🔍 <b>${tipo}</b>: ${count} student${count === 1 ? 'e' : 'i'}`;
     document.body.appendChild(feedback);
 

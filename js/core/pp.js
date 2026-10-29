@@ -184,6 +184,9 @@ function mostraPopupPPBloccato(cognome, etichetta, motivo) {
         text-align: center;
         animation: ppFadeIn 0.2s ease;
     `;
+    popup.setAttribute('role', 'alert');
+popup.setAttribute('aria-live', 'assertive');
+    
     popup.innerHTML = `
         <div style="font-size:1.4em;margin-bottom:4px;">🔒</div>
         <div style="font-weight:700;margin-bottom:6px;">
@@ -229,8 +232,11 @@ function mostraPopupAssenzaProgrammata(cognome) {
         box-shadow: 0 6px 24px rgba(0,0,0,0.25);
         max-width: 420px;
         text-align: center;
-        animation: ppFadeIn 0.2s ease;
+                animation: ppFadeIn 0.2s ease;
     `;
+    popup.setAttribute('role', 'alert');
+    popup.setAttribute('aria-live', 'assertive');
+
     popup.innerHTML = `
         <div style="font-size:1.4em;margin-bottom:4px;">📅</div>
         <div style="font-weight:700;margin-bottom:6px;">
