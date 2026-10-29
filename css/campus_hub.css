@@ -2,7 +2,25 @@
              CAMPUS HUB — Foglio di stile unificato
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* ── Mona Sans (variable: wght, wdth, opsz, ital) ── */
+@font-face {
+    font-family: 'Mona Sans';
+    font-style: normal;
+    font-weight: 200 900;
+    font-stretch: 75% 125%;
+    font-display: swap;
+    src: url('../fonts/mona-sans-variable.woff2') format('woff2-variations');
+}
+
+/* ── Mona Sans Mono (variable: wght) ── */
+@font-face {
+    font-family: 'Mona Sans Mono';
+    font-style: normal;
+    font-weight: 200 900;
+    font-display: swap;
+    src: url('../fonts/mona-sans-mono-variable.woff2') format('woff2-variations');
+}
 
 /* ============================================================
    1. TOKENS / VARIABILI
@@ -31,8 +49,8 @@
     --ok-dim:       #16a34a1a;
     --absent:       #dc2626;
     --absent-dim:   #dc26261a;
-    --dinner-no:    #2563eb;
-    --dinner-no-dim:#2563eb1a;
+    --dinner-no:     #0891b2;
+    --dinner-no-dim: #0891b21a;
     --lab:          #d97706;
     --lab-dim:      #d977061a;
     --switched:     #7c3aed;
@@ -41,8 +59,9 @@
     --pp-dim:       #7c3aed1a;
 
     /* Bottoni */
-    --btn-t1:        #2563eb;
-    --btn-t2:        #2563eb;
+    
+    --btn-t1:        #ff00ac; 
+    --btn-t2:        #7b00ff;
     --btn-t3:        #7c3aed;
     --btn-t4:        #475569;
     --btn-reset:     #dc2626;
@@ -51,12 +70,12 @@
     /* Testo */
     --text:       #0f172a;
     --text-2:     #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     --text-inv:   #ffffff;
 
     /* Tipografia */
-    --font:      'DM Sans', 'Segoe UI', system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'Mona Sans Mono', ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 
     /* Geometria */
     --radius-sm: 6px;
@@ -88,6 +107,7 @@
 html { -webkit-text-size-adjust: 100%; }
 
 body {
+    font-optical-sizing: auto;
     margin: 0;
     font-family: var(--font);
     background: var(--bg);
@@ -136,7 +156,7 @@ header:not(.app-header) {
     gap: 16px;
 }
 
-/* OFFLINE → giallo chiaro */
+/* OFFLINE → grigio chiaro */
 body.mode-offline header:not(.app-header) {
     background: #dddddd;
     border-color: rgba(202, 138, 4, 0.25);
@@ -432,7 +452,7 @@ header:not(.app-header) h1 {
 /* Bottoni toolbar */
 .btn-toolbar,
 .btn-reset,
-.btn-reset-complete {
+.btn-reset-sim {
     border: none;
     border-radius: var(--radius);
     cursor: pointer;
@@ -450,14 +470,14 @@ header:not(.app-header) h1 {
 }
 .btn-toolbar:hover,
 .btn-reset:hover,
-.btn-reset-complete:hover {
+.btn-reset-sim:hover {
     filter: brightness(1.05);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
 }
 .btn-toolbar:active,
 .btn-reset:active,
-.btn-reset-complete:active { transform: translateY(0); }
+.btn-reset-sim:active { transform: translateY(0); }
 
 .btn-reset {
     background: var(--btn-reset);
@@ -465,11 +485,14 @@ header:not(.app-header) h1 {
 }
 .btn-reset:hover { background: #d35400; box-shadow: 0 4px 14px rgba(230,126,34,0.45); }
 
-.btn-reset-complete {
-    background: var(--btn-reset-full);
-    box-shadow: 0 2px 8px rgba(192,57,43,0.3);
+.btn-reset-sim {
+    background: var(--btn-t4);
+    box-shadow: 0 2px 8px rgba(71, 85, 105, 0.3);
 }
-.btn-reset-complete:hover { background: #a93226; box-shadow: 0 4px 14px rgba(192,57,43,0.45); }
+.btn-reset-sim:hover {
+    background: #334155;
+    box-shadow: 0 4px 14px rgba(71, 85, 105, 0.45);
+}
 
 /* Dropdown MODULI */
 .dropdown-moduli { position: relative; display: inline-block; }
@@ -544,6 +567,15 @@ header:not(.app-header) h1 {
     color: white;
     border-bottom-color: var(--accent-2);
 }
+.day-box:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.day-box.dropdown-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 
 /* ============================================================
    11. AZIONI GRID — categorie
@@ -614,7 +646,7 @@ header:not(.app-header) h1 {
 }
 .legenda-dot.ok     { background: var(--ok);     box-shadow: 0 0 0 3px var(--ok-dim); }
 .legenda-dot.absent { background: var(--absent); box-shadow: 0 0 0 3px var(--absent-dim); }
-.legenda-dot.dinner { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.legenda-dot.dinner { background: var(--dinner-no); box-shadow: 0 0 0 3px var(--dinner-no-dim); }
 .legenda-dot.lab    { background: var(--lab);    box-shadow: 0 0 0 3px var(--lab-dim); }
 .legenda-dot.pp     { background: var(--pp);     box-shadow: 0 0 0 3px var(--pp-dim); }
 
@@ -662,12 +694,13 @@ header:not(.app-header) h1 {
 }
 
 .student-row.dinner-no {
-    border-left-color: var(--accent);
-    background: linear-gradient(to right, var(--accent-dim), transparent 40%);
+    border-left-color: var(--dinner-no);
+    background: linear-gradient(to right, var(--dinner-no-dim), transparent 40%);
 }
 .student-row.dinner-no::before {
-    background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
+    background: var(--dinner-no);
+    box-shadow: 0 0 0 3px var(--dinner-no-dim);
+
 }
 
 .student-row.assente {
@@ -842,10 +875,10 @@ header:not(.app-header) h1 {
     box-shadow: 0 2px 10px var(--absent-dim) !important;
 }
 .active-din {
-    background: var(--accent) !important;
+    background: var(--dinner-no) !important;
     color: white !important;
     border-color: transparent !important;
-    box-shadow: 0 2px 10px var(--accent-dim) !important;
+    box-shadow: 0 2px 10px var(--dinner-no-dim) !important;
 }
 
 .btn-switch {
@@ -1454,6 +1487,58 @@ button[type="submit"]:hover {
 
 @media (max-width: 420px) {
     #listaStudenti { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PREFERS-REDUCED-MOTION
+   Rispetta la preferenza "riduci animazioni" del sistema.
+   - Azzera animazioni e transizioni
+   - Nasconde lo shimmer delle card (index.html)
+   - Disattiva i transform di hover (translateY, scale)
+   Mantiene i cambi di colore/bordo/opacità (non sono movimento)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration:        0.01ms !important;
+        animation-iteration-count: 1      !important;
+        transition-duration:       0.01ms !important;
+        scroll-behavior:           auto   !important;
+    }
+
+    /* Shimmer: via del tutto (velocizzato sarebbe peggio) */
+    .link-card::before {
+        display: none !important;
+    }
+
+    /* Hover: niente spostamenti */
+    .link-card:hover,
+    .student-row:hover,
+    .student-item:hover,
+    .day-box:hover,
+    .btn-toolbar:hover,
+    .btn-reset:hover,
+    .btn-reset-sim:hover,
+    .btn-app:hover,
+    .modal-btn:hover,
+    .btn:hover,
+    .side-panel-close:hover,
+    .btn-switch:hover {
+        transform: none !important;
+    }
+
+    /* Link card: niente scale né drop-shadow animata */
+    .link-card:hover svg {
+        transform: none !important;
+        filter:    none !important;
+    }
+
+    /* Lab badge: nessun pulse (già coperto dalla regola globale,
+       esplicitato per chiarezza) */
+    .lab-badge {
+        animation: none !important;
+    }
 }
 
 /* ============================================================
