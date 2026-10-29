@@ -19,6 +19,56 @@
  */
 
 // --- DINNER riepilogo
+
+/**
+ * Genera il testo descrittivo delle classi per un turno,
+ * calcolato per il GIORNO CORRENTE (data reale o simulata).
+ *
+ * Logica:
+ *   - Parte dalle classi base di TURNI_DINNER[turno]
+ *   - Applica OVERRIDE_TURNI_DINNER_CLASSI per il giorno corrente
+ *   - Se una classe base è stata spostata altrove oggi → NON appare
+ *   - Se una classe è stata spostata qui oggi   → appare in fondo
+ *
+ * @param {number} turno - 1 oppure 2
+ * @returns {string}     - es. "1P, 2A, 2B, 2P, 3P" (mercoledì, turno 1)
+ */
+function generaTestoClassiTurno(turno) {
+    const giornoSettimana = getDataCorrente().getDay();
+    const turni = window.TURNI_DINNER || {};
+    const overrideClassi = window.OVERRIDE_TURNI_DINNER_CLASSI || {};
+
+    const baseTurno = turni[turno] || [];
+    const baseSet = new Set(baseTurno);
+
+    // Tutte le classi che hanno una collocazione base (in un turno o nell'altro)
+    const tutteLeClassi = new Set([
+        ...(turni[1] || []),
+        ...(turni[2] || [])
+    ]);
+
+    // Per ogni classe, calcola il turno effettivo OGGI
+    const classiDelTurno = [];
+    tutteLeClassi.forEach(classe => {
+        let turnoEffettivo = baseSet.has(classe) ? turno : (turno === 1 ? 2 : 1);
+
+        const ov = overrideClassi[classe];
+        if (ov && ov[giornoSettimana] !== undefined) {
+            turnoEffettivo = ov[giornoSettimana];
+        }
+
+        if (turnoEffettivo === turno) classiDelTurno.push(classe);
+    });
+
+    // Ordine: prima le classi base del turno, poi quelle aggiunte per override
+    const ordinate = [
+        ...classiDelTurno.filter(c => baseSet.has(c)),
+        ...classiDelTurno.filter(c => !baseSet.has(c))
+    ];
+
+    return ordinate.join(', ');
+}
+
 function generaPopUpStampaDinner() {
     // ─── CONTATORI ───
     let a1 = 0, p1 = 0, a2 = 0, p2 = 0;
@@ -150,7 +200,7 @@ const notaGiornoCorrente =
     // ─── GENERAZIONE POPUP ───
     const popup = window.open("", "_blank", "width=1000,height=900");
     popup.document.write(`
-        <html><head><title>Riepilogo Dinner - ${dataTestuale}</title><style>
+        <html lang="it"><head><title>Riepilogo Dinner - ${dataTestuale}</title><style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px 40px; position: relative; color: #222; }
             h2 { text-align: center; text-transform: uppercase; margin-top: 20px; margin-bottom: 6px; font-size: 1.6em; letter-spacing: 1px; }
             h3 { font-size: 1em; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -323,40 +373,40 @@ const notaGiornoCorrente =
             <!-- ═══════════ TURNO 1 ═══════════ -->
             <div class="section">
                 <h3>1° turno — 18:30</h3>
-                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI 1A, 1B (no mercoledì), 1P, 2A, 2B, 2FP, 3FP
-                </div>
+            <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI ${generaTestoClassiTurno(1)}
+            </div>
                 
-                <div class="stats-row">
+            <div class="stats-row">
                     <span>Assenti: <input type="number" value="${a1}"></span>
                     <span>Presenti: <input type="number" value="${p1}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
-                </div>
+            </div>
                 
-                <div class="label-sezione">Esclusi</div>
+            <div class="label-sezione">Esclusi</div>
                 ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true })}
                 
-                <div class="label-sezione">Cambi Turno</div>
+            <div class="label-sezione">Cambi Turno</div>
                 ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
             </div>
             
             <!-- ═══════════ TURNO 2 ═══════════ -->
             <div class="section">
                 <h3>2° turno — 19:15</h3>
-                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI 1A, 1B (solo mercoledì), 3A, 3B, 4A, 4B, 4C, 5A, 5B
-                </div>
+            <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI ${generaTestoClassiTurno(2)}
+            </div>
                 
-                <div class="stats-row">
+            <div class="stats-row">
                     <span>Assenti: <input type="number" value="${a2}"></span>
                     <span>Presenti: <input type="number" value="${p2}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
-                </div>
+            </div>
                 
-                <div class="label-sezione">Esclusi</div>
+            <div class="label-sezione">Esclusi</div>
                 ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
                 
-                <div class="label-sezione">Cambi Turno</div>
+            <div class="label-sezione">Cambi Turno</div>
                 ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
             </div>
             
@@ -460,7 +510,7 @@ function generaPopUpStampaPresDin() {
     // --- 4. GENERAZIONE INTERFACCIA E POP-UP ---
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
-        <html><head><title>Stampa Appello Cena - Due Turni</title><style>
+        <html lang="it"><head><title>Stampa Appello Cena - Due Turni</title><style>
             @page { size: A4 landscape; margin: 0.3cm; }
             html, body { max-height: 100%; overflow: hidden; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 2px; color: #000; line-height: 1.0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

@@ -89,7 +89,7 @@
 
     const popup = window.open("", "_blank", "width=1200,height=900");
     popup.document.write(`
-        <html><head><title>Ritardi Mattino - ${meseCapitalizzato}</title><style>
+        <html lang="it"><head><title>Ritardi Mattino - ${meseCapitalizzato}</title><style>
             @page { size: A4 portrait; margin: 0.3cm 0.4cm 0.3cm 0.4cm; }
             html { height: 100%; }
             body {

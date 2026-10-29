@@ -186,7 +186,7 @@ function generaPopUpStampaBus(ordinamento) {
 
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
-        <html><head><title>${titolo}</title><style>
+        <html lang="it"><head><title>${titolo}</title><style>
             @page { size: A4 landscape; margin: 0.6cm 0.4cm 0.4cm 0.4cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; }
             h2 { text-align: center; text-transform: uppercase; margin: 2px 0 6px 0; font-size: 1.1rem; }
@@ -231,7 +231,7 @@ function generaPopUpStampaBus(ordinamento) {
             .b-class { border-right: 1px solid #ccc; }
             .h-class { border-right: 1px solid #555; }
 
-            .b-name, .h-name { width: 105px; text-align: left; justify-content: flex-start; padding-left: 4px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
 
@@ -389,7 +389,7 @@ function generaPopUpStampaBusPomeriggio() {
     // 5. GENERAZIONE POP-UP
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
-        <html><head><title>Bus Pomeriggio Appello Settimanale</title><style>
+        <html lang="it"><head><title>Bus Pomeriggio Appello Settimanale</title><style>
             @page { size: A4 landscape; margin: 0.4cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             h2 { text-align: center; text-transform: uppercase; margin: 5px 0 2px 0; font-size: 1.2rem; }
@@ -408,7 +408,7 @@ function generaPopUpStampaBusPomeriggio() {
             .b-class { border-right: 1px solid #ccc; background: #f5f5f5; }
             .h-class { border-right: 1px solid #555; }
 
-            .b-name, .h-name { width: 115px; text-align: left; justify-content: flex-start; padding-left: 6px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 6px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
 
@@ -531,7 +531,7 @@ if (s.classe === "5A") {
     // 4. GENERAZIONE INTERFACCIA COMPATTA A4 LANDSCAPE
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
-        <html><head><title>Appello Bus - Schema Generico</title><style>
+        <html lang="it"><head><title>Appello Bus - Schema Generico</title><style>
             @page { size: A4 landscape; margin: 0.4cm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; }
             h2 { text-align: center; text-transform: uppercase; margin: 2px 0 0 0; font-size: 1.1rem; }
@@ -551,7 +551,7 @@ if (s.classe === "5A") {
             .b-room { border-right: 1px solid #ccc; font-weight: bold; background: #f5f5f5; }
             .h-room { border-right: 1px solid #555; }
             
-            .b-name, .h-name { width: 105px; text-align: left; justify-content: flex-start; padding-left: 4px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
             

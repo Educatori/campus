@@ -130,7 +130,7 @@ function generaPopUpStampaConvitto() {
     </tr>`;
 
     popup.document.write(`
-    <html><head><title>Riepilogo Convitto - ${dataStampa}</title><style>
+    <html lang="it"><head><title>Riepilogo Convitto - ${dataStampa}</title><style>
         @page { size: A3 portrait; margin: 0.6cm 0.3cm 0.3cm 0.3cm; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         h2 { text-align: center; text-transform: uppercase; font-size: 1.1em; margin: 4px 0; }
