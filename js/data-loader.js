@@ -75,8 +75,9 @@ window.CALENDARIO_GRUPPI_DINNER = window.CALENDARIO_GRUPPI_DINNER || {
 // 0b. BACKUP dei dati OFF
 // ─────────────────────────────────────────────────────────────
 const offlineStudenti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti.slice() : [];
-const offlinePP       = window.ORARI_PP ? { ...window.ORARI_PP } : {};
-const offlineAssenti  = window.ASSENTI_PERMESSO ? { ...window.ASSENTI_PERMESSO } : {};
+
+const offlinePP      = window.ORARI_PP || {};
+const offlineAssenti = window.ASSENTI_PERMESSO || {};
 
 console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.keys(offlinePP).length} PP`);
 
@@ -86,8 +87,8 @@ console.log(`📦 Backup OFFLINE: ${offlineStudenti.length} studenti, ${Object.k
 // ─────────────────────────────────────────────────────────────
 window.tuttiStudenti      = offlineStudenti;
 window.studenticonvittori = window.filtraConvittori(offlineStudenti);
-window.ORARI_PP         = offlinePP;
-window.ASSENTI_PERMESSO = offlineAssenti;
+// ORARI_PP e ASSENTI_PERMESSO: già su window dall'offline file.
+// NON riassegnare: window.ORARI_PP === ORARI_PP bare (stessa reference).
 
 // ─────────────────────────────────────────────────────────────
 // 2. UTILITY
@@ -176,17 +177,24 @@ async function caricaDatiFirebase() {
             }
         }
 
-    // 3c-bis. Override turni dinner (cognomi → turno per giorno)
-        const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
-        if (ovSnap.exists()) {
-            const ovData = ovSnap.val();
-            if (ovData && Object.keys(ovData).length > 0) {
-                window.OVERRIDE_TURNI_DINNER = ovData;
-                console.log(`   🍽 Override turni: ${Object.keys(ovData).length} studenti`);
-            }
+// 3c-bis. Override turni dinner (cognomi → turno per giorno)
+// Mutazione IN-PLACE: OVERRIDE_TURNI_DINNER è usato bare da turni.js,
+// quindi deve restare la stessa reference del const del file offline.
+const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
+if (ovSnap.exists()) {
+    const ovData = ovSnap.val();
+    if (ovData && Object.keys(ovData).length > 0) {
+        if (window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
+            Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
+            Object.assign(window.OVERRIDE_TURNI_DINNER, ovData);
         } else {
-            console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
+            window.OVERRIDE_TURNI_DINNER = ovData;
         }
+        console.log(`   🍽 Override turni: ${Object.keys(window.OVERRIDE_TURNI_DINNER).length} studenti`);
+    }
+} else {
+    console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
+}
 
     // 3d. Assenti permesso
         const assSnap = await get(ref(db, 'assenti_permesso'));
