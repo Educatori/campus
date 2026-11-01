@@ -66,6 +66,7 @@
     --btn-t4:        #475569;
     --btn-reset:     #dc2626;
     --btn-inactive:  #e8eef5;
+    --btn-print:    #27ae60;
 
     /* Testo */
     --text:       #0f172a;
@@ -1139,7 +1140,7 @@ header:not(.app-header) h1 {
 .btn-app:hover  { filter: brightness(1.12); transform: translateY(-1px); }
 .btn-app:active { transform: translateY(0); }
 
-.btn-app-primary   { background: var(--btn-t1);     color: white; }
+.btn-app-primary   { background: var(--btn-print);     color: white; }
 .btn-app-secondary { background: var(--btn-reset);  color: white; }
 .btn-app-danger    { background: var(--absent-dim); color: var(--absent); }
 .btn-app-more      { background: var(--accent-2-dim); color: var(--accent-2); }
