@@ -239,3 +239,38 @@ function rimuoviEvidenziazioneTasti() {
         el.classList.remove("tasto-attivo");
     });
 }
+/**
+ * Azzera TUTTI i filtri visivi e mostra nuovamente tutti gli studenti.
+ * Non tocca la data simulata né ricostruisce il DOM.
+ */
+function mostraTutti() {
+    // 1. Pulisci i campi di ricerca concorrenti
+    const search = document.getElementById("search");
+    if (search) search.value = "";
+    const room = document.getElementById("roomInput");
+    if (room) room.value = "";
+    const classe = document.getElementById("classeFilter");
+    if (classe) classe.value = "";
+
+    // 2. Togli l'evidenziazione dai tasti filtro
+    if (typeof rimuoviEvidenziazioneTasti === 'function') {
+        rimuoviEvidenziazioneTasti();
+    }
+
+    // 3. Evidenzia il tasto GLOBALE stesso (coerenza con gli altri)
+    if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add("tasto-attivo");
+    }
+
+    // 4. Mostra tutte le righe
+    let count = 0;
+    document.querySelectorAll(".student-row").forEach((r) => {
+        r.style.display = "block";
+        count++;
+    });
+
+    // 5. Feedback
+    if (typeof mostraFeedbackFiltro === 'function') {
+        mostraFeedbackFiltro("TUTTI", count);
+    }
+}
