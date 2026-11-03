@@ -49,7 +49,7 @@
     #empty { color:var(--text-muted); font-style:italic; }
 </style>
 </head>
-<body>
+
 <body>
 
 <!-- ============================================================
@@ -117,7 +117,10 @@
                         color:#334155;
                         line-height:1.6;
                     ">
-                        
+                        Avvia un server locale nella cartella del progetto, ad esempio:<br>
+                        <code>python -m http.server 8000</code><br>
+                        poi apri <code>http://localhost:8000/storico.html</code>
+                    </div>
 
                     <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
                         <a href="campus_hub.html" style="
@@ -150,7 +153,6 @@
 })();
 </script>
 
-<div id="authLoading" style="...">
 <div id="authLoading" style="
     position: fixed; inset: 0; z-index: 99998;
     display: flex; align-items: center; justify-content: center;
@@ -158,9 +160,9 @@
     font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-2);
     text-align: center; padding: 20px;
 ">
-    <!-- ← NUOVO: testo separato in uno span per poterlo aggiornare -->
     <span id="authLoadingText">⏳ Autenticazione (disponibile solo online)…</span>
 </div>
+
 <div class="container" style="display:none;">
     <header>
         <div class="header-brand">
@@ -187,13 +189,13 @@
 
     <div id="lastUpdateInfo" style="font-size:0.75rem;color:var(--text-2);
      font-family:var(--font-mono);margin-bottom:10px;"></div>
-<div id="summary" class="summary-grid" style="display:none;"></div>
+    <div id="summary" class="summary-grid" style="display:none;"></div>
     <div id="loading">⏳ Caricamento…</div>
     <div id="empty">Nessun dato per questa data.</div>
     <div id="tableWrap" style="display:none;"></div>
 </div>
 
-<div id="loginScreen">
+<div id="loginScreen" style="display:none;">
     <div class="login-container">
        <h2>LOGIN</h2>
         <p>Inserisci le credenziali per continuare</p>
@@ -205,9 +207,9 @@
 </div>
 
 <!-- ============================================================
-     ← NUOVO: Script classico (non-module) che parte PRIMA del
-     module. Cattura l'offline, gestisce timeout, ascolta il
-     ritorno online. Non dipende da Firebase.
+     Script classico (non-module) che parte PRIMA del module.
+     Cattura l'offline, gestisce timeout, ascolta il ritorno online.
+     Non dipende da Firebase.
      ============================================================ -->
 <script>
 (function () {
@@ -232,12 +234,10 @@
 
     // 2) Safety timeout: se dopo 10s l'auth non è partita, mostra errore
     //    (caso: captive portal, DNS bloccato, Firebase SDK non raggiungibile)
-
     setTimeout(function () {
         if (window._storicoAuthAvviato) return;
         if (!navigator.onLine) return;
 
-        // ← NUOVO: distinguere file:// (modulo non caricato) da rete lenta
         if (location.protocol === 'file:') {
             setLoaderMessage('📁 Apri questa pagina via HTTP (non file://)');
         } else {
@@ -256,7 +256,6 @@
     // 4) Se va offline dopo essere stato online, avvisa (soft)
     window.addEventListener('offline', function () {
         if (window._storicoAuthAvviato) {
-            // Auth già partita: mostra un avviso ma non bloccare
             console.warn('[Storico] Connessione persa durante la sessione');
         }
     });
@@ -324,7 +323,6 @@ $('loginBtn').onclick = async () => {
     const pwd   = $('loginPassword').value;
     $('loginError').textContent = '';
 
-    // ← NUOVO: distinguere errore di rete da credenziali errate
     if (!navigator.onLine) {
         $('loginError').textContent = '📴 Sei offline — impossibile accedere';
         return;
@@ -347,7 +345,6 @@ $('loginPassword').addEventListener('keydown', (e) => {
 
 // Auth
 onAuthStateChanged(auth, (user) => {
-    // ← NUOVO: segnala al safety timeout che l'auth è partita
     window._storicoAuthAvviato = true;
 
     const authLoading = document.getElementById('authLoading');
@@ -389,7 +386,6 @@ async function carica() {
     } catch (e) {
         loading.style.display = 'none';
 
-        // ← NUOVO: distinguere errore di rete da errore applicativo
         const isNetworkError =
             !navigator.onLine ||
             (e?.code === 'auth/network-request-failed') ||
