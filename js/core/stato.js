@@ -2,15 +2,16 @@
  * js/core/stato.js
  * ─────────────────────────────────────────────────────────────
  * Stato globale e funzioni di base:
- *   • ordineAlfabetico       → preferenza ordinamento lista
- *   • dataSimulata           → data virtuale (null = reale)
- *   • getDataCorrente()      → legge la data effettiva
- *   • simulaData()           → imposta una data virtuale
- *   • resetSimulazione()     → torna alla data reale
- *   • aggiornaDataHeader()   → scrive #todayDate
- *   • aggiornaSimBadge()     → mostra/nasconde il badge simulazione
- *   • updateClock()          → orologio in header
- *   • toggleOrdineLista()    → alterna room / A-Z
+ *   • ordineAlfabetico           → preferenza ordinamento lista
+ *   • dataSimulata               → data virtuale (null = reale)
+ *   • getDataCorrente()          → legge la data effettiva
+ *   • simulaData()               → imposta una data virtuale
+ *   • resetSimulazione()         → torna alla data reale
+ *   • aggiornaDataHeader()       → scrive #todayDate
+ *   • aggiornaSimBadge()         → mostra/nasconde il badge simulazione
+ *   • updateClock()              → orologio in header
+ *   • aggiornaBtnOrdineLista()   → sincronizza testo/colore del bottone
+ *   • toggleOrdineLista()        → alterna room / A-Z
  *
  * Dipendenze esterne (chiamate a runtime):
  *   - ricaricaListaStudenti()   → campus_hub-script.js
@@ -123,25 +124,32 @@ function updateClock() {
 }
 
 /**
+ * Sincronizza testo e colore del bottone "Room / A-Z".
+ * UNICO punto che scrive sul bottone: chiamato da
+ * toggleOrdineLista() e da ricaricaListaStudenti().
+ */
+function aggiornaBtnOrdineLista() {
+    const btn = document.getElementById("btnOrdineAlfabetico");
+    if (!btn) return;
+
+    if (ordineAlfabetico) {
+        btn.style.background = "var(--accent-2)";
+        btn.style.color = "white";
+        btn.textContent = "A-Z / Room";
+    } else {
+        btn.style.background = "var(--surface)";
+        btn.style.color = "var(--az-active)";
+        btn.textContent = "Room / A-Z";
+    }
+}
+
+/**
  * Alterna l'ordinamento della lista studenti tra "per room" e "alfabetico per cognome"
  */
 function toggleOrdineLista() {
     ordineAlfabetico = !ordineAlfabetico;
 
-    const btn = document.getElementById("btnOrdineAlfabetico");
-    if (btn) {
-        if (ordineAlfabetico) {
-            btn.style.background = "var(--accent-2)"; 
-            btn.style.color = "white";
-            btn.textContent = "⬆ A-Z";
-        } else {
-            btn.style.background = "var(--surface)";
-            btn.style.color = "var(--accent)";
-            btn.textContent = "⬆ 101-221";
-        }
-    }
-
+    aggiornaBtnOrdineLista();          // ← unico punto che scrive testo/colore
     localStorage.setItem("ordineAlfabetico", ordineAlfabetico);
-
     ricaricaListaStudenti();
 }
