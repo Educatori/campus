@@ -158,27 +158,27 @@
             </div>
         </div>
 
-        <!-- Categoria FILTRI -->
-        <div class="azioni-categoria filtri">
-            <div class="azioni-cat-label">FILTRI</div>
-            <div class="azioni-cat-row">
-                <button class="day-box" onclick="resetSimulazione()">GLOBALE</button>
-                <div class="day-box" onclick="setTurno(1)">1°</div>
-                <div class="day-box" onclick="setTurno(2)">2°</div>
-                <div class="day-box" onclick="filtraAssenti()">ASSENTI</div>
-                <div class="day-box" onclick="filtraNoCena()">CENE</div>
-            </div>
-        </div>
-
-        <!-- Categoria VISTA -->
-        <div class="azioni-categoria vista">
-            <div class="azioni-cat-label">VISTA</div>
-            <div class="azioni-cat-row">
-                <button class="day-box" id="btnOrdineAlfabetico"
-                        onclick="toggleOrdineLista()">Room / A-Z</button>
-            </div>
-        </div>
+<!-- Categoria FILTRI -->
+<div class="azioni-categoria filtri">
+    <div class="azioni-cat-label">FILTRI</div>
+    <div class="azioni-cat-row">
+        <div class="day-box" onclick="setTurno(1)">1°</div>
+        <div class="day-box" onclick="setTurno(2)">2°</div>
+        <div class="day-box" onclick="filtraAssenti()">ASSENTI</div>
+        <div class="day-box" onclick="filtraNoCena()">CENE</div>
+        <div class="day-box" onclick="mostraTutti()">TUTTI</div>
     </div>
+</div>
+
+<!-- Categoria VISTA -->
+<div class="azioni-categoria vista">
+    <div class="azioni-cat-label">VISTA</div>
+    <div class="azioni-cat-row">
+        <div class="day-box" id="btnOrdineAlfabetico"
+             onclick="toggleOrdineLista()">Room/A-Z</div>
+    </div>
+</div>
+</div>
 
     <!-- ── LEGENDA ────────────────────────────────────────── -->
     <div class="legenda">
