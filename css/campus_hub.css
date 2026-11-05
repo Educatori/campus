@@ -1026,6 +1026,23 @@ header:not(.app-header) h1 {
     color: var(--absent);
 }
 
+/* Tasto Conferma verde (identico al tasto Importa) */
+.btn-add-assenza.btn-green {
+    background: #27ae60;
+    color: white;
+    transition: background 0.15s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.25);
+}
+
+.btn-add-assenza.btn-green:hover {
+    background: #219a52;
+    filter: none; /* Rimuove il brightness di default */
+}
+
+.btn-add-assenza.btn-green:active {
+    transform: scale(0.98);
+}
+
 .btn-add-assenza {
     width: 100%;
     background: var(--absent);
