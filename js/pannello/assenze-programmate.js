@@ -40,7 +40,7 @@ function toggleBoxAggiungi() {
     const isOpen = box.style.display !== "none";
     box.style.display = isOpen ? "none" : "block";
     btn.classList.toggle("aperto", !isOpen);
-    btn.textContent = isOpen ? "➕ Aggiungi" : "✖ Chiudi";
+    btn.textContent = isOpen ? "Aggiungi" : "✖ Chiudi";
 
     if (!isOpen) {
         // focus sulla ricerca all'apertura
