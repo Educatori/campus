@@ -26,6 +26,76 @@
 // Stato globale delle assenze programmate
 let assenzeProgrammate = {};
 
+// Cache interna per la ricerca nel select
+let _studentiOrdinati = [];
+
+/**
+ * Apre/chiude la sotto-scheda "Aggiungi" e ruota l'icona.
+ */
+function toggleBoxAggiungi() {
+    const box = document.getElementById("boxAggiungiAssenza");
+    const btn = document.getElementById("btnApriAggiungi");
+    if (!box || !btn) return;
+
+    const isOpen = box.style.display !== "none";
+    box.style.display = isOpen ? "none" : "block";
+    btn.classList.toggle("aperto", !isOpen);
+    btn.textContent = isOpen ? "➕ Aggiungi" : "✖ Chiudi";
+
+    if (!isOpen) {
+        // focus sulla ricerca all'apertura
+        const input = document.getElementById("cercaStudente");
+        if (input) setTimeout(() => input.focus(), 50);
+    }
+}
+
+/**
+ * Filtra le opzioni del <select> studenti in base al testo digitato.
+ * Mantiene gli optgroup visibili solo se contengono almeno un match.
+ */
+function filtraSelectStudenti(query) {
+    const sel = document.getElementById("selectStudente");
+    if (!sel) return;
+
+    const q = (query || "").trim().toLowerCase();
+
+    // Se la ricerca è vuota → mostra la lista completa
+    if (!q) {
+        popolaSelectStudenti();
+        return;
+    }
+
+    // Filtra l'array di appoggio
+    const match = _studentiOrdinati.filter((s) => {
+        const cognome = (s.cognome || "").toLowerCase();
+        const nome    = (s.nome || "").toLowerCase();
+        const classe  = (s.classe || "").toLowerCase();
+        return cognome.includes(q) || nome.includes(q) || classe.includes(q);
+    });
+
+    // Raggruppa per classe
+    const gruppi = {};
+    match.forEach((s) => {
+        if (!gruppi[s.classe]) gruppi[s.classe] = [];
+        gruppi[s.classe].push(s);
+    });
+
+    let html = `<option value="">-- Seleziona Nome (${match.length}) --</option>`;
+    Object.keys(gruppi).sort().forEach((classe) => {
+        html += `<optgroup label="${classe}">`;
+        gruppi[classe].forEach((s) => {
+            html += `<option value="${s.cognome}">${s.cognome} ${s.nome}</option>`;
+        });
+        html += `</optgroup>`;
+    });
+
+    sel.innerHTML = html;
+
+    // Se c'è un match esatto unico, selezionalo automaticamente
+    if (match.length === 1) {
+        sel.value = match[0].cognome;
+    }
+}
 // ─────────────────────────────────────────────────────────────
 // SALVA / CARICA
 // ─────────────────────────────────────────────────────────────
@@ -100,6 +170,23 @@ function aggiungiAssenza() {
 
     if (!dal || !al) return alert("Seleziona entrambe le date");
 
+    // Validazione: se è stata scelta una classe, ignora lo studente
+    // (e viceversa) per evitare inserimenti "doppi" ambigui.
+    if (classeSel && cognomeSel) {
+        const ok = confirm(
+            `Hai selezionato sia uno studente (${cognomeSel}) sia una classe (${classeSel}).\n\n` +
+            `Verrà applicata SOLO la classe. Continuare?`
+        );
+        if (!ok) return;
+    }
+
+    if (!dal || !al) return alert("Seleziona entrambe le date");
+
+    // ── Controllo coerenza date ──
+    if (dal > al) {
+        return alert("La data 'dal' non può essere successiva alla data 'al'");
+    }
+
     let studentiDaAggiornare = [];
 
     if (classeSel) {
@@ -112,20 +199,64 @@ function aggiungiAssenza() {
         return alert("Seleziona uno studente o una classe");
     }
 
+    if (studentiDaAggiornare.length === 0) {
+        return alert("Nessuno studente trovato per la selezione effettuata");
+    }
+
+    // ── Evita duplicati esatti (stesso cognome + stesso periodo) ──
+    let aggiunti = 0;
+    let duplicati = 0;
+
     studentiDaAggiornare.forEach((cognome) => {
         if (!assenzeProgrammate[cognome]) {
             assenzeProgrammate[cognome] = [];
         }
+
+        const esisteGia = assenzeProgrammate[cognome].some(
+            (p) => p.dal === dal && p.al === al
+        );
+
+        if (esisteGia) {
+            duplicati++;
+            return;
+        }
+
         assenzeProgrammate[cognome].push({ dal, al });
+        aggiunti++;
     });
+
+    // Se non è stato aggiunto nulla, avvisa e non chiudere
+    if (aggiunti === 0) {
+        return alert(
+            `Nessuna nuova assenza aggiunta: ${duplicati} period${duplicati === 1 ? 'o' : 'i'} ` +
+            `già present${duplicati === 1 ? 'e' : 'i'}.`
+        );
+    }
 
     salvaAssenzeProgrammate();
     renderListaAssenze();
     ricaricaListaStudenti();
 
-    
-    const box = document.getElementById("boxAggiungiAssenza");
-    if (box) box.open = false;
+    // ── CHIUSURA SOTTO-SCHEDA + RESET RICERCA ──
+    const box        = document.getElementById("boxAggiungiAssenza");
+    const btn        = document.getElementById("btnApriAggiungi");
+    const inputCerca = document.getElementById("cercaStudente");
+    const selStud    = document.getElementById("selectStudente");
+    const selClasse  = document.getElementById("selectClasse");
+
+    if (inputCerca) inputCerca.value = "";
+    if (selStud)    { selStud.value = ""; popolaSelectStudenti(); }
+    if (selClasse)  selClasse.value = "";
+
+    if (box) box.style.display = "none";
+    if (btn) {
+        btn.textContent = "➕ Aggiungi";
+        btn.classList.remove("aperto");
+    }
+
+    // Feedback opzionale
+    console.log(`✅ Assenze aggiunte: ${aggiunti} student${aggiunti === 1 ? 'o' : 'i'}` +
+                (duplicati ? ` (${duplicati} duplicat${duplicati === 1 ? 'o' : 'i'} ignorat${duplicati === 1 ? 'o' : 'i'})` : ""));
 }
 
 function renderListaAssenze() {
@@ -245,38 +376,90 @@ function rimuoviAssenza(cognome, index) {
     ricaricaListaStudenti();
     // (la ❌ non chiude nulla, solo il box aggiungi si chiude)
 }
+// ─────────────────────────────────────────────────────────────
+// AUTOCOMPLETAMENTO STUDENTI
+// ─────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────
-// POPOLA <select> DEL SIDE PANEL
-// ─────────────────────────────────────────────────────────────
+// Svuota la cache e la select quando si apre il pannello
 function popolaSelectStudenti() {
-    const sel = document.getElementById("selectStudente");
-    if (!sel) return;
+    // Ora non c'è più una select, ma un input hidden + div suggerimenti.
+    // La cache _studentiOrdinati serve solo per i suggerimenti.
+    if (typeof studenticonvittori === "undefined") return;
+    
+    _studentiOrdinati = [...studenticonvittori].sort((a, b) => {
+        const ca = (a.cognome || "").localeCompare(b.cognome || "", "it");
+        if (ca !== 0) return ca;
+        return (a.nome || "").localeCompare(b.nome || "", "it");
+    });
+}
 
-    const gruppi = {};
-    studenticonvittori.forEach((s) => {
-        if (!gruppi[s.classe]) gruppi[s.classe] = [];
-        gruppi[s.classe].push(s);
+// Funzione chiamata oninput sull'input "cercaStudente"
+function suggerisciStudenti(query) {
+    const listDiv = document.getElementById("listaSuggerimentiStudenti");
+    const hiddenInput = document.getElementById("selectStudente");
+    
+    // Se scrive, resettiamo il valore selezionato in precedenza
+    if (hiddenInput) hiddenInput.value = "";
+
+    const q = (query || "").trim().toLowerCase();
+    if (!q) {
+        listDiv.style.display = "none";
+        return;
+    }
+
+    const match = _studentiOrdinati.filter(s => {
+        const cognome = (s.cognome || "").toLowerCase();
+        const nome = (s.nome || "").toLowerCase();
+        const classe = (s.classe || "").toLowerCase();
+        return cognome.includes(q) || nome.includes(q) || classe.includes(q);
     });
 
-    let html = `<option value="">-- Seleziona Nome --</option>`;
-    Object.keys(gruppi)
-        .sort()
-        .forEach((classe) => {
-            html += `<optgroup label="${classe}">`;
-            gruppi[classe].forEach((s) => {
-                html += `<option value="${s.cognome}">${s.cognome} ${s.nome}</option>`;
-            });
-            html += `</optgroup>`;
-        });
-    sel.innerHTML = html;
+    if (match.length === 0) {
+        listDiv.innerHTML = `<div style="padding:8px; font-size:0.8rem; color:var(--text-muted);">Nessun risultato</div>`;
+        listDiv.style.display = "block";
+        return;
+    }
+
+    // Limita a max 50 risultati per non appesantire il DOM
+    const html = match.slice(0, 50).map(s => {
+        return `<div onclick="selezionaStudente('${s.cognome.replace(/'/g, "\\'")}')" 
+                     style="padding:8px 12px; cursor:pointer; font-size:0.82rem; border-bottom:1px solid var(--border);"
+                     onmouseover="this.style.background='var(--bg-3)'" 
+                     onmouseout="this.style.background='transparent'">
+                    <b>${s.cognome}</b> ${s.nome} <span style="color:var(--text-muted); font-size:0.75rem;">(${s.classe})</span>
+                </div>`;
+    }).join("");
+
+    listDiv.innerHTML = html;
+    listDiv.style.display = "block";
 }
 
-function popolaSelectClassi() {
-    const sel = document.getElementById("selectClasse");
-    if (!sel) return;
-    const classiUniche = [...new Set(studenticonvittori.map((s) => s.classe))].sort();
-    sel.innerHTML =
-        `<option value="">-- Seleziona Classe --</option>` +
-        classiUniche.map((c) => `<option value="${c}">${c}</option>`).join("");
+// Chiamata quando si clicca su un suggerimento
+function selezionaStudente(cognome) {
+    const input = document.getElementById("cercaStudente");
+    const hiddenInput = document.getElementById("selectStudente");
+    const listDiv = document.getElementById("listaSuggerimentiStudenti");
+    
+    // Trova lo studente per mostrare Nome Cognome
+    const studente = studenticonvittori.find(s => s.cognome.toUpperCase() === cognome.toUpperCase());
+    
+    if (studente) {
+        input.value = `${studente.cognome} ${studente.nome}`;
+        hiddenInput.value = studente.cognome.toUpperCase(); // es. "ROSSI"
+    }
+    
+    listDiv.style.display = "none";
+    
+    // Resetta la classe selezionata per evitare conflitti
+    const selClasse = document.getElementById("selectClasse");
+    if (selClasse) selClasse.value = "";
 }
+
+// Chiude la lista suggerimenti se clicco fuori
+document.addEventListener('click', function(e) {
+    const listDiv = document.getElementById("listaSuggerimentiStudenti");
+    const input = document.getElementById("cercaStudente");
+    if (listDiv && input && !input.contains(e.target) && !listDiv.contains(e.target)) {
+        listDiv.style.display = "none";
+    }
+});
