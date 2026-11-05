@@ -250,7 +250,7 @@ function aggiungiAssenza() {
 
     if (box) box.style.display = "none";
     if (btn) {
-        btn.textContent = "➕ Aggiungi";
+        btn.textContent = "Aggiungi";
         btn.classList.remove("aperto");
     }
 
