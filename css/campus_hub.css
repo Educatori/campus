@@ -2,7 +2,6 @@
              CAMPUS HUB — Foglio di stile unificato
    ============================================================ */
 
-
 /* ── Mona Sans (variable: wght, wdth, opsz, ital) ── */
 @font-face {
     font-family: 'Mona Sans';
@@ -59,14 +58,13 @@
     --pp-dim:       #7c3aed1a;
 
     /* Bottoni */
-    
     --btn-t1:        #ff00ac; 
     --btn-t2:        #7b00ff;
     --btn-t3:        #7c3aed;
     --btn-t4:        #475569;
     --btn-reset:     #dc2626;
     --btn-inactive:  #e8eef5;
-    --btn-print:    #27ae60;
+    --btn-print:     #27ae60;
 
     /* Testo */
     --text:       #0f172a;
@@ -577,7 +575,6 @@ header:not(.app-header) h1 {
     outline-offset: 2px;
 }
 
-
 /* ============================================================
    11. AZIONI GRID — categorie
    ============================================================ */
@@ -701,7 +698,6 @@ header:not(.app-header) h1 {
 .student-row.dinner-no::before {
     background: var(--dinner-no);
     box-shadow: 0 0 0 3px var(--dinner-no-dim);
-
 }
 
 .student-row.assente {
@@ -961,22 +957,44 @@ header:not(.app-header) h1 {
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------
+   UNIFORMAZIONE CAMPI FORM NEL SIDE PANEL
+   Stile identico alla toolbar per coerenza visiva totale.
+   ------------------------------------------------------------ */
 #sidePanel select,
+#sidePanel input[type="text"],
 #sidePanel input[type="date"] {
     background: var(--bg-3);
     border: 1px solid var(--border-2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius); /* 12px, come in toolbar */
     color: var(--text);
-    padding: 8px 10px;
+    padding: 9px 14px;
     font-family: var(--font);
     font-size: 0.82rem;
     width: 100%;
     outline: none;
+    transition: border-color var(--t), box-shadow var(--t);
+    box-sizing: border-box;
+    margin-bottom: 10px; /* Spaziatura pulita tra un campo e l'altro */
 }
+
 #sidePanel select:focus,
+#sidePanel input[type="text"]:focus,
 #sidePanel input[type="date"]:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
 }
+
+#sidePanel input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Rimuove il margin-bottom dall'ultimo campo per non creare buchi extra */
+#sidePanel input[type="date"]:last-of-type {
+    margin-bottom: 14px; 
+}
+
 #sidePanel hr {
     border: none;
     border-top: 1px solid var(--border);
@@ -1014,7 +1032,7 @@ header:not(.app-header) h1 {
     color: white;
     border: none;
     padding: 10px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
     font-family: var(--font);
     font-weight: 700;
@@ -1022,6 +1040,29 @@ header:not(.app-header) h1 {
     transition: all var(--t);
 }
 .btn-add-assenza:hover { filter: brightness(1.1); }
+
+.btn-add-assenza-toggle {
+    width: 100%;
+    padding: 10px 14px;
+    margin: 4px 0 10px 0; /* Aggiunto margine inferiore per distanziare dalla lista */
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+}
+
+.btn-add-assenza-toggle:hover  { background: #b91c1c; }
+.btn-add-assenza-toggle:active { transform: scale(0.98); }
+
+.btn-add-assenza-toggle.aperto {
+    background: #991b1b;
+}
 
 /* ============================================================
    16. LOGIN SCREEN
@@ -1045,7 +1086,7 @@ header:not(.app-header) h1 {
    16b. LOGIN CARD CONDIVISA (.login-container)
    ============================================================ */
 .login-container {
-    width: 100%;                 /* ← NEW: dentro flex non si stringe */
+    width: 100%;
     max-width: 380px;
     margin: 80px auto;
     background: var(--surface);
@@ -1410,7 +1451,6 @@ button[type="submit"]:hover {
 }
 .sim-badge.visible { display: block; }
 
-
 /* ============================================================
    20. ANIMAZIONI
    ============================================================ */
@@ -1492,11 +1532,6 @@ button[type="submit"]:hover {
 
 /* ============================================================
    PREFERS-REDUCED-MOTION
-   Rispetta la preferenza "riduci animazioni" del sistema.
-   - Azzera animazioni e transizioni
-   - Nasconde lo shimmer delle card (index.html)
-   - Disattiva i transform di hover (translateY, scale)
-   Mantiene i cambi di colore/bordo/opacità (non sono movimento)
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
     *,
@@ -1508,12 +1543,10 @@ button[type="submit"]:hover {
         scroll-behavior:           auto   !important;
     }
 
-    /* Shimmer: via del tutto (velocizzato sarebbe peggio) */
     .link-card::before {
         display: none !important;
     }
 
-    /* Hover: niente spostamenti */
     .link-card:hover,
     .student-row:hover,
     .student-item:hover,
@@ -1529,14 +1562,11 @@ button[type="submit"]:hover {
         transform: none !important;
     }
 
-    /* Link card: niente scale né drop-shadow animata */
     .link-card:hover svg {
         transform: none !important;
         filter:    none !important;
     }
 
-    /* Lab badge: nessun pulse (già coperto dalla regola globale,
-       esplicitato per chiarezza) */
     .lab-badge {
         animation: none !important;
     }
@@ -1577,6 +1607,6 @@ button[type="submit"]:hover {
     border-bottom: 3px solid #2563eb;
     background: #dbeafe;
     color: #1e3a8a;
-    display: none; /* nascosto finché non decidiamo il contenuto */
+    display: none;
 }
 #modeBanner.visible { display: block; }
