@@ -124,8 +124,8 @@ const PAROLE_NO_RIENTRO = [
    Aggiungi qui un cognome → appare in tutte le stampe.
    ───────────────────────────────────────────────────────────── */
 const COGNOMI_AUTO = [
-    "RASO", "NICOLASI", "DANNA", "CONTA",
-    "CHIADÒ CAPONET", "MENALDINO", "COMIOTTO", "DI TRIA", "TAPPELLA"
+     "CHESSA", "CHIADÒ CAPONET", "COMIOTTO", "CONTA", 
+    "DANNA", "DI TRIA", "MENALDINO", "NICOLASI", "RASO", "TAPPELLA"
 ];
 
 
