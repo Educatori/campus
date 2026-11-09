@@ -1,11 +1,10 @@
 /**
  * js/stampe/ritardi.js
  * Stampa scheda RITARDI MATTINO.
- * Dipende da: studenticonvittori (window), COGNOMI_AUTO (global).
  */
     function generaPopUpStampaSchedaRitardi() {
-    const oggi = getDataCorrente();                 // ← data simulata
-    const oggiReale = new Date();                   // ← solo per il timestamp di generazione
+    const oggi = getDataCorrente();
+    const oggiReale = new Date();
     const dataOggi = oggiReale.toLocaleDateString("it-IT");
     const oraEsatta = oggiReale.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     const meseCorrente = oggi.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
@@ -57,15 +56,12 @@
         const cognomeUpper = s.cognome.toUpperCase();
         const classeUpper = (s.classe || "").toUpperCase();
 
-        let notaCustom = "";
-        if (COGNOMI_AUTO.includes(cognomeUpper)) {
-            notaCustom = "🚗";
-        }
-        if (classeUpper === "4C") {
-            notaCustom = notaCustom ? notaCustom + " solo GIO" : "solo GIO";
-        } else if (classeUpper === "5B") {
-            notaCustom = notaCustom ? notaCustom + " mai GIO" : "mai GIO";
-        }
+        let notaGiorni = "";
+        if (classeUpper === "4C")      notaGiorni = "solo GIO";
+        else if (classeUpper === "5B") notaGiorni = "mai GIO";
+
+        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
+        const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
 
         const classeHtml = classeUpper === "4C"
             ? `<b>${s.classe}</b>`
@@ -79,7 +75,7 @@
         return `
             <tr>
                 <td class="t-cell t-class">${classeHtml}</td>
-                <td class="t-cell t-name"><b>${s.cognome}</b></td>
+                <td class="t-cell t-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></td>
                 <td class="t-cell t-room">${s.room || ""}</td>
                 <td class="t-cell t-notes">${notaCustom}</td>
                 ${celleGiorni}
@@ -105,19 +101,10 @@
             .table-wrap   { flex: 1 1 auto; min-height: 0; display: flex; }
             .footer-block { flex: 0 0 auto; }
 
-            h2 {
-                text-align: center; text-transform: uppercase;
-                margin: 1px 0 0 0; font-size: 0.9rem; letter-spacing: 1px;
-            }
-            .date-subtitle {
-                text-align: center; font-size: 0.68rem;
-                margin-bottom: 2px; color: #444;
-                text-transform: capitalize; font-style: italic;
-            }
-            .timestamp {
-                position: absolute; top: 1px; right: 6px;
-                font-size: 0.5rem; color: #777;
-            }
+            h2 { text-align: center; text-transform: uppercase; margin: 1px 0 0 0; font-size: 0.9rem; letter-spacing: 1px; }
+            .date-subtitle { text-align: center; font-size: 0.68rem; margin-bottom: 2px; color: #444; text-transform: capitalize; font-style: italic; }
+            .timestamp { position: absolute; top: 1px; right: 6px; font-size: 0.5rem; color: #777; }
+            
             table {
                 width: 100%; height: 100%;
                 border-collapse: collapse;
@@ -159,10 +146,10 @@
                 vertical-align: middle;
             }
             .t-day:last-child { border-right: none; }
-            .footer-block {
-                text-align: right; font-size: 0.5rem;
-                margin-top: 1px; font-style: italic; color: #555;
-            }
+
+            .t-name.cognome-auto { text-align: right; padding-right: 3px; padding-left: 0; }
+
+            .footer-block { text-align: right; font-size: 0.5rem; margin-top: 1px; font-style: italic; color: #555; }
             .no-print { text-align: center; margin: 3px 0; }
             @media print {
                 .no-print { display: none !important; }
