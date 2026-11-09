@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bus Pomeriggio Settimanale</title>
+ <link rel="stylesheet" href="css/campus_hub.css"> 
+<style>
+  :root{
+    --border:#000;
+    --sep:#444;
+    --g1:#eaf2f8;
+    --g2:#fef9e7;
+    --head:#333;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;padding:8px;color:#000;line-height:1.1;
+    background:#fff;
+  }
+  
+  .subtitle{text-align:center;font-size:.78rem;margin-bottom:8px;color:#444;}
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+    margin-bottom:10px;
+  }
+  .toolbar button{
+    padding:8px 16px;border:none;border-radius:20px;color:#fff;
+    font-weight:bold;font-size:.8rem;cursor:pointer;
+    box-shadow:0 2px 4px rgba(0,0,0,.15);
+  }
+  .btn-print{background:#27ae60;}
+  .btn-reset{background:#c0392b;}
+  .btn-export{background:#2980b9;}
+
+  .grid{display:flex;flex-direction:column;gap:14px;}
+  @media(min-width:820px){
+    .grid{flex-direction:row;justify-content:space-between;}
+    .colonna{width:32.5%;}
+  }
+
+  .column-header{
+    display:flex;background:var(--head);color:#fff;font-weight:bold;
+    font-size:.72rem;text-transform:uppercase;border:1px solid var(--border);
+    height:26px;
+  }
+  .bus-row{
+    display:flex;font-size:.78rem;
+    border-left:1px solid var(--border);
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    align-items:stretch;height:34px;
+  }
+  .class-separator{height:6px;background:var(--sep);border:1px solid var(--border);margin:1px 0;}
+
+  .cell,.h-cell{
+    display:flex;align-items:center;justify-content:center;
+    padding:2px 3px;overflow:hidden;white-space:nowrap;
+  }
+  .b-class,.h-class{width:56px;font-size:.68rem;border-right:1px solid #ccc;}
+  .b-class{background:#f5f5f5;}
+  .h-class{border-right:1px solid #555;}
+  .b-name,.h-name{flex:1;text-align:left;justify-content:flex-start;padding-left:6px;
+    border-right:1px solid #ccc;text-transform:uppercase;text-overflow:ellipsis;}
+  .h-name{border-right:1px solid #555;}
+  
+  .b-day,.h-day{width:42px;font-size:.8rem;border-right:1px solid #ccc;cursor:pointer;
+    user-select:none;transition:background .1s; display:flex; align-items:center; justify-content:center;}
+  .h-day{border-right:1px solid #555;cursor:default;}
+
+  .b-day[data-state="X"]{background:#d5f5e3;color:#1e8449;font-weight:bold;}
+  .b-day[data-state="O"]{background:#fadbd8;color:#a93226;font-weight:bold;}
+
+  .g1{background-color:var(--g1);}
+  .g2{background-color:var(--g2);}
+
+  @page{size:A4 landscape;margin:.4cm;}
+  @media print{
+    .no-print{display:none !important;}
+    body{padding:2px;}
+    .grid{flex-direction:row;justify-content:space-between;}
+    .colonna{width:32.5%;}
+    .bus-row{height:20px;font-size:.66rem;}
+    .b-day{width:34px;}
+    .b-day[data-state="X"]{background:#d5f5e3 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .b-day[data-state="O"]{background:#fadbd8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .g1,.g2{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+
+<header style="margin-bottom: 12px; padding: 10px;">
+    <div style="text-align: center; width: 100%;">
+        <h1 style="display: inline-block;">
+            <a href="trasportini.html">Appello Cliccabile</a>
+        </h1>
+    </div>
+</header>
+<div class="subtitle" id="subtitle" style="text-align: center;">Bus Pomeriggio Settimanale</div>
+
+<div class="toolbar no-print">
+  <button class="btn-print" onclick="window.print()">• Stampa / PDF</button>
+  <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
+  <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+var STUDENTI = [
+  ["1A","CASTROREALE",""],["1A","CUCCAROLO",""],["1A","FLORE",""],["1A","SCERBO",""],["1A","ZIGGIOTTO M",""],
+  ["1B","AMATO",""],["1B","BARONE",""],["1B","CAIRO",""],["1B","CRET",""],["1B","CUMINO LETI",""],
+  ["1B","DE FRANCESCH",""],["1B","RAVA",""],["1B","RONCO M",""],["1B","SAMPINO",""],
+  ["3A","BERTOT",""],["3A","BUZZI",""],["3A","CASTELLANO",""],["3A","DA FRE",""],["3A","DE GASPER",""],
+  ["3A","HERESAZ",""],["3A","PENNARD",""],["3A","SAITTA",""],
+  ["3B","DELL'AQUILA",""],["3B","DUCOURTIL",""],["3B","DUNAND",""],["3B","GHILARDINI",""],["3B","MAINO",""],
+  ["3B","MISERENDINO",""],["3B","MOUNIM",""],["3B","PEZZOLI",""],["3B","TACCONE",""],
+  ["4A","CATTARINUSSI",""],["4A","FLORIAN",""],["4A","MARANGELO",""],["4A","PEAQUIN",""],["4A","ZOPPO",""],
+  ["4B","BLANCHET M",""],["4B","BOGGIA",""],["4B","GRANATA",""],["4B","MARRERO CRUZ",""],["4B","PRUTEANU",""],["4B","TRIOLO",""],
+  ["5A","CHESSA","🚗"],["5A","COMIOTTO","🚗"],["5A","CONTA","🚗"],["5A","DANNA","🚗"],["5A","GORREX",""],
+  ["5A","MENALDINO","🚗"],["5A","MEYNET",""],["5A","RASO","🚗"],["5A","CHIADÒ CAPONET","🚗"],["5A","CROCE",""],
+  ["5A","MARCIANO",""],["5A","NICOLASI","🚗"],["5A","TAPPELLA","🚗"],
+  ["5B","DI TRIA","🚗"],["5B","MANCUSO",""],["5B","OBERTO",""],["5B","TESSARIN",""],["5B","VIOT",""],
+  ["5B","FAVRE",""],["5B","GIOVANNELLI T",""],["5B","HACHEMAOUI",""],["5B","SAVELLA",""],["5B","SERIO",""]
+];
+
+var GIORNI = ["LU","MA","ME","GI"];
+var STORAGE_KEY = "bus_pomeriggio_appello_v2";
+var stato = {};
+
+function caricaStato(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) stato = JSON.parse(raw) || {};
+  }catch(e){ stato = {}; }
+}
+
+function salvaStato(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
+}
+
+function keyOf(classe,cognome,giorno){ return classe+"|"+cognome+"|"+giorno; }
+
+function render(){
+  var grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  var lista = STUDENTI.slice().sort(function(a,b){
+    var c = a[0].localeCompare(b[0], undefined, {numeric:true});
+    if(c !== 0) return c;
+    var g = (a[2]||"").localeCompare(b[2]||"");
+    if(g !== 0) return g;
+    return a[1].localeCompare(b[1]);
+  });
+
+  var elementi = [];
+  var ultimaClasse = null;
+  lista.forEach(function(s){
+    if(ultimaClasse !== null && s[0] !== ultimaClasse) elementi.push({type:"sep"});
+    elementi.push({type:"st", data:s});
+    ultimaClasse = s[0];
+  });
+
+  var perCol = Math.ceil(elementi.length/3);
+  var colonne = [[],[],[]];
+  elementi.forEach(function(el, i){
+    var col = Math.min(Math.floor(i/perCol), 2);
+    colonne[col].push(el);
+  });
+
+  colonne.forEach(function(colElementi){
+    var col = document.createElement("div");
+    col.className = "colonna";
+
+    var head = document.createElement("div");
+    head.className = "column-header";
+    
+    ["Classe","Cognome","LU","MA","ME","GI"].forEach(function(txt, idx){
+      var h = document.createElement("div");
+      h.className = "h-cell " + (idx===0?"h-class":idx===1?"h-name":"h-day");
+      h.textContent = txt;
+      head.appendChild(h);
+    });
+    col.appendChild(head);
+
+    colElementi.forEach(function(el){
+      if(el.type === "sep"){
+        var sep = document.createElement("div");
+        sep.className = "class-separator";
+        col.appendChild(sep);
+        return;
+      }
+      var s = el.data;
+      var classe = s[0], cognome = s[1], gruppo = s[2] || "";
+
+      var row = document.createElement("div");
+      row.className = "bus-row";
+      if(classe === "5A" || classe === "5B"){
+        if(gruppo === "G1") row.className += " g1";
+        else if(gruppo === "G2") row.className += " g2";
+      }
+
+      var infoClasse = classe + (gruppo ? " • "+gruppo : "");
+
+      var c1 = document.createElement("div");
+      c1.className = "b-cell b-class";
+      var b1 = document.createElement("b"); b1.textContent = infoClasse;
+      c1.appendChild(b1);
+      row.appendChild(c1);
+
+      var c2 = document.createElement("div");
+      c2.className = "b-cell b-name";
+      var b2 = document.createElement("b"); b2.textContent = cognome;
+      c2.appendChild(b2);
+      row.appendChild(c2);
+
+      GIORNI.forEach(function(g){
+        var cg = document.createElement("div");
+        cg.className = "b-cell b-day";
+        var k = keyOf(classe,cognome,g);
+        cg.setAttribute("data-key", k);
+        
+        var st = stato[k] || "";
+        cg.setAttribute("data-state", st);
+        cg.textContent = st;
+
+        cg.addEventListener("click", function(){
+          var cur = stato[k] || "";
+          var next = cur === "" ? "X" : (cur === "X" ? "O" : "");
+          
+          if(next === ""){ 
+            delete stato[k]; 
+            cg.setAttribute("data-state",""); 
+            cg.textContent=""; 
+          } else { 
+            stato[k] = next; 
+            cg.setAttribute("data-state",next); 
+            cg.textContent = next; 
+          }
+          salvaStato();
+          aggiornaSottotitolo();
+        });
+
+        row.appendChild(cg);
+      });
+
+      col.appendChild(row);
+    });
+
+    grid.appendChild(col);
+  });
+
+  aggiornaSottotitolo();
+}
+
+function aggiornaSottotitolo(){
+  var totX = 0, totO = 0;
+  for(var k in stato){
+    if(stato[k] === "X") totX++;
+    else if(stato[k] === "O") totO++;
+  }
+  var el = document.getElementById("subtitle");
+  el.innerHTML = "Bus pomeriggio settimanale | Studenti: <b>"+STUDENTI.length+"</b> • Presenti segnati: <b>"+totX+"</b> • Assenti segnati: <b>"+totO+"</b>";
+}
+
+function azzeraTutto(){
+  if(!confirm("Azzerare tutte le X e O?")) return;
+  stato = {};
+  salvaStato();
+  render();
+}
+
+function esportaStato(){
+  var json = JSON.stringify(stato, null, 2);
+  var blob = new Blob([json], {type:"application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "bus_pomeriggio_appello.json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+}
+
+caricaStato();
+render();
+</script>
+
+</body>
+</html>
