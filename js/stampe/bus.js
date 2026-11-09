@@ -5,15 +5,6 @@
  *   • generaPopUpStampaBus            (bus domattina)
  *   • generaPopUpStampaBusPomeriggio  (bus pomeriggio, appello settimanale)
  *   • generaPopUpStampaBusGenerico    (schema generico)
- *
- * Dipendenze (globali al momento della chiamata):
- *   - studenticonvittori       → data-loader.js (window)
- *   - COGNOMI_AUTO             → campus_hub-script.js (const globale)
- *   - verificaStudenteStandBy  → campus_hub-script.js
- *   - document.getElementById("todayDate")
- *
- * Caricato con <script src="js/stampe/bus.js"></script>
- * DOPO campus_hub-script.js.
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -21,17 +12,14 @@
 function generaPopUpStampaBus(ordinamento) {
     ordinamento = ordinamento || 'alfabetico';
 
-    // ── USA LA DATA SIMULATA (se attiva), altrimenti oggi ──
     const oggi = new Date(
         (typeof getDataCorrente === 'function') ? getDataCorrente() : new Date()
     );
 
-    // Timestamp "generato": usa il momento reale di stampa
     const adesso = new Date();
     const dataOggi = adesso.toLocaleDateString("it-IT");
     const oraEsatta = adesso.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
-    // "Domani" = giorno successivo alla data simulata
     const domani = new Date(oggi);
     domani.setDate(oggi.getDate() + 1);
     const dataDomaniTestuale = domani.toLocaleDateString("it-IT", {
@@ -44,7 +32,6 @@ function generaPopUpStampaBus(ordinamento) {
         return;
     }
 
-    // 1. FILTRO CLASSI ESCLUSE
     const validi = studenticonvittori.filter((s) => {
         if (!s.cognome) return false;
         const classe = s.classe.toUpperCase();
@@ -52,7 +39,6 @@ function generaPopUpStampaBus(ordinamento) {
         return !escluse.includes(classe) && !classe.includes("P");
     });
 
-    // 2. ORDINAMENTO
     if (ordinamento === 'perClasse') {
         validi.sort((a, b) => {
             const compClasse = a.classe.localeCompare(b.classe, undefined, { numeric: true });
@@ -61,7 +47,6 @@ function generaPopUpStampaBus(ordinamento) {
         });
     } else {
         const classiInFondo = ["4C", "5A", "5B"];
-
         const resto = validi.filter((s) => !classiInFondo.includes(s.classe));
         const classe4C = validi.filter((s) => s.classe === "4C");
         const classe5A = validi.filter((s) => s.classe === "5A");
@@ -83,15 +68,11 @@ function generaPopUpStampaBus(ordinamento) {
         validi.push(...resto, ...classe4C, ...classe5A, ...classe5B);
     }
 
-    // 3. DISTRIBUZIONE IN 3 COLONNE
     const colonneHtml = ["", "", ""];
-
-    // Testo della nota da mettere in fondo all'ultima colonna
     const notaInTesta = "LABORATORI <br> LUN 5A + 3A ━🍸━ MAR 4A + 3B <br> MER 4B + 1A ━🍹━ GIO 4C + 1B";
 
-    // Funzione per generare una riga studente (con note automatiche)
     function generaRigaStudente(s) {
-                let bgStyle = "";
+        let bgStyle = "";
         if (s.classe === "5A" || s.classe === "5B") {
             if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8; border-left: 4px solid #2c3e50;";
             if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dotted #2c3e50;";
@@ -99,46 +80,29 @@ function generaPopUpStampaBus(ordinamento) {
             bgStyle = "border-left: 4px dashed #2c3e50;";
         }
 
-        // Lookup stand-by dal DOM
         const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
         let visualizzaStandBy = "";
         if (rigaElemento && typeof verificaStudenteStandBy === "function") {
             visualizzaStandBy = verificaStudenteStandBy(rigaElemento) ? "➖" : "";
         }
 
-               // ── NOTE ──
-        let notaCustom = "";
         const classeUpper = s.classe.toUpperCase();
         const cognomeUpper = s.cognome.toUpperCase();
 
-        // 🚗 Auto PRIMA (se il cognome è nella lista)
-        if (COGNOMI_AUTO.includes(cognomeUpper)) {
-            notaCustom = "🚗";
-        }
+        let notaGiorni = "";
+        if (classeUpper === "4C")      notaGiorni = "solo GIO";
+        else if (classeUpper === "5B") notaGiorni = "mai GIO";
 
-        // Poi "solo GIO" / "mai GIO" accodato dopo l'eventuale 🚗
-        if (classeUpper === "4C") {
-            notaCustom = notaCustom ? notaCustom + " solo GIO" : "solo GIO";
-        } else if (classeUpper === "5B") {
-            notaCustom = notaCustom ? notaCustom + " mai GIO" : "mai GIO";
-        
-       }
+        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
+        const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
 
-        // ── EVIDENZIA 4C e G2 in grassetto (solo classe/gruppo) ──
-        const classeHtml  = classeUpper === "4C"
-            ? `<b>${s.classe}</b>`
-            : s.classe;
-
-        const gruppoHtml = s.gruppo
-            ? (s.gruppo.toUpperCase() === "G2"
-                ? ` • <b>${s.gruppo}</b>`
-                : ` • ${s.gruppo}`)
-            : "";
+        const classeHtml  = classeUpper === "4C" ? `<b>${s.classe}</b>` : s.classe;
+        const gruppoHtml = s.gruppo ? (s.gruppo.toUpperCase() === "G2" ? ` • <b>${s.gruppo}</b>` : ` • ${s.gruppo}`) : "";
 
         return `
-            <div class="bus-row" style="${bgStyle}">
+            <div class="bus-row">
                 <div class="b-cell b-class">${classeHtml}${gruppoHtml}</div>
-                <div class="b-cell b-name"><b>${s.cognome}</b></div>
+                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
                 <div class="b-cell b-room">${s.room || ""}</div>
                 <div class="b-cell b-check"></div>
                 <div class="b-cell b-standby" style="font-size: 0.9em;">${visualizzaStandBy}</div>
@@ -147,12 +111,8 @@ function generaPopUpStampaBus(ordinamento) {
         `;
     }
 
-    // ── DISTRIBUZIONE ──
-    // Colonne 1-2: resto + 4C bilanciati
-    // Colonna 3: SOLO 5A + 5B, con nota LAB in fondo
     const gruppoResto  = validi.filter(s => s.classe !== "5A" && s.classe !== "5B");
     const gruppoQuinte = validi.filter(s => s.classe === "5A" || s.classe === "5B");
-
     const itemsPerCol12 = Math.ceil(gruppoResto.length / 2);
 
     gruppoResto.forEach((s, idx) => {
@@ -160,7 +120,6 @@ function generaPopUpStampaBus(ordinamento) {
         colonneHtml[col] += generaRigaStudente(s);
     });
 
-    // Terza colonna: prima le quinte, poi la nota LAB in fondo
     gruppoQuinte.forEach((s) => {
         colonneHtml[2] += generaRigaStudente(s);
     });
@@ -173,7 +132,6 @@ function generaPopUpStampaBus(ordinamento) {
         </div>
     `;
 
-    // Calcolo presenti (senza stand-by) e totale bus
     const totaleBus = validi.length;
     const presenti = validi.filter((s) => {
         const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
@@ -181,7 +139,6 @@ function generaPopUpStampaBus(ordinamento) {
         return !verificaStudenteStandBy(rigaElemento);
     }).length;
 
-    // 4. POPUP
     const titolo = ordinamento === 'perClasse' ? "BUS MATTINA — per classe" : "BUS MATTINA";
 
     const popup = window.open("", "_blank", "width=1200,height=800");
@@ -194,18 +151,7 @@ function generaPopUpStampaBus(ordinamento) {
             .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; color: #777; }
 
             .toolbar-stampa { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
-
-            .toolbar-stampa button {
-                padding: 6px 26px;
-                color: white;
-                font-weight: bold;
-                border-radius: 20px;
-                border: none;
-                cursor: pointer;
-                font-size: 0.85rem;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                transition: filter 0.2s;
-            }
+            .toolbar-stampa button { padding: 6px 26px; color: white; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: filter 0.2s; }
             .toolbar-stampa button:hover { filter: brightness(1.1); }
             .btn-stampa { background: #27ae60; }
             .btn-per-classe { background: #7c3aed; }
@@ -217,43 +163,37 @@ function generaPopUpStampaBus(ordinamento) {
 
             .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
 
-            .nota-colonna {
-                font-size: 0.7rem;
-                height: auto;
-                min-height: 22px;
-                border: 1px solid #000;
-                border-bottom: 2px solid #000;
-            }
+            .nota-colonna { font-size: 0.7rem; height: auto; min-height: 22px; border: 1px solid #000; border-bottom: 2px solid #000; }
 
-            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
+            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
+            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; box-sizing: border-box; }
 
-            .b-class, .h-class { width: 65px; font-size: 0.55rem; }
+            .b-class, .h-class { width: 65px; font-size: 0.55rem; flex: 0 0 65px; }
             .b-class { border-right: 1px solid #ccc; }
             .h-class { border-right: 1px solid #555; }
 
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; flex: 0 0 120px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
 
-            .b-room, .h-room { width: 25px; font-size: 0.58rem; }
+            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 4px; padding-left: 0; }
+
+            .b-room, .h-room { width: 25px; font-size: 0.58rem; flex: 0 0 25px; }
             .b-room { border-right: 1px solid #ccc; font-weight: bold; background: #f5f5f5; }
             .h-room { border-right: 1px solid #555; }
 
-            .b-check, .h-check { width: 22px; }
+            .b-check, .h-check { width: 22px; flex: 0 0 22px; }
             .b-check { border-right: 1px solid #ccc; }
             .h-check { border-right: 1px solid #555; }
 
-            .b-standby, .h-standby { width: 25px; border-right: 1px solid #ccc; }
+            .b-standby, .h-standby { width: 25px; flex: 0 0 25px; border-right: 1px solid #ccc; }
             .h-standby { border-right: 1px solid #555; }
 
             .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 4px; }
 
-            @media print {
-                .no-print { display: none !important; }
-            }
+            @media print { .no-print { display: none !important; } }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-
             <h2>${titolo}</h2>
             <div class="date-subtitle">Trasporto di domani ${dataDomaniTestuale} — Presenti: <b>${presenti}</b> su <b>${totaleBus}</b> totali</div>
 
@@ -266,39 +206,29 @@ function generaPopUpStampaBus(ordinamento) {
             </div>
 
             <div class="grid-container">
-                ${colonneHtml
-                    .map(
-                        (htmlDest) => `
+                ${colonneHtml.map(htmlDest => `
                     <div class="colonna">
                         <div class="column-header">
                             <div class="h-cell h-class">Classe</div>
                             <div class="h-cell h-name">Cognome</div>
-                            <div class="h-cell h-room">Room</div>
-                            <div class="h-cell h-check">Pres</div>
-                            <div class="h-cell h-standby">StBy</div>
+                            <div class="h-cell h-room">Rm</div>
+                            <div class="h-cell h-check">Ce</div>
+                            <div class="h-cell h-standby">Sb</div>
                             <div class="h-cell h-notes">Note</div>
                         </div>
                         ${htmlDest}
                     </div>
-                `
-                    )
-                    .join("")}
+                `).join("")}
             </div>
         </body></html>
     `);
     popup.document.close(); 
-
-    // 👇 Rende disponibile generaPopUpStampaBus DENTRO il popup,
-    //    così l'onclick dei pulsanti non dipende da window.opener
-    //    (che spesso è null per policy del browser o se il popup
-    //    è stato aperto da un iframe / con noopener).
     popup.generaPopUpStampaBus = generaPopUpStampaBus;
     popup.focus();
 }
 
 // --- POMERIGGIO BUS
 function generaPopUpStampaBusPomeriggio() {
-
     const oggi = new Date();
     const dataTestuale = document.getElementById("todayDate").innerText;
     const dataOggi = oggi.toLocaleDateString("it-IT");
@@ -310,7 +240,6 @@ function generaPopUpStampaBusPomeriggio() {
         return;
     }
 
-    // 1. FILTRO: esclude 2A, 2B e classi con "P" e cognome vuoto
     const validi = studenticonvittori.filter((s) => {
         if (!s.cognome) return false;
         const classe = s.classe.toUpperCase();
@@ -318,20 +247,16 @@ function generaPopUpStampaBusPomeriggio() {
         return !escluse.includes(classe) && !classe.includes("P");
     });
 
-    // 2. ORDINAMENTO NATURALE: Classe -> Gruppo -> Cognome
     validi.sort((a, b) => {
         const compClasse = a.classe.localeCompare(b.classe, undefined, { numeric: true });
         if (compClasse !== 0) return compClasse;
-
         const gA = a.gruppo || "";
         const gB = b.gruppo || "";
         const compGruppo = gA.localeCompare(gB);
         if (compGruppo !== 0) return compGruppo;
-
         return a.cognome.localeCompare(b.cognome);
     });
 
-    // 3. COSTRUZIONE LISTA MISTA CON SEPARATORI
     const elementiFinali = [];
     let ultimaClasse = null;
 
@@ -343,7 +268,6 @@ function generaPopUpStampaBusPomeriggio() {
         ultimaClasse = studente.classe;
     });
 
-    // 4. DISTRIBUZIONE BILANCIATA NELLE 3 COLONNE
     const totaleElementi = elementiFinali.length;
     const itemsPerColonna = Math.ceil(totaleElementi / 3);
     const colonneHtml = ["", "", ""];
@@ -359,7 +283,6 @@ function generaPopUpStampaBusPomeriggio() {
         const s = elemento.data;
         const infoClasse = `${s.classe}${s.gruppo ? " • " + s.gruppo : ""}`;
 
-        // Gestione sfondi colorati tenui per i gruppi 5A e 5B
         let bgStyle = "";
         if (s.classe === "5A") {
             if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
@@ -369,14 +292,14 @@ function generaPopUpStampaBusPomeriggio() {
             if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
         }
 
-        // 🚗 Nota auto se il cognome è nella lista
         const cognomeUpper = s.cognome.toUpperCase();
-        const notaCustom = COGNOMI_AUTO.includes(cognomeUpper) ? "🚗" : "";
+        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
+        const notaCustom = haAuto ? "🚗" : "";
 
         colonneHtml[colonnaIdx] += `
             <div class="bus-row" style="${bgStyle}">
                 <div class="b-cell b-class"><b>${infoClasse}</b></div>
-                <div class="b-cell b-name"><b>${s.cognome}</b></div>
+                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
                 <div class="b-cell b-day"></div>
                 <div class="b-cell b-day"></div>
                 <div class="b-cell b-day"></div>
@@ -386,7 +309,6 @@ function generaPopUpStampaBusPomeriggio() {
         `;
     });
 
-    // 5. GENERAZIONE POP-UP
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html lang="it"><head><title>Bus Pomeriggio Appello Settimanale</title><style>
@@ -404,15 +326,18 @@ function generaPopUpStampaBusPomeriggio() {
 
             .b-cell, .h-cell { padding: 2px 4px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; height: 100%; box-sizing: border-box; }
 
-            .b-class, .h-class { width: 50px; font-size: 0.65rem; }
+            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
+            .b-class, .h-class { width: 50px; font-size: 0.65rem; flex: 0 0 50px; }
             .b-class { border-right: 1px solid #ccc; background: #f5f5f5; }
             .h-class { border-right: 1px solid #555; }
 
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 6px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 6px; flex: 0 0 120px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
 
-            .b-day, .h-day { width: 22px; font-size: 0.65rem; }
+            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 6px; padding-left: 0; }
+
+            .b-day, .h-day { width: 22px; font-size: 0.65rem; flex: 0 0 22px; }
             .b-day { border-right: 1px solid #ccc; }
             .h-day { border-right: 1px solid #555; }
 
@@ -432,9 +357,7 @@ function generaPopUpStampaBusPomeriggio() {
             </div>
 
             <div class="grid-container">
-                ${colonneHtml
-                    .map(
-                        (htmlDest) => `
+                ${colonneHtml.map(htmlDest => `
                     <div class="colonna">
                         <div class="column-header">
                             <div class="h-cell h-class">Classe</div>
@@ -447,9 +370,7 @@ function generaPopUpStampaBusPomeriggio() {
                         </div>
                         ${htmlDest}
                     </div>
-                `
-                    )
-                    .join("")}
+                `).join("")}
             </div>
         </body></html>
     `);
@@ -471,7 +392,6 @@ function generaPopUpStampaBusGenerico() {
         return;
     }
 
-    // 1. FILTRO CLASSI ESCLUSE
     const validi = studenticonvittori.filter((s) => {
         if (!s.cognome) return false;
         const classe = s.classe.toUpperCase();
@@ -479,25 +399,22 @@ function generaPopUpStampaBusGenerico() {
         return !escluse.includes(classe) && !classe.includes("P");
     });
 
-    // 2. SEPARAZIONE E ORDINAMENTO
-// 5A e 5B vanno in fondo, ordinate per gruppo (G1/G2) + cognome
-const resto = validi.filter((s) => s.classe !== "5A" && s.classe !== "5B");
-const classe5A = validi.filter((s) => s.classe === "5A");
-const classe5B = validi.filter((s) => s.classe === "5B");
+    const resto = validi.filter((s) => s.classe !== "5A" && s.classe !== "5B");
+    const classe5A = validi.filter((s) => s.classe === "5A");
+    const classe5B = validi.filter((s) => s.classe === "5B");
 
-resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
+    resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
 
-const ordinaPerGruppoECognome = (a, b) => {
-    const gA = a.gruppo || "";
-    const gB = b.gruppo || "";
-    return (gA + a.cognome).localeCompare(gB + b.cognome);
-};
-classe5A.sort(ordinaPerGruppoECognome);
-classe5B.sort(ordinaPerGruppoECognome);
+    const ordinaPerGruppoECognome = (a, b) => {
+        const gA = a.gruppo || "";
+        const gB = b.gruppo || "";
+        return (gA + a.cognome).localeCompare(gB + b.cognome);
+    };
+    classe5A.sort(ordinaPerGruppoECognome);
+    classe5B.sort(ordinaPerGruppoECognome);
 
-const listaFinale = [...resto, ...classe5A, ...classe5B];
+    const listaFinale = [...resto, ...classe5A, ...classe5B];
 
-    // 3. RIPARTIZIONE IN 3 COLONNE BILANCIATE
     const itemsPerCol = Math.ceil(listaFinale.length / 3);
     const colonneHtml = ["", "", ""];
 
@@ -506,18 +423,20 @@ const listaFinale = [...resto, ...classe5A, ...classe5B];
         const infoClasse = `${s.classe} ${s.percorso ? s.percorso : ""} ${s.gruppo ? "• " + s.gruppo : ""}`;
 
         let bgStyle = "";
-if (s.classe === "5A") {
-    if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;"; // lilla tenue
-    if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;"; // giallo tenue
-} else if (s.classe === "5B") {
-    if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;"; // lilla tenue 
-    if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;"; // giallo tenue
-}
+        if (s.classe === "5A") {
+            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
+        } else if (s.classe === "5B") {
+            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
+            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
+        }
+
+        const haAuto = COGNOMI_AUTO.includes(s.cognome.toUpperCase());
 
         colonneHtml[colIndex] += `
             <div class="bus-row" style="${bgStyle}">
                 <div class="b-cell b-room">${s.room || ""}</div>
-                <div class="b-cell b-name"><b>${s.cognome}</b></div>
+                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
                 <div class="b-cell b-class">${infoClasse}</div>
                 <div class="b-cell b-check"></div>
                 <div class="b-cell b-standby"></div> 
@@ -526,9 +445,6 @@ if (s.classe === "5A") {
         `;
     });
     
-    
-
-    // 4. GENERAZIONE INTERFACCIA COMPATTA A4 LANDSCAPE
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html lang="it"><head><title>Appello Bus - Schema Generico</title><style>
@@ -542,47 +458,39 @@ if (s.classe === "5A") {
             
             .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.6rem; text-transform: uppercase; border: 1px solid #000; height: 18px; }
             
-            /* Righe alzate a 22px per occupare meglio lo spazio sul foglio */
             .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
             
-            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
+            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; box-sizing: border-box; }
             
-            .b-room, .h-room { width: 25px; font-size: 0.58rem; }
+            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
+            .b-room, .h-room { width: 25px; font-size: 0.58rem; flex: 0 0 25px; }
             .b-room { border-right: 1px solid #ccc; font-weight: bold; background: #f5f5f5; }
             .h-room { border-right: 1px solid #555; }
             
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; }
+            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; flex: 0 0 120px; }
             .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
             .h-name { border-right: 1px solid #555; }
+
+            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 4px; padding-left: 0; }
             
-            .b-class, .h-class { width: 65px; font-size: 0.55rem; }
+            .b-class, .h-class { width: 65px; font-size: 0.55rem; flex: 0 0 65px; }
             .b-class { border-right: 1px solid #ccc; }
             .h-class { border-right: 1px solid #555; }
             
-            .b-check, .h-check { width: 22px; }
+            .b-check, .h-check { width: 22px; flex: 0 0 22px; }
             .b-check { border-right: 1px solid #ccc; }
             .h-check { border-right: 1px solid #555; }
             
-            .b-standby, .h-standby { width: 25px; border-right: 1px solid #ccc; }
+            .b-standby, .h-standby { width: 25px; flex: 0 0 25px; border-right: 1px solid #ccc; }
             .h-standby { border-right: 1px solid #555; }
 
             .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 4px; }
             
             .no-print { text-align: center; margin-bottom: 8px; }
-            
-            /* Gestione nascondi in stampa per pulsanti e sottotitolo dati */
             @media print { .no-print { display: none !important; } }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            
-            
-            
-            
-            
-            
-            
             <h2>BUS CONVITTORI</h2>
-            
             <div class="date-subtitle no-print"> — Studenti tot: <b>${listaFinale.length}</b></div>
             
             <div class="no-print">
@@ -592,23 +500,19 @@ if (s.classe === "5A") {
             </div>
 
             <div class="grid-container">
-                ${colonneHtml
-                    .map(
-                        (htmlDest) => `
+                ${colonneHtml.map(htmlDest => `
                     <div class="colonna">
                         <div class="column-header">
-                            <div class="h-cell h-room">Room</div>
+                            <div class="h-cell h-room">Rm</div>
                             <div class="h-cell h-name">Cognome</div>
                             <div class="h-cell h-class">Classe</div>
-                            <div class="h-cell h-check">Pres</div>
-                            <div class="h-cell h-standby">StBy</div>
+                            <div class="h-cell h-check">Ce</div>
+                            <div class="h-cell h-standby">Sb</div>
                             <div class="h-cell h-notes">Note</div>
                         </div>
                         ${htmlDest}
                     </div>
-                `
-                    )
-                    .join("")}
+                `).join("")}
             </div>
         </body></html>
     `);
