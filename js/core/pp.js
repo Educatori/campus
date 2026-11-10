@@ -4,21 +4,25 @@
  * Logica Permessi Permanenti + stato assenza/dinner:
  *   • analizzaPP()                     → deduce assente/dinnerNo da ORARI_PP
  *   • controllaDinnerAutomatico()      → applica dinner-no in base agli orari
- * -- isPPNoDinnerOggi()         → campus_hub-script.js - dinamico da ORARI_PP
  *   • mostraPopupPPBloccato()          → popup "imposto dal PP"
  *   • mostraPopupAssenzaProgrammata()  → popup "imposto da assenza programmata"
  *   • toggleAssenza()                  → click su ASSENTE
  *   • toggleDinnerNo()                 → click su NON CENA
  *   • verificaStudenteStandBy()        → usata dalle stampe bus/convitto
+ *   • generaTestoLateDinner()          → testo late dinner per la stampa dinner
  *
  * Dipendenze runtime (globali al momento della chiamata):
- *   - PAROLE_ASSENZA, PAROLE_NO_RIENTRO  → campus_hub-script.js (const)
+ *   - PAROLE_ASSENZA, PAROLE_NO_RIENTRO  → config-static.js (window)
  *   - getDataCorrente()                  → core/stato.js
  *   - turnoStudente()                    → core/turni.js
  *   - normalizzaOrario()                 → campus_hub-script.js
- *   - isAssenteProgrammato()             → campus_hub-script.js
- *   - salvaDatiLocale()                  → campus_hub-script.js
- *   - ORARI_PP                           → data-loader.js (window)
+ *   - isAssenteProgrammato()             → pannello/assenze-programmate.js
+ *   - salvaDatiLocale()                  → core/persistenza.js
+ *   - ORARI_PP                           → data-loader.js (window) oppure
+ *                                          offline/permessi_26_offline.js
+ *   - ASSENTI_PERMESSO                   → data-loader.js (window) oppure
+ *                                          offline/permessi_26_offline.js
+ *   - LAB_DINNER                         → config-static.js (window)
  *
  * ⚠️ Caricare DOPO core/stato.js e core/turni.js.
  * ─────────────────────────────────────────────────────────────
@@ -185,8 +189,8 @@ function mostraPopupPPBloccato(cognome, etichetta, motivo) {
         animation: ppFadeIn 0.2s ease;
     `;
     popup.setAttribute('role', 'alert');
-popup.setAttribute('aria-live', 'assertive');
-    
+    popup.setAttribute('aria-live', 'assertive');
+
     popup.innerHTML = `
         <div style="font-size:1.4em;margin-bottom:4px;">🔒</div>
         <div style="font-weight:700;margin-bottom:6px;">
@@ -232,7 +236,7 @@ function mostraPopupAssenzaProgrammata(cognome) {
         box-shadow: 0 6px 24px rgba(0,0,0,0.25);
         max-width: 420px;
         text-align: center;
-                animation: ppFadeIn 0.2s ease;
+        animation: ppFadeIn 0.2s ease;
     `;
     popup.setAttribute('role', 'alert');
     popup.setAttribute('aria-live', 'assertive');
@@ -335,21 +339,22 @@ function verificaStudenteStandBy(r) {
 // ═══════════════════════════════════════════════════════════════
 // generaTestoLateDinner() — Costruisce la stringa "late dinner"
 // ═══════════════════════════════════════════════════════════════
-// Genera il testo dei permessi che richiedono un late dinner,
-// SOLO per il LAB previsto nel giorno della settimana corrente.
+// Legge direttamente da ORARI_PP (stessa reference in offline e
+// online):
+//   • offline → popolata da offline/permessi_26_offline.js
+//   • online  → popolata da data-loader.js §3c (mutazione in-place)
 //
-//   Lunedì    (1) → LAB 2IeFP
-//   Martedì   (2) → LAB 2A
-//   Mercoledì (3) → LAB 2B
-//   Giovedì   (4) → LAB 5A/5B
-//   Venerdì   (5) → nessun LAB
+// Un cognome entra nella lista late dinner se, per il giorno
+// corrente, soddisfa TUTTE queste condizioni:
+//   1. ha un permesso in ORARI_PP[giorno] con out e in validi (hh:mm)
+//   2. l'orario di ingresso `in` è DOPO il limite del suo turno
+//      (18:30 se turno 1, 19:15 se turno 2) → è un late dinner
+//   3. non ha parole di ASSENZA/NO_RIENTRO nel PP (analizzaPP)
+//   4. non è in ASSENTI_PERMESSO[giorno]
+//   5. non è marcato .assente nel DOM (toggle o assenza programmata)
 //
-// Formato output:
-//   "LAB 2IeFP - PERMESSI CHE RICHIEDONO UN LATE DINNER:
-//    CHIADÒ [18:00 > 21:30], DELL'AQUILA [17:30 > 20:00], ..."
-//
-// Gli orari e l'inclusione di ogni cognome vengono dedotti da
-// ORARI_PP, filtrando chi ha assenza/no-cena imposti dal PP.
+// L'etichetta LAB deriva da LAB_DINNER[giorno] (config-static.js):
+// niente più liste di cognomi hardcoded.
 //
 // @param {number} giorno - giorno settimana (0=Dom … 6=Sab)
 // @returns {string}      - testo pronto per la textarea della stampa
@@ -357,52 +362,78 @@ function verificaStudenteStandBy(r) {
 function generaTestoLateDinner(giorno) {
     if (typeof ORARI_PP === "undefined" || !ORARI_PP) return "";
 
-    // ─── Mappa giorno → LAB attivo + cognomi da controllare ───
-    const LAB_PER_GIORNO = {
-        1: {   // Lunedì
-            label: "LAB 2IeFP",
-            cognomi: ["CHIADÒ", "DELL'AQUILA", "GASPARD", "MENALDINO"]
-        },
-        2: {   // Martedì
-            label: "LAB 2A",
-            cognomi: ["DANNA", "DELL'AQUILA", "GIOVANNELLI P", "PAONESSA", "SAITTA"]
-        },
-        3: {   // Mercoledì
-            label: "LAB 2B",
-            cognomi: ["CHIADÒ", "DELL'AQUILA", "MENALDINO"]
-        },
-        4: {   // Giovedì
-            label: "LAB 5A/5B",
-            cognomi: ["CHIADÒ", "DANNA", "DELL'AQUILA", "GIOVANNELLI P", "MENALDINO"]
-        }
-        // 5 (Venerdì) → nessun LAB
-        // 0 (Domenica), 6 (Sabato) → nessun LAB
-    };
+    // ─── Etichetta LAB del giorno (da config-static.js) ───
+    const classiLab = (typeof LAB_DINNER !== "undefined" && LAB_DINNER[giorno]) || [];
+    const labelLab  = classiLab.length
+        ? `LAB ${classiLab.join("/")}`
+        : "PERMESSI";
 
-    const config = LAB_PER_GIORNO[giorno];
-    if (!config) return "";   // giorno senza LAB → stringa vuota
+    // ─── Limite orario per turno (coerente con controllaDinnerAutomatico) ───
+    const limiteTurno = (turno) => (turno === 1 ? "18:30" : "19:15");
 
-    const { label, cognomi } = config;
     const voci = [];
 
-    cognomi.forEach((cognome) => {
+    Object.keys(ORARI_PP).forEach((cognome) => {
         const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giorno];
         if (!pp) return;
 
         const out = normalizzaOrario(pp.out || "");
         const inn = normalizzaOrario(pp.in  || "");
+        // Orari non numerici (es. "NO R", "SOSP") → non sono late dinner
         if (!out.includes(":") || !inn.includes(":")) return;
 
-        // Esclude chi ha assenza o no-cena imposti dal PP
+        // ─── FILTRO 1: PP dice assente / no-cena ───
         const stato = analizzaPP(cognome, giorno);
         if (stato.assente || stato.dinnerNo) return;
 
-        voci.push(`${cognome} [${out} > ${inn}]`);
+        // ─── FILTRO 2: ASSENTI_PERMESSO per il giorno corrente ───
+        // (nel file reale gli array contengono '', quindi è inerte,
+        //  ma resta utile se un giorno verranno popolati)
+        if (typeof ASSENTI_PERMESSO !== "undefined" && ASSENTI_PERMESSO[giorno]) {
+            const assentiOggi = ASSENTI_PERMESSO[giorno]
+                .map(c => (c || "").toUpperCase())
+                .filter(Boolean);
+            if (assentiOggi.includes(cognome.toUpperCase())) return;
+        }
+
+        // ─── FILTRO 3: SOLO assenza "viva" nel DOM ───
+        // NON guardare dinnerno: chi ha un late dinner ha per
+        // definizione dinnerno=1 (orario tardi), quindi escluderlo
+        // cancellerebbe proprio i late dinner.
+        const riga = document.querySelector(
+            `.student-row[data-cognome="${cognome.toUpperCase().replace(/"/g, '\\"')}"]`
+        );
+        if (riga && riga.classList.contains("assente")) return;
+
+       // ─── FILTRO 4: è davvero un late dinner? ───
+// È late dinner se all'ora limite del suo turno è FUORI:
+//   • esce prima o all'inizio cena  → out <= limite
+//   • rientra dopo l'inizio cena    → in  >  limite
+// Se rientra prima (in <= limite) è a cena anche se era uscito.
+let classe = riga ? riga.dataset.classe : "";
+if (!classe) {
+    const s = (typeof studenticonvittori !== "undefined" && studenticonvittori)
+        ? studenticonvittori.find(
+            x => (x.cognome || "").toUpperCase() === cognome.toUpperCase()
+          )
+        : null;
+    classe = s ? s.classe : "";
+}
+const turno  = classe ? turnoStudente(classe, cognome) : 1;
+const limite = limiteTurno(turno);
+
+const isLateDinner = (out <= limite) && (inn > limite);
+if (!isLateDinner) return;
+
+voci.push(`${cognome} [${out} > ${inn}]`);
     });
 
     if (!voci.length) return "";
 
-    return `${label} - PERMESSI CHE RICHIEDONO UN LATE DINNER: ${voci.join(", ")}`;
+    // Ordina alfabeticamente per leggibilità
+    voci.sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+
+    return `${labelLab} - PERMESSI CHE RICHIEDONO UN LATE DINNER: ${voci.join(", ")}`;
 }
 
 // Espone globalmente (usata da js/stampe/dinner.js)
