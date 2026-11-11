@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -307,7 +307,10 @@
      SCRIPTS
      ============================================================ -->
 
-
+<!-- dati condivisi (devono precedere ogni consumatore) -->
+<script src="js/dati/cognomi-auto.js"></script>
+<script src="js/dati/note-classi.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
 
 <!-- dati offline: SEMPRE, come script classici -->
 <script src="offline/studenti_26_offline.js"></script>
@@ -352,6 +355,48 @@ console.log(`🎨 Body class: mode-${window.APP_MODE}`);
 function avviaOffline() {
     console.log('📴 Bootstrap OFFLINE');
 
+        // ── RIPRISTINO SNAPSHOT DEL GIORNO ──
+    // Se c'è uno snapshot di OGGI in localStorage, usalo al posto
+    // di offline/*.js. Così, se manca la rete dopo le 11:00,
+    // ritrovi esattamente lo stato caricato stamattina da Firebase.
+    try {
+        const raw = localStorage.getItem('snapshotGiorno');
+        if (raw) {
+            const s = JSON.parse(raw);
+            const oggi = new Date();
+            const chiaveOggi = [
+                String(oggi.getDate()).padStart(2, '0'),
+                String(oggi.getMonth() + 1).padStart(2, '0'),
+                oggi.getFullYear()
+            ].join('-');
+
+            if (s.data === chiaveOggi) {
+                if (Array.isArray(s.studenti) && s.studenti.length > 0) {
+                    window.tuttiStudenti = s.studenti;
+                }
+                if (s.orariPP && window.ORARI_PP && typeof window.ORARI_PP === 'object') {
+                    Object.keys(window.ORARI_PP).forEach(k => delete window.ORARI_PP[k]);
+                    Object.assign(window.ORARI_PP, s.orariPP);
+                }
+                if (s.assentiPermesso) {
+                    window.ASSENTI_PERMESSO = s.assentiPermesso;
+                }
+                if (s.overrideTurni && window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
+                    Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
+                    Object.assign(window.OVERRIDE_TURNI_DINNER, s.overrideTurni);
+                }
+                if (s.datiGiorno) {
+                    localStorage.setItem('datiConvitto', JSON.stringify(s.datiGiorno));
+                }
+                console.log(`📅 Snapshot di oggi ripristinato (${s.data})`);
+            } else {
+                console.warn(`⚠️ Snapshot vecchio (${s.data}), uso offline/*.js`);
+            }
+        }
+    } catch (e) {
+        console.error('❌ Errore ripristino snapshot:', e);
+    }
+    
     const NOTE_KEY = 'convitto_note_locali';
 
     window.salvaNoteFirebase = (testo) => {
@@ -384,6 +429,8 @@ function avviaOffline() {
         badge.classList.add('disconnected');
     }
 
+    
+    
         window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
     console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
@@ -594,6 +641,37 @@ if (window.APP_MODE === 'offline') {
 } else if (window.APP_MODE === 'online') {
     avviaOnline().catch(err => console.error('❌ Bootstrap online:', err));
 }
+ /* ── BADGE OFFLINE / ONLINE ── */
+function aggiornaBadgeConnessione() {
+    const badge = document.getElementById('connection-status');
+    if (!badge) return;
+
+    if (!navigator.onLine) {
+        badge.textContent = '🔴 OFFLINE — dati congelati';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+        return;
+    }
+
+    const origin = window.APP_ORIGIN;
+    if (origin === 'firebase') {
+        badge.textContent = '🟢 Firebase';
+        badge.classList.add('connected');
+        badge.classList.remove('disconnected');
+    } else if (origin === 'locale-reale' || origin === 'localhost-demo') {
+        badge.textContent = '📴 Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    } else {
+        badge.textContent = '🎭 Demo';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    }
+}
+
+window.addEventListener('online',  aggiornaBadgeConnessione);
+window.addEventListener('offline', aggiornaBadgeConnessione);
+document.addEventListener('DOMContentLoaded', aggiornaBadgeConnessione);
     
 </script>
 
