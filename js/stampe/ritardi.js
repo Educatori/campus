@@ -17,11 +17,9 @@
     }
 
     const validi = studenticonvittori.filter((s) => {
-        if (!s.cognome) return false;
-        const classe = s.classe.toUpperCase();
-        const escluse = ["2A", "2B"];
-        return !escluse.includes(classe) && !classe.includes("P");
-    });
+    if (!s.cognome) return false;
+    return window.haDirittoAlBusVariante(s, "mattina");
+});
 
     validi.sort((a, b) => a.cognome.localeCompare(b.cognome, "it", { sensitivity: "base" }));
 
@@ -56,9 +54,7 @@
         const cognomeUpper = s.cognome.toUpperCase();
         const classeUpper = (s.classe || "").toUpperCase();
 
-        let notaGiorni = "";
-        if (classeUpper === "4C")      notaGiorni = "solo GIO";
-        else if (classeUpper === "5B") notaGiorni = "mai GIO";
+        const notaGiorni = (window.NOTE_CLASSI || {})[classeUpper] || "";
 
         const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
         const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
