@@ -25,15 +25,14 @@ function generaPopUpStampaTransfer() {
     console.log(`📋 Classi in laboratorio oggi:`, classiInLabOggi);
 
     const classi = {};
-    const CLASSI_ESCLUSE = ["1P", "2P", "3P", "2A", "2B", "4C"];
 
-    tuttiStudenti.forEach((s) => {
-        if (!s.cognome || s.cognome.trim() === "") return;
-        const nomeClasse = s.classe ? s.classe.toUpperCase().trim() : "SENZA CLASSE";
-        if (CLASSI_ESCLUSE.includes(nomeClasse)) return;
-        if (!classi[nomeClasse]) classi[nomeClasse] = [];
-        classi[nomeClasse].push(s);
-    });
+tuttiStudenti.forEach((s) => {
+    if (!s.cognome || s.cognome.trim() === "") return;
+    if (!window.haDirittoAlBusVariante(s, "transfer")) return;
+    const nomeClasse = s.classe ? s.classe.toUpperCase().trim() : "SENZA CLASSE";
+    if (!classi[nomeClasse]) classi[nomeClasse] = [];
+    classi[nomeClasse].push(s);
+});
 
     const elencoClassi = Object.keys(classi).sort();
 
