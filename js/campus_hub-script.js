@@ -116,18 +116,10 @@ const PAROLE_NO_RIENTRO = [
     "dopo", "post"
 ];
 /* ─────────────────────────────────────────────────────────────
-   COGNOMI CON AUTO (🚗) — lista UNICA condivisa da tutte le
-   stampe che mostrano il simbolo auto:
-     • generaPopUpStampaBus           (Bus Domattina)
-     • generaPopUpStampaBusPomeriggio (Bus Pomeriggio)
-     • generaPopUpStampaSchedaRitardi (Ritardi Mattino)
-   Aggiungi qui un cognome → appare in tutte le stampe.
+   COGNOMI CON AUTO (🚗) — la lista vive in js/dati/cognomi-auto.js
+   (window.COGNOMI_AUTO). Qui la consumiamo soltanto.
    ───────────────────────────────────────────────────────────── */
-const COGNOMI_AUTO = [
-     "CHESSA", "CHIADÒ CAPONET", "COMIOTTO", "CONTA", 
-    "DANNA", "DI TRIA", "GIOVANNELLI T", "MENALDINO", 
-    "NICOLASI", "RASO", "TAPPELLA"
-];
+const COGNOMI_AUTO = window.COGNOMI_AUTO || [];
 
 
 
@@ -274,9 +266,7 @@ aggiornaSimBadge();
 }
 
 function haDirittoAlBus(s) {
-    if (!s) return false;
-    const classe = s.classe.toUpperCase();
-    return !["2A", "2B", "4C"].includes(classe) && !classe.includes("P");
+    return window.haDirittoAlBusVariante(s, "standard");
 }
 
 
