@@ -1,3 +1,14 @@
+/**
+ * ⚠️  DUMMY FILE — DATI FANTOCCIO (anagrafica locale)
+ * ─────────────────────────────────────────────────────────────
+ * Contiene legenda, note, educatore e letti foresteria.
+ * I nomi sono inventati.
+ *
+ * ⚠️  NON aggiungere dati reali qui.
+ *     Sul terminale offline, questo file viene SOSTITUITO con
+ *     la versione contenente i dati veri (mai committata).
+ * ─────────────────────────────────────────────────────────────
+ */
 window.ANAGRAFICA_LOCALE = [
     {
       "classe": "",
@@ -9,7 +20,7 @@ window.ANAGRAFICA_LOCALE = [
     {
       "classe": "",
       "cognome": "NOTE",
-      "nome": "📞3296594920",
+      "nome": "📞 0000000000",
       "room": "112",
       "tipo": "nota"
     },
@@ -78,3 +89,8 @@ window.ANAGRAFICA_LOCALE = [
       "room": "122"
     }
 ];
+
+console.warn(
+    `⚠️  room_26_offline.js — DUMMY FILE (${window.ANAGRAFICA_LOCALE.length} righe fantoccio). ` +
+    `Sul terminale offline questo file deve essere SOSTITUITO con i dati reali.`
+);
