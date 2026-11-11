@@ -4,72 +4,24 @@
 // Firebase Realtime Database, con fallback ai dati locali.
 // Salva automaticamente le modifiche giornaliere su Firebase.
 //
-// 📌 CONFIGURAZIONE STATICA (LAB_PRANZO, TURNI_DINNER, ecc.)
-//    È definita QUI (top-level) come fallback, così in online
-//    è sempre disponibile anche se offline/*.js non viene servito.
+// 📌 CONFIGURAZIONE STATICA (PAROLE_*, LAB_PRANZO, TURNI_DINNER,
+//    LAB_DINNER, OVERRIDE_TURNI_DINNER_CLASSI, CALENDARIO_GRUPPI_DINNER)
+//    Vive in js/core/config-static.js, caricato SEMPRE (online e offline).
+//    NON va duplicata qui.
 //
 // ⚠️ OVERRIDE_TURNI_DINNER (cognomi → turno) NON è più qui:
-//    viene caricato da Firebase in caricaDatiFirebase() §3c-bis.
+//    arriva da offline/permessi_26_offline.js (offline) o da Firebase
+//    (§3c-bis, online). Qui resta solo un fallback vuoto.
 // ─────────────────────────────────────────────────────────────
 
 import { db, ref, get, set, onValue } from './firebase-campus_hub-config.js';
 
 // ─────────────────────────────────────────────────────────────
-// 0a. CONFIGURAZIONE STATICA (non sensibile)
-//     Uso `window.X = window.X || {...}` per non sovrascrivere
-//     eventuali definizioni già presenti in modalità offline.
+// 0a. FALLBACK MINIMI
+//     Solo per i dati che possono mancare in ENTRAMBE le fonti
+//     (offline e Firebase). La configurazione statica NON va qui.
 // ─────────────────────────────────────────────────────────────
-window.PAROLE_ASSENZA = window.PAROLE_ASSENZA || [
-    "ass", "assente",
-    "sosp", "sospeso", "sospesa",
-    "gita", "trasferta", "malattia"
-];
-
-window.PAROLE_NO_RIENTRO = window.PAROLE_NO_RIENTRO || [
-    "n", "no", "non", "nor",
-    "no r", "no rientro", "x"
-];
-
-window.LAB_PRANZO = window.LAB_PRANZO || {
-    "1": ["3A", "5A", "5B"],
-    "2": ["3B", "4A"],
-    "3": ["1A", "4B"],
-    "4": ["1B", "4C"]
-};
-
-window.TURNI_DINNER = window.TURNI_DINNER || {
-    "1": ["1A", "1B", "1P", "2A", "2B", "2P", "3P"],
-    "2": ["3A", "3B", "4A", "4B", "4C", "5A", "5B"]
-};
-
-window.LAB_DINNER = window.LAB_DINNER || {
-    "1": ["2P"],
-    "2": ["2A"],
-    "3": ["2B"],
-    "4": ["5A", "5B"]
-};
-
-window.OVERRIDE_TURNI_DINNER_CLASSI = window.OVERRIDE_TURNI_DINNER_CLASSI || {
-    "1A": { 3: 2 },
-    "1B": { 3: 2 }
-};
-
-// OVERRIDE_TURNI_DINNER: vuoto di default. In online viene
-// popolato da Firebase (§3c-bis). In offline arriva da
-// offline/permessi_26_offline.js prima di questo modulo.
 window.OVERRIDE_TURNI_DINNER = window.OVERRIDE_TURNI_DINNER || {};
-
-window.CALENDARIO_GRUPPI_DINNER = window.CALENDARIO_GRUPPI_DINNER || {
-    "10/09/2026": "gr1", "17/09/2026": "gr2", "24/09/2026": "gr1", "01/10/2026": "gr2",
-    "08/10/2026": "gr1", "15/10/2026": "gr2", "22/10/2026": "gr1", "29/10/2026": "gr2",
-    "05/11/2026": "gr1", "12/11/2026": "gr2", "19/11/2026": "gr1", "26/11/2026": "gr2",
-    "03/12/2026": "gr1", "10/12/2026": "gr2", "17/12/2026": "gr1", "07/01/2027": "gr2",
-    "14/01/2027": "gr1", "21/01/2027": "gr2", "28/01/2027": "gr1", "04/02/2027": "gr2",
-    "18/02/2027": "gr2", "25/02/2027": "gr1", "04/03/2027": "gr2", "11/03/2027": "gr1",
-    "18/03/2027": "gr2", "01/04/2027": "gr2", "08/04/2027": "gr1", "15/04/2027": "gr2",
-    "22/04/2027": "gr1", "29/04/2027": "gr2", "06/05/2027": "gr1", "13/05/2027": "gr2",
-    "20/05/2027": "gr1", "27/05/2027": "gr2", "03/06/2027": "gr1"
-};
 
 // ─────────────────────────────────────────────────────────────
 // 0b. BACKUP dei dati OFF
@@ -177,24 +129,24 @@ async function caricaDatiFirebase() {
             }
         }
 
-// 3c-bis. Override turni dinner (cognomi → turno per giorno)
-// Mutazione IN-PLACE: OVERRIDE_TURNI_DINNER è usato bare da turni.js,
-// quindi deve restare la stessa reference del const del file offline.
-const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
-if (ovSnap.exists()) {
-    const ovData = ovSnap.val();
-    if (ovData && Object.keys(ovData).length > 0) {
-        if (window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
-            Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
-            Object.assign(window.OVERRIDE_TURNI_DINNER, ovData);
+    // 3c-bis. Override turni dinner (cognomi → turno per giorno)
+    // Mutazione IN-PLACE: OVERRIDE_TURNI_DINNER è usato bare da turni.js,
+    // quindi deve restare la stessa reference del const del file offline.
+        const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
+        if (ovSnap.exists()) {
+            const ovData = ovSnap.val();
+            if (ovData && Object.keys(ovData).length > 0) {
+                if (window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
+                    Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
+                    Object.assign(window.OVERRIDE_TURNI_DINNER, ovData);
+                } else {
+                    window.OVERRIDE_TURNI_DINNER = ovData;
+                }
+                console.log(`   🍽 Override turni: ${Object.keys(window.OVERRIDE_TURNI_DINNER).length} studenti`);
+            }
         } else {
-            window.OVERRIDE_TURNI_DINNER = ovData;
+            console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
         }
-        console.log(`   🍽 Override turni: ${Object.keys(window.OVERRIDE_TURNI_DINNER).length} studenti`);
-    }
-} else {
-    console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
-}
 
     // 3d. Assenti permesso
         const assSnap = await get(ref(db, 'assenti_permesso'));
@@ -209,12 +161,12 @@ if (ovSnap.exists()) {
     // 3e. Dati giornalieri
         const chiaveOggi = dataKeyFirebase(new Date());
         const giornoSnap = await get(ref(db, `convitto/${chiaveOggi}`));
+        let datiLS = {};
         if (giornoSnap.exists()) {
             const nodo = giornoSnap.val();
             const datiGiorno = nodo.dati || {};
             console.log(`   💾 Dati giornalieri (${chiaveOggi}): ${Object.keys(datiGiorno).length} studenti`);
 
-            const datiLS = {};
             for (const [cognome, info] of Object.entries(datiGiorno)) {
                 datiLS[cognome] = {
                     esce:     info.esce     ?? "",
@@ -227,22 +179,37 @@ if (ovSnap.exists()) {
             localStorage.setItem('datiConvitto', JSON.stringify(datiLS));
         }
 
+    // 3e-bis. SNAPSHOT DATATO DELLO STATO DEL GIORNO
+    // Serve a far ripartire campus_hub.html da qui se manca la rete
+    // dopo le 11:00 (i dati del sito esterno sono già "congelati").
+        try {
+            const snapshot = {
+                data:            chiaveOggi,
+                orariPP:         window.ORARI_PP || {},
+                assentiPermesso: window.ASSENTI_PERMESSO || {},
+                overrideTurni:   window.OVERRIDE_TURNI_DINNER || {},
+                studenti:        window.tuttiStudenti || [],
+                datiGiorno:      datiLS
+            };
+            localStorage.setItem('snapshotGiorno', JSON.stringify(snapshot));
+            console.log(`💾 Snapshot salvato per ${chiaveOggi}`);
+        } catch (e) {
+            console.warn('⚠️ Impossibile salvare snapshot:', e);
+        }
+
     // 3f. Ultimo reset
         const resetSnap = await get(ref(db, 'convitto/ultimoReset'));
         if (resetSnap.exists()) {
             localStorage.setItem('dataUltimoReset', resetSnap.val());
         }
 
-    
         // Forza il ridisegno della Side Panel con i dati appena scaricati da Firebase
         if (typeof window.popolaListaPermessi === 'function') {
             window.popolaListaPermessi();
             console.log("🔄 Side Panel aggiornata con i permessi da Firebase");
         }
-    
-        // 👇 FORZA IL RIDISEGNO DELLA LISTA 👇
-        // Aspetta mezzo secondo per essere sicuro che il DOM sia pronto, 
-        // poi ridisegna la lista con i 121 studenti appena scaricati.
+
+        // Forza il ridisegno della lista con i 121 studenti appena scaricati.
         setTimeout(() => {
             if (typeof window.ricaricaListaStudenti === 'function') {
                 window.ricaricaListaStudenti();
@@ -250,14 +217,14 @@ if (ovSnap.exists()) {
             }
         }, 500);
 
-                console.log('✅ Firebase: caricamento completato');
+        console.log('✅ Firebase: caricamento completato');
         return true;
 
-    } catch (error) {                                      
-        console.error('❌ Errore caricamento Firebase:', error); 
-        return false;                                      
-    }                                                      
-}                                                         
+    } catch (error) {
+        console.error('❌ Errore caricamento Firebase:', error);
+        return false;
+    }
+}
 
 // ─────────────────────────────────────────────────────────────
 // 4. SALVATAGGIO SU FIREBASE
