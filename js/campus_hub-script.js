@@ -125,7 +125,8 @@ const PAROLE_NO_RIENTRO = [
    ───────────────────────────────────────────────────────────── */
 const COGNOMI_AUTO = [
      "CHESSA", "CHIADÒ CAPONET", "COMIOTTO", "CONTA", 
-    "DANNA", "DI TRIA", "MENALDINO", "NICOLASI", "RASO", "TAPPELLA"
+    "DANNA", "DI TRIA", "GIOVANNELLI T", "MENALDINO", 
+    "NICOLASI", "RASO", "TAPPELLA"
 ];
 
 
