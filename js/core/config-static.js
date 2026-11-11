@@ -25,7 +25,7 @@ window.LAB_DINNER = {
 };
 
 window.OVERRIDE_TURNI_DINNER_CLASSI = {
-    "1A": { 3: 2 },
+    
     "1B": { 3: 2 }
 };
 
