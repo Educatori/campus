@@ -371,44 +371,54 @@ const notaGiornoCorrente =
             <textarea class="editable-notes" rows="${(notaGiornoCorrente.match(/\n/g) || []).length + 2}">${notaGiornoCorrente}</textarea>
             
             <!-- ═══════════ TURNO 1 ═══════════ -->
-            <div class="section">
-                <h3>1° turno — 18:30</h3>
-            <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI ${generaTestoClassiTurno(1)}
-            </div>
-                
-            <div class="stats-row">
-                    <span>Assenti: <input type="number" value="${a1}"></span>
-                    <span>Presenti: <input type="number" value="${p1}"></span>
-                    <span>+ EDU: <input type="number" value="2"></span>
-            </div>
-                
-            <div class="label-sezione">Esclusi</div>
-                ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true })}
-                
-            <div class="label-sezione">Cambi Turno</div>
-                ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
-            </div>
+<div class="section">
+    <h3>1° turno — 18:30</h3>
+    <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+        CLASSI ${generaTestoClassiTurno(1)}
+    </div>
+
+    <div class="stats-row">
+        <span>Esclusi: <input type="number" value="${a1}"></span>
+        <span>Presenti: <input type="number" value="${p1}"></span>
+        <span>+ EDU: <input type="number" value="2"></span>
+    </div>
+
+    <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+        <span>Assenti: <input type="number" value="${n1.filter(o => !o.nota).length}" style="font-size:1.1em; width:55px;"></span>
+        <span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>
+    </div>
+
+    <div class="label-sezione">Esclusi</div>
+    ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true })}
+
+    <div class="label-sezione">Cambi Turno</div>
+    ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
+</div>
             
-            <!-- ═══════════ TURNO 2 ═══════════ -->
-            <div class="section">
-                <h3>2° turno — 19:15</h3>
-            <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
-                    CLASSI ${generaTestoClassiTurno(2)}
-            </div>
-                
-            <div class="stats-row">
-                    <span>Assenti: <input type="number" value="${a2}"></span>
-                    <span>Presenti: <input type="number" value="${p2}"></span>
-                    <span>+ EDU: <input type="number" value="2"></span>
-            </div>
-                
-            <div class="label-sezione">Esclusi</div>
-                ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
-                
-            <div class="label-sezione">Cambi Turno</div>
-                ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
-            </div>
+          <!-- ═══════════ TURNO 2 ═══════════ -->
+<div class="section">
+    <h3>2° turno — 19:15</h3>
+    <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+        CLASSI ${generaTestoClassiTurno(2)}
+    </div>
+
+    <div class="stats-row">
+        <span>Esclusi: <input type="number" value="${a2}"></span>
+        <span>Presenti: <input type="number" value="${p2}"></span>
+        <span>+ EDU: <input type="number" value="2"></span>
+    </div>
+
+    <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+        <span>Assenti: <input type="number" value="${n2.filter(o => !o.nota).length}" style="font-size:1.1em; width:55px;"></span>
+        <span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>
+    </div>
+
+    <div class="label-sezione">Esclusi</div>
+    ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
+
+    <div class="label-sezione">Cambi Turno</div>
+    ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
+</div>
             
         </body></html>`);
     popup.document.close();
