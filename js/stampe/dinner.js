@@ -383,9 +383,12 @@ const notaGiornoCorrente =
         <span>+ EDU: <input type="number" value="2"></span>
     </div>
 
-    <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-        <span>Assenti: <input type="number" value="${n1.filter(o => !o.nota).length}" style="font-size:1.1em; width:55px;"></span>
-        <span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>
+        <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+        <!-- Per riattivarla: rimuovere i marker di commento <span>Assenti: <input type="number" value="${n1.filter(o => !o.nota).length}" 
+        style="font-size:1.1em; width:55px;"></span> -->
+        ${n1.filter(o => o.nota === 'LAB').length > 0
+            ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+            : ''}
     </div>
 
     <div class="label-sezione">Esclusi</div>
@@ -409,9 +412,12 @@ const notaGiornoCorrente =
     </div>
 
     <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-        <span>Assenti: <input type="number" value="${n2.filter(o => !o.nota).length}" style="font-size:1.1em; width:55px;"></span>
-        <span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>
-    </div>
+    <!-- Per riattivarla: rimuovere i marker di commento <span>Assenti: <input type="number" 
+    value="${n2.filter(o => !o.nota).length}" style="font-size:1.1em; width:55px;"></span> -->
+    ${n2.filter(o => o.nota === 'LAB').length > 0
+        ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+        : ''}
+</div>
 
     <div class="label-sezione">Esclusi</div>
     ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
