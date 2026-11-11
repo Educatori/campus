@@ -1,520 +1,701 @@
-/** 
- * js/stampe/bus.js
- * ─────────────────────────────────────────────────────────────
- * Stampe BUS — tre varianti:
- *   • generaPopUpStampaBus            (bus domattina)
- *   • generaPopUpStampaBusPomeriggio  (bus pomeriggio, appello settimanale)
- *   • generaPopUpStampaBusGenerico    (schema generico)
- * ─────────────────────────────────────────────────────────────
- */
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Hub — Cruscotto Operativo</title>
 
-// --- MATTINO BUS
-function generaPopUpStampaBus(ordinamento) {
-    ordinamento = ordinamento || 'alfabetico';
+<!-- Foglio di stile unico -->
+<link rel="stylesheet" href="css/campus_hub.css">
+    <!-- ===== PWA ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 
-    const oggi = new Date(
-        (typeof getDataCorrente === 'function') ? getDataCorrente() : new Date()
-    );
+<!-- Standard universale (Chrome, Edge, Android) -->
+<meta name="mobile-web-app-capable" content="yes">
 
-    const adesso = new Date();
-    const dataOggi = adesso.toLocaleDateString("it-IT");
-    const oraEsatta = adesso.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+<!-- Compatibilità iOS (versioni precedenti a 16.4) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Campus">
 
-    const domani = new Date(oggi);
-    domani.setDate(oggi.getDate() + 1);
-    const dataDomaniTestuale = domani.toLocaleDateString("it-IT", {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
+<!-- AMBIENTE: deve essere il PRIMO script. -->
+<script src="js/ambiente.js"></script>
+    
+</head>
+    
+<body>
+
+<!-- ============================================================
+     LOGIN OVERLAY (online)
+     ============================================================ -->
+<div id="loginScreen">
+    <div class="login-container">
+       <h2>LOGIN</h2>
+        <p>Inserisci le credenziali per continuare</p>
+        <input type="email"    id="loginEmail"    placeholder="Email"    autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button id="loginBtn">ACCEDI</button>
+        <div id="loginError" class="error" role="alert"></div>
+    </div>
+</div>
+    
+    
+<!-- ============================================================
+     CONTENUTO APP
+     ============================================================ -->
+<div id="appContent" style="display:none;">
+<div id="modeBanner"></div>
+<div class="container">
+
+    <!-- ── HEADER ─────────────────────────────────────────── -->
+        
+    <header>
+        <div class="header-brand">
+            <h1><a href="index.html">Campus hub</a></h1>
+            <div id="todayDate"><i>giovedì 4 giugno 2026</i></div>
+        </div>
+
+        <div id="digitalClock">15:55:38</div>
+
+       <div class="header-actions">
+    <a id="linkStorico" href="storico.html" target="_blank" rel="noopener"
+       title="Consulta lo storico giornaliero"
+       class="btn-app btn-app-more">
+        📊 Storico
+    </a>
+    <div id="connection-status" class="status-badge connected"
+     role="status" aria-live="polite">🟢 Caricamento…</div>
+    <button type="button" id="btnLogout" class="btn-app btn-app-danger" title="Esci" aria-label="Esci dall'account">
+        ❌ ESCI
+    </button>
+</div>
+    </header>
+
+    <!-- ── BADGE SIMULAZIONE (nascosto di default) ─────────── -->
+    <div id="simBadge" class="sim-badge"></div>
+
+    <!-- ── ULTIMO RESET (spostato sopra le note) ───────────── -->
+    <div id="info-reset">Ultimo aggiornamento: MAI</div>
+
+    <!-- ── NOTE ───────────────────────────────────────────── -->
+    <div class="note-toolbar-container">
+        <div class="note-content">
+            <span class="note-icon">📌</span>
+            <textarea id="dailyNotes" placeholder="Note condivise visibili a tutti gli utenti Campus Hub..."
+                      class="note-input" rows="4"></textarea>
+            <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note" aria-label="Svuota note condivise">✕</button>
+        </div>
+    </div>
+
    
-    if (typeof studenticonvittori === "undefined") {
-        console.error("Errore: studenticonvittori non definito.");
-        alert("Errore: database studenti non caricato.");
-        return;
-    }
 
-    const validi = studenticonvittori.filter((s) => {
-        if (!s.cognome) return false;
-        const classe = s.classe.toUpperCase();
-        const escluse = ["2A", "2B"];
-        return !escluse.includes(classe) && !classe.includes("P");
-    });
+    <!-- ── TOOLBAR ────────────────────────────────────────── -->
+    <div class="toolbar">
 
-    if (ordinamento === 'perClasse') {
-        validi.sort((a, b) => {
-            const compClasse = a.classe.localeCompare(b.classe, undefined, { numeric: true });
-            if (compClasse !== 0) return compClasse;
-            return a.cognome.localeCompare(b.cognome);
-        });
-    } else {
-        const classiInFondo = ["4C", "5A", "5B"];
-        const resto = validi.filter((s) => !classiInFondo.includes(s.classe));
-        const classe4C = validi.filter((s) => s.classe === "4C");
-        const classe5A = validi.filter((s) => s.classe === "5A");
-        const classe5B = validi.filter((s) => s.classe === "5B");
-
-        resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
-
-        const ordinaPerGruppoECognome = (a, b) => {
-            const gA = a.gruppo || "";
-            const gB = b.gruppo || "";
-            return (gA + a.cognome).localeCompare(gB + b.cognome);
-        };
-
-        classe4C.sort(ordinaPerGruppoECognome);
-        classe5A.sort(ordinaPerGruppoECognome);
-        classe5B.sort(ordinaPerGruppoECognome);
-
-        validi.length = 0;
-        validi.push(...resto, ...classe4C, ...classe5A, ...classe5B);
-    }
-
-    const colonneHtml = ["", "", ""];
-    const notaInTesta = "LABORATORI <br> LUN 5A + 3A ━🍸━ MAR 4A + 3B <br> MER 4B + 1A ━🍹━ GIO 4C + 1B";
-
-    function generaRigaStudente(s) {
-        let bgStyle = "";
-        if (s.classe === "5A" || s.classe === "5B") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8; border-left: 4px solid #2c3e50;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7; border-left: 4px dotted #2c3e50;";
-        } else if (s.classe === "4C") {
-            bgStyle = "border-left: 4px dashed #2c3e50;";
-        }
-
-        const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
-        let visualizzaStandBy = "";
-        if (rigaElemento && typeof verificaStudenteStandBy === "function") {
-            visualizzaStandBy = verificaStudenteStandBy(rigaElemento) ? "➖" : "";
-        }
-
-        const classeUpper = s.classe.toUpperCase();
-        const cognomeUpper = s.cognome.toUpperCase();
-
-        let notaGiorni = "";
-        if (classeUpper === "4C")      notaGiorni = "solo GIO";
-        else if (classeUpper === "5B") notaGiorni = "mai GIO";
-
-        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
-        const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
-
-        const classeHtml  = classeUpper === "4C" ? `<b>${s.classe}</b>` : s.classe;
-        const gruppoHtml = s.gruppo ? (s.gruppo.toUpperCase() === "G2" ? ` • <b>${s.gruppo}</b>` : ` • ${s.gruppo}`) : "";
-
-        return `
-            <div class="bus-row">
-                <div class="b-cell b-class">${classeHtml}${gruppoHtml}</div>
-                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
-                <div class="b-cell b-room">${s.room || ""}</div>
-                <div class="b-cell b-check"></div>
-                <div class="b-cell b-standby" style="font-size: 0.9em;">${visualizzaStandBy}</div>
-                <div class="b-cell b-notes">${notaCustom}</div>
+        <!-- Gruppo 1: MODULI + G•A•P -->
+        <div class="toolbar-group">
+            <div class="dropdown-moduli">
+                 <div class="day-box dropdown-toggle" style="background:#ecb3ec;" tabindex="0">
+                    📋 ▾ MODULI ▾
+                </div>
+                <div class="dropdown-content">
+                    <a onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
+                    <a onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
+                    <a onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
+                    <a onclick="generaPopUpStampaPresDin(); return false;">APPELLO DINNER</a>
+                    <a onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>                     
+                    <a onclick="generaPopUpStampaSchedaRitardi(); return false;">RITARDI MATTINO</a>
+                </div>
             </div>
-        `;
-    }
+            <button class="btn-toolbar" style="background:var(--btn-t3);"
+                    onclick="togglePanel()">⚙️ G•A•P</button>
+        </div>
 
-    const gruppoResto  = validi.filter(s => s.classe !== "5A" && s.classe !== "5B");
-    const gruppoQuinte = validi.filter(s => s.classe === "5A" || s.classe === "5B");
-    const itemsPerCol12 = Math.ceil(gruppoResto.length / 2);
+        <div class="toolbar-sep"></div>
 
-    gruppoResto.forEach((s, idx) => {
-        const col = Math.min(Math.floor(idx / itemsPerCol12), 1);
-        colonneHtml[col] += generaRigaStudente(s);
-    });
+        <!-- Gruppo 2: RICERCA + FILTRI -->
+        <div class="toolbar-group grow">
+            <input type="text" id="search" placeholder="🔍 Cerca studente..."
+                   onkeyup="applicaFiltri()">
 
-    gruppoQuinte.forEach((s) => {
-        colonneHtml[2] += generaRigaStudente(s);
-    });
+            <span class="room-label">ROOM</span>
+            <input type="number" id="roomInput" placeholder="n°" min="101" max="221"
+                   onfocus="this.oldValue=this.value;"
+                   oninput="gestisciSaltoStanze(this); validaERicerca();">
 
-    colonneHtml[2] += `
-        <div class="bus-row nota-colonna" style="background:#f0f0f0; font-weight:bold; font-style:italic; justify-content:center;">
-            <div class="b-cell" style="width:100%; text-align:center; justify-content:center;">
-                ${notaInTesta}
+            <span class="room-label">CLASSE</span>
+            <select id="classeFilter" onchange="filtraPerClasse(this.value)">
+                <option value="">Tutte</option>
+            </select>
+        </div>
+
+        <div class="toolbar-sep"></div>
+
+        <!-- Gruppo 3: DATA + RESET -->
+        <div class="toolbar-group">
+            <span class="room-label">📅 DATA</span>
+            <input type="date" id="simulateDate" onchange="simulaData(this.value)">
+            <button class="btn-reset-sim"
+        onclick="resetSimulazione()">↺ Oggi</button>
+            <button class="btn-reset" onclick="resetDati('soloManuali')"
+                    title="Reset Giornaliero">🗑️ Reset</button>
+        </div>
+    </div>
+
+    <!-- ── TASTI AZIONE ───────────────────────────────────── -->
+    <div class="azioni-grid">
+
+        <!-- Categoria STAMPE -->
+        <div class="azioni-categoria stampe">
+            <div class="azioni-cat-label">STAMPE</div>
+            <div class="azioni-cat-row">
+                <div class="day-box" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
+                <div class="day-box" onclick="generaPopUpStampaDinner()">DINNER</div>
+                <div class="day-box" onclick="generaPopUpStampaBus()">DOMATTINA</div>
             </div>
         </div>
-    `;
 
-    const totaleBus = validi.length;
-    const presenti = validi.filter((s) => {
-        const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
-        if (!rigaElemento || typeof verificaStudenteStandBy !== "function") return true;
-        return !verificaStudenteStandBy(rigaElemento);
-    }).length;
+<!-- Categoria FILTRI -->
+<div class="azioni-categoria filtri">
+    <div class="azioni-cat-label">FILTRI</div>
+    <div class="azioni-cat-row">
+        <div class="day-box" onclick="setTurno(1)">1° T</div>
+        <div class="day-box" onclick="setTurno(2)">2° T</div>
+        <div class="day-box" onclick="filtraAssenti()">ASSENTI</div>
+        <div class="day-box" onclick="filtraNoCena()">CENE</div>
+        <div class="day-box" onclick="mostraTutti()">TUTTI</div>
+    </div>
+</div>
 
-    const titolo = ordinamento === 'perClasse' ? "BUS MATTINA — per classe" : "BUS MATTINA";
+<!-- Categoria VISTA -->
+<div class="azioni-categoria vista">
+    <div class="azioni-cat-label">VISTA</div>
+    <div class="azioni-cat-row">
+        <div class="day-box" id="btnOrdineAlfabetico"
+             onclick="toggleOrdineLista()">Room/A-Z</div>
+    </div>
+</div>
+</div>
 
-    const popup = window.open("", "_blank", "width=1200,height=800");
-    popup.document.write(`
-        <html lang="it"><head><title>${titolo}</title><style>
-            @page { size: A4 landscape; margin: 0.6cm 0.4cm 0.4cm 0.4cm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; }
-            h2 { text-align: center; text-transform: uppercase; margin: 2px 0 6px 0; font-size: 1.1rem; }
-            .date-subtitle { text-align: center; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; color: #111; text-transform: capitalize; }
-            .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; color: #777; }
+    <!-- ── LEGENDA ────────────────────────────────────────── -->
+    <div class="legenda">
+        <span class="legenda-item"><span class="legenda-dot ok"></span> Presente</span>
+        <span class="legenda-item"><span class="legenda-dot absent"></span> Assente</span>
+        <span class="legenda-item"><span class="legenda-dot dinner"></span> Non cena</span>
+        <span class="legenda-item"><span class="legenda-dot lab"></span> Laboratorio</span>
+        <span class="legenda-item"><span class="legenda-dot pp"></span> 🔒 Bloccato da PP</span>
+        <span class="legenda-item">🍽 Turno cena</span>
+    </div>
 
-            .toolbar-stampa { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
-            .toolbar-stampa button { padding: 6px 26px; color: white; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: filter 0.2s; }
-            .toolbar-stampa button:hover { filter: brightness(1.1); }
-            .btn-stampa { background: #27ae60; }
-            .btn-per-classe { background: #7c3aed; }
+    <!-- ── LISTA STUDENTI ─────────────────────────────────── -->
+    <div id="listaStudenti"></div>
 
-            .grid-container { display: flex; gap: 10px; justify-content: space-between; }
-            .colonna { width: 32.5%; display: flex; flex-direction: column; }
+</div><!-- /container -->
 
-            .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.6rem; text-transform: uppercase; border: 1px solid #000; height: 18px; }
+<!-- ============================================================
+     SIDE PANEL — Gestione Permessi
+     ============================================================ -->
+<div id="sidePanel">
 
-            .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
+    <div id="sidePanelOverlay"></div>
 
-            .nota-colonna { font-size: 0.7rem; height: auto; min-height: 22px; border: 1px solid #000; border-bottom: 2px solid #000; }
+<div id="sidePanelContent">
 
-            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
-            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; box-sizing: border-box; }
+    <div class="side-panel-header">
+        <h3 style="border:none;padding:0;margin:0;">Gestione Assenze/Permessi</h3>
+        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
+                aria-label="Chiudi pannello gestione permessi"
+                style="width:44px;height:44px;font-size:1.9rem;display:flex;
+                       align-items:center;justify-content:center;border-radius:10px;
+                       background:transparent;border:none;cursor:pointer;
+                       color:var(--text-2);line-height:1;">&times;</button>
+    </div>
 
-            .b-class, .h-class { width: 65px; font-size: 0.55rem; flex: 0 0 65px; }
-            .b-class { border-right: 1px solid #ccc; }
-            .h-class { border-right: 1px solid #555; }
+    <!-- ── LISTA ASSENZE (details) ── -->
+    <details id="boxProgrammate" open>
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;
+                        display:list-item; list-style-position: inside;
+                        marker: var(--accent);">
+            <span style="display:inline-flex; justify-content:space-between;
+                         align-items:center; width: calc(100% - 20px);
+                         vertical-align: middle; margin-left: 6px;">
+                <span>Assenze</span>
+                <button onclick="event.preventDefault(); pulisciAssenzeScadute()"
+                        title="Rimuovi definitivamente i periodi già terminati"
+                        style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
+                               padding:4px 10px;border-radius:6px;cursor:pointer;
+                               font-family:var(--font);font-size:0.72rem;font-weight:700;">
+                    🧹 Pulisci scadute
+                </button>
+            </span>
+        </summary>
 
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; flex: 0 0 120px; }
-            .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
-            .h-name { border-right: 1px solid #555; }
+        <!-- Lista assenze attive -->
+        <div id="listaAssenze" style="margin-bottom:10px; margin-top:10px;"></div>
 
-            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 4px; padding-left: 0; }
+        <!-- Tasto Aggiungi: sotto la lista, sopra la scritta "Nessuna assenza..."
+             quando la lista è vuota -->
+        <button type="button" id="btnApriAggiungi" class="btn-add-assenza-toggle"
+                onclick="toggleBoxAggiungi()"
+                style="margin-top:4px; margin-bottom:8px;">
+            Aggiungi
+        </button>
 
-            .b-room, .h-room { width: 25px; font-size: 0.58rem; flex: 0 0 25px; }
-            .b-room { border-right: 1px solid #ccc; font-weight: bold; background: #f5f5f5; }
-            .h-room { border-right: 1px solid #555; }
+        <!-- Sotto-pannello di inserimento (nascosto di default) -->
+        <div id="boxAggiungiAssenza" style="display:none; margin-top:12px;">
+    <div style="font-size:0.75rem;color:var(--text-2);font-style:italic; margin-bottom:8px;">
+        Programma un'assenza per uno studente o per un'intera classe
+    </div>
 
-            .b-check, .h-check { width: 22px; flex: 0 0 22px; }
-            .b-check { border-right: 1px solid #ccc; }
-            .h-check { border-right: 1px solid #555; }
+    <!-- Autocomplete Studente -->
+    <div style="position: relative; margin-bottom: 10px;">
+        <input type="text" id="cercaStudente" placeholder="🔍 Cerca studente..." 
+               autocomplete="off" oninput="suggerisciStudenti(this.value)" onfocus="suggerisciStudenti(this.value)">
+        <!-- Lista suggerimenti -->
+        <div id="listaSuggerimentiStudenti" style="display:none; position:absolute; top:100%; left:0; right:0; 
+                    background:var(--surface); border:1px solid var(--border-2); border-radius:var(--radius); 
+                    box-shadow:var(--shadow-lg); z-index:100; max-height:200px; overflow-y:auto; margin-top:4px;">
+        </div>
+        <!-- Input hidden per memorizzare il cognome esatto selezionato -->
+        <input type="hidden" id="selectStudente" value="">
+    </div>
 
-            .b-standby, .h-standby { width: 25px; flex: 0 0 25px; border-right: 1px solid #ccc; }
-            .h-standby { border-right: 1px solid #555; }
+    <!-- Select Classe -->
+    <select id="selectClasse" style="margin-bottom:10px;">
+        <option value="">-- Seleziona Classe --</option>
+    </select>
 
-            .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 4px; }
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Dal</label>
+            <input type="date" id="dataDal" style="width:100%;">
+        </div>
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Al</label>
+            <input type="date" id="dataAl" style="width:100%;">
+        </div>
+    </div>
 
-            @media print { .no-print { display: none !important; } }
-        </style></head><body>
-            <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <h2>${titolo}</h2>
-            <div class="date-subtitle">Trasporto di domani ${dataDomaniTestuale} — Presenti: <b>${presenti}</b> su <b>${totaleBus}</b> totali</div>
+    <button class="btn-add-assenza btn-green" onclick="aggiungiAssenza()">Conferma</button>
+</div>
+    </details>
 
-            <div class="toolbar-stampa no-print">
-                <button class="btn-stampa" onclick="window.print()">•STAMPA</button>
-                ${ordinamento === 'perClasse'
-                    ? `<button class="btn-per-classe" onclick="generaPopUpStampaBus('alfabetico'); window.close();">•ALFABETICO</button>`
-                    : `<button class="btn-per-classe" onclick="generaPopUpStampaBus('perClasse'); window.close();">•PER CLASSE</button>`
+    <!-- ── PERMESSI PERMANENTI (details) ── -->
+    <details id="boxPermessiPermanenti">
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;">
+            🔒 Permessi Permanenti
+        </summary>
+        <div style="font-size:0.75rem;color:var(--text-2);
+                    margin:6px 0 10px 0;font-style:italic;">
+            Gestire da questo pannello
+        </div>
+        <div id="listaPermessiContent"></div>
+    </details>
+
+</div>
+    
+</div>
+
+</div><!-- /#appContent -->
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<!-- dati condivisi (devono precedere ogni consumatore) -->
+<script src="js/dati/cognomi-auto.js"></script>
+<script src="js/dati/note-classi.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+
+<!-- dati offline: SEMPRE, come script classici -->
+<script src="offline/studenti_26_offline.js"></script>
+<script src="offline/permessi_26_offline.js"></script>
+
+<!-- core -->
+<script src="js/core/stato.js"></script>
+<script src="js/core/config-static.js"></script>
+<script src="js/core/a11y.js"></script>        
+<script src="js/core/turni.js"></script>
+<script src="js/core/pp.js"></script>
+<script src="js/core/filtri.js"></script>
+<script src="js/core/persistenza.js"></script>
+
+<!-- pannello -->
+<script src="js/pannello/assenze-programmate.js"></script>
+<script src="js/pannello/side-panel.js"></script>
+
+<!-- main -->
+<script src="js/campus_hub-script.js"></script>
+
+<!-- stampe -->
+<script src="js/stampe/dinner.js"></script>
+<script src="js/stampe/bus.js"></script>
+<script src="js/stampe/transfer.js"></script>
+<script src="js/stampe/uscite-rooming.js"></script>
+<script src="js/stampe/ritardi.js"></script>
+<script src="js/stampe/convitto.js"></script>
+
+<!-- reset -->
+<script src="js/reset/reset-permessi.js"></script>
+
+
+<script>
+/* ==============================================================
+   BOOTSTRAP — non più modulo: compatibile con file://
+   ============================================================== */
+document.body.classList.add('mode-' + window.APP_MODE);
+console.log(`🎨 Body class: mode-${window.APP_MODE}`);
+
+/* ---------- MODALITÀ OFFLINE (sincrona, nessun import) ---------- */
+function avviaOffline() {
+    console.log('📴 Bootstrap OFFLINE');
+
+        // ── RIPRISTINO SNAPSHOT DEL GIORNO ──
+    // Se c'è uno snapshot di OGGI in localStorage, usalo al posto
+    // di offline/*.js. Così, se manca la rete dopo le 11:00,
+    // ritrovi esattamente lo stato caricato stamattina da Firebase.
+    try {
+        const raw = localStorage.getItem('snapshotGiorno');
+        if (raw) {
+            const s = JSON.parse(raw);
+            const oggi = new Date();
+            const chiaveOggi = [
+                String(oggi.getDate()).padStart(2, '0'),
+                String(oggi.getMonth() + 1).padStart(2, '0'),
+                oggi.getFullYear()
+            ].join('-');
+
+            if (s.data === chiaveOggi) {
+                if (Array.isArray(s.studenti) && s.studenti.length > 0) {
+                    window.tuttiStudenti = s.studenti;
                 }
-            </div>
+                if (s.orariPP && window.ORARI_PP && typeof window.ORARI_PP === 'object') {
+                    Object.keys(window.ORARI_PP).forEach(k => delete window.ORARI_PP[k]);
+                    Object.assign(window.ORARI_PP, s.orariPP);
+                }
+                if (s.assentiPermesso) {
+                    window.ASSENTI_PERMESSO = s.assentiPermesso;
+                }
+                if (s.overrideTurni && window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
+                    Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
+                    Object.assign(window.OVERRIDE_TURNI_DINNER, s.overrideTurni);
+                }
+                if (s.datiGiorno) {
+                    localStorage.setItem('datiConvitto', JSON.stringify(s.datiGiorno));
+                }
+                console.log(`📅 Snapshot di oggi ripristinato (${s.data})`);
+            } else {
+                console.warn(`⚠️ Snapshot vecchio (${s.data}), uso offline/*.js`);
+            }
+        }
+    } catch (e) {
+        console.error('❌ Errore ripristino snapshot:', e);
+    }
+    
+    const NOTE_KEY = 'convitto_note_locali';
 
-            <div class="grid-container">
-                ${colonneHtml.map(htmlDest => `
-                    <div class="colonna">
-                        <div class="column-header">
-                            <div class="h-cell h-class">Classe</div>
-                            <div class="h-cell h-name">Cognome</div>
-                            <div class="h-cell h-room">Rm</div>
-                            <div class="h-cell h-check">Ce</div>
-                            <div class="h-cell h-standby">Sb</div>
-                            <div class="h-cell h-notes">Note</div>
-                        </div>
-                        ${htmlDest}
-                    </div>
-                `).join("")}
-            </div>
-        </body></html>
-    `);
-    popup.document.close(); 
-    popup.generaPopUpStampaBus = generaPopUpStampaBus;
-    popup.focus();
+    window.salvaNoteFirebase = (testo) => {
+        localStorage.setItem(NOTE_KEY, testo ?? "");
+    };
+
+    window.attivaNoteCondivise = function () {
+        const ta = document.getElementById('dailyNotes');
+        if (!ta) return;
+        ta.value = localStorage.getItem(NOTE_KEY) || "";
+        let timer = null;
+        ta.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => window.salvaNoteFirebase(ta.value), 400);
+        });
+        ta.addEventListener('blur', () => window.salvaNoteFirebase(ta.value));
+        console.log('📝 Note locali attive');
+    };
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display  = 'block';
+
+    const btnOut = document.getElementById('btnLogout');
+    if (btnOut) btnOut.style.display = 'none';
+
+    const badge = document.getElementById('connection-status');
+    if (badge) {
+        badge.textContent = '📴 Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    }
+
+    
+    
+        window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
+    console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
+
+    try {
+        if (typeof init                 === 'function') init();
+        if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+        if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+        if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+        if (typeof attivaNoteCondivise  === 'function') attivaNoteCondivise();
+        console.log('✅ App OFFLINE pronta');
+    } catch (e) {
+        console.error('❌ Errore init offline:', e);
+    }
 }
 
-// --- POMERIGGIO BUS
-function generaPopUpStampaBusPomeriggio() {
-    const oggi = new Date();
-    const dataTestuale = document.getElementById("todayDate").innerText;
-    const dataOggi = oggi.toLocaleDateString("it-IT");
-    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+/* ---------- MODALITÀ ONLINE (import dinamici via HTTP) ---------- */
+async function avviaOnline() {
+    console.log('🟢 Bootstrap ONLINE');
 
-    if (typeof studenticonvittori === "undefined") {
-        console.error("Errore: studenticonvittori non definito.");
-        alert("Errore: database studenti non caricato.");
+    let firebaseMod;
+    try {
+        firebaseMod = await import('./js/firebase-campus_hub-config.js');
+    } catch (err) {
+        console.error('❌ Import firebase-campus_hub-config.js:', err);
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#c00;background:#fff;min-height:100vh;">
+            <h2>❌ Errore di caricamento Firebase</h2>
+            <pre style="background:#f5f5f5;padding:15px;border-radius:6px;overflow:auto;">${err.message}</pre>
+            <p>Apri la console (F12) per i dettagli.</p>
+        </div>`;
         return;
     }
 
-    const validi = studenticonvittori.filter((s) => {
-        if (!s.cognome) return false;
-        const classe = s.classe.toUpperCase();
-        const escluse = ["2A", "2B", "4C"];
-        return !escluse.includes(classe) && !classe.includes("P");
-    });
+    const {
+        auth, db, ref, get, update, set, onValue,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged
+    } = firebaseMod;
 
-    validi.sort((a, b) => {
-        const compClasse = a.classe.localeCompare(b.classe, undefined, { numeric: true });
-        if (compClasse !== 0) return compClasse;
-        const gA = a.gruppo || "";
-        const gB = b.gruppo || "";
-        const compGruppo = gA.localeCompare(gB);
-        if (compGruppo !== 0) return compGruppo;
-        return a.cognome.localeCompare(b.cognome);
-    });
-
-    const elementiFinali = [];
-    let ultimaClasse = null;
-
-    validi.forEach((studente) => {
-        if (ultimaClasse !== null && studente.classe !== ultimaClasse) {
-            elementiFinali.push({ type: "separator" });
+    /* --- Login / Logout --- */
+    window.effettuaLogin = async function () {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pwd   = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        const btn   = document.getElementById('loginBtn');
+        errEl.textContent = '';
+        if (!email || !pwd) { errEl.textContent = 'Inserisci email e password'; return; }
+        btn.disabled = true; btn.textContent = 'Verifica…';
+        try {
+            await signInWithEmailAndPassword(auth, email, pwd);
+        } catch (e) {
+            const messaggi = {
+                'auth/invalid-email':'Email non valida','auth/user-not-found':'Utente non trovato',
+                'auth/wrong-password':'Password errata','auth/invalid-credential':'Credenziali errate',
+                'auth/too-many-requests':'Troppi tentativi. Riprova più tardi.',
+                'auth/network-request-failed':'Errore di rete'
+            };
+            errEl.textContent = messaggi[e.code] || 'Errore di accesso';
+            btn.disabled = false; btn.textContent = 'ACCEDI';
         }
-        elementiFinali.push({ type: "student", data: studente });
-        ultimaClasse = studente.classe;
+    };
+
+    window.effettuaLogout = async function () {
+        if (!confirm('Vuoi uscire?')) return;
+        try { await signOut(auth); } catch (e) { console.error(e); }
+    };
+
+    document.getElementById('loginBtn').addEventListener('click', () => window.effettuaLogin());
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+        if (e.key === 'Enter') window.effettuaLogin();
+    });
+    document.getElementById('loginEmail').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
     });
 
-    const totaleElementi = elementiFinali.length;
-    const itemsPerColonna = Math.ceil(totaleElementi / 3);
-    const colonneHtml = ["", "", ""];
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) btnLogout.onclick = () => window.effettuaLogout();
 
-    elementiFinali.forEach((elemento, idx) => {
-        const colonnaIdx = Math.floor(idx / itemsPerColonna);
+    async function isUtenteAutorizzato(uid) {
+        try {
+            const snap = await get(ref(db, `authorizedUsers/${uid}`));
+            return snap.exists() && snap.val() === true;
+        } catch (e) { console.error('Errore verifica autorizzazione:', e); return false; }
+    }
 
-        if (elemento.type === "separator") {
-            colonneHtml[colonnaIdx] += `<div class="class-separator"></div>`;
+    window.salvaPermessiFirebase = async function (permessi) {
+        if (!db) throw new Error("Firebase DB non inizializzato");
+        if (!permessi || typeof permessi !== "object") throw new Error("Permessi non validi");
+        await update(ref(db, 'permessi_pp'), permessi);
+    };
+
+    window.salvaAssenzeProgrammateFirebase = async function (dati) {
+        try {
+            const daScrivere = (dati && Object.keys(dati).length > 0) ? dati : null;
+            await set(ref(db, 'assenzeProgrammate'), daScrivere);
+        } catch (err) { console.error('❌ Errore salvataggio assenze programmate:', err); }
+    };
+
+    let unsubAssProg = null;
+    let appInizializzata = false;
+
+    onAuthStateChanged(auth, async (user) => {
+        const loginScreen = document.getElementById('loginScreen');
+        const appContent  = document.getElementById('appContent');
+        const errEl       = document.getElementById('loginError');
+        const btn         = document.getElementById('loginBtn');
+
+        if (!user) {
+            loginScreen.style.display = 'flex';
+            appContent.style.display  = 'none';
+            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            appInizializzata = false;
+            if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
             return;
         }
 
-        const s = elemento.data;
-        const infoClasse = `${s.classe}${s.gruppo ? " • " + s.gruppo : ""}`;
+        console.log('✅ Utente autenticato:', user.email);
+        loginScreen.style.display = 'flex';
+        appContent.style.display  = 'none';
+        if (errEl) errEl.textContent = 'Verifica autorizzazione…';
+        if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
 
-        let bgStyle = "";
-        if (s.classe === "5A") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
-        } else if (s.classe === "5B") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
+        const autorizzato = await isUtenteAutorizzato(user.uid);
+        if (!autorizzato) {
+            console.warn('⛔ Utente non autorizzato:', user.uid);
+            if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
+            setTimeout(async () => {
+                try { await signOut(auth); } catch (e) { console.error(e); }
+                if (errEl) errEl.textContent = '';
+                if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            }, 2000);
+            return;
         }
 
-        const cognomeUpper = s.cognome.toUpperCase();
-        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
-        const notaCustom = haAuto ? "🚗" : "";
+        loginScreen.style.display = 'none';
+        appContent.style.display  = 'block';
+        if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+        if (errEl) errEl.textContent = '';
 
-        colonneHtml[colonnaIdx] += `
-            <div class="bus-row" style="${bgStyle}">
-                <div class="b-cell b-class"><b>${infoClasse}</b></div>
-                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
-                <div class="b-cell b-day"></div>
-                <div class="b-cell b-day"></div>
-                <div class="b-cell b-day"></div>
-                <div class="b-cell b-day"></div>
-                <div class="b-cell b-notes">${notaCustom}</div>
-            </div>
-        `;
+        if (appInizializzata) return;
+        appInizializzata = true;
+
+        let dl;
+        try {
+            dl = await import('./js/data-loader.js');
+        } catch (err) {
+            console.error('❌ Impossibile caricare data-loader.js:', err);
+            alert('Errore di connessione ai moduli. Ricarica la pagina.');
+            return;
+        }
+
+        const badge = document.getElementById('connection-status');
+        let datiCaricati = false;
+        if (typeof dl.caricaDatiFirebase === 'function') {
+            try { datiCaricati = await dl.caricaDatiFirebase(); }
+            catch (err) { console.error('❌ Errore caricamento Firebase:', err); }
+        }
+
+        if (!datiCaricati) {
+            // Fallback: usa i dati offline già caricati come script classici
+            window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
+            if (badge) {
+                badge.textContent = '📴 Locale';
+                badge.classList.remove('connected');
+                badge.classList.add('disconnected');
+            }
+        } else if (badge) {
+            badge.textContent = '🟢 Firebase';
+            badge.classList.add('connected');
+            badge.classList.remove('disconnected');
+        }
+
+        try {
+            if (typeof init                 === 'function') init();
+            if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
+            if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+            if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+            if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+            if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+        } catch (e) { console.error('❌ Errore inizializzazione:', e); }
+
+        try {
+            if (typeof dl.attivaNoteCondivise === 'function') dl.attivaNoteCondivise();
+            else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
+        } catch (e) { console.error('❌ Errore note condivise:', e); }
+
+        try {
+            if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
+            else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
+        } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
+
+        if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
+        let lastAssProgHash = '';
+        unsubAssProg = onValue(ref(db, 'assenzeProgrammate'), (snap) => {
+            const val = snap.val() || {};
+            const hash = JSON.stringify(val);
+            if (hash === lastAssProgHash) return;
+            lastAssProgHash = hash;
+            if (typeof window.setAssenzeProgrammateFromRemote === 'function') {
+                window.setAssenzeProgrammateFromRemote(val);
+            }
+        });
     });
-
-    const popup = window.open("", "_blank", "width=1200,height=800");
-    popup.document.write(`
-        <html lang="it"><head><title>Bus Pomeriggio Appello Settimanale</title><style>
-            @page { size: A4 landscape; margin: 0.4cm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            h2 { text-align: center; text-transform: uppercase; margin: 5px 0 2px 0; font-size: 1.2rem; }
-            .date-subtitle { text-align: center; font-size: 0.85rem; margin-bottom: 12px; color: #444; }
-            .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.65rem; color: #777; }
-            .grid-container { display: flex; gap: 10px; justify-content: space-between; }
-            .colonna { width: 32.5%; display: flex; flex-direction: column; }
-
-            .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.70rem; text-transform: uppercase; border: 1px solid #000; height: 22px; box-sizing: border-box; }
-            .bus-row { display: flex; font-size: 0.72rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px !important; box-sizing: border-box; }
-            .class-separator { height: 6px; background: #444; border: 1px solid #000; margin: 1px 0; page-break-inside: avoid; }
-
-            .b-cell, .h-cell { padding: 2px 4px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; height: 100%; box-sizing: border-box; }
-
-            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
-            .b-class, .h-class { width: 50px; font-size: 0.65rem; flex: 0 0 50px; }
-            .b-class { border-right: 1px solid #ccc; background: #f5f5f5; }
-            .h-class { border-right: 1px solid #555; }
-
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 6px; flex: 0 0 120px; }
-            .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
-            .h-name { border-right: 1px solid #555; }
-
-            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 6px; padding-left: 0; }
-
-            .b-day, .h-day { width: 22px; font-size: 0.65rem; flex: 0 0 22px; }
-            .b-day { border-right: 1px solid #ccc; }
-            .h-day { border-right: 1px solid #555; }
-
-            .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 6px; }
-
-            .no-print { text-align: center; margin-bottom: 12px; }
-            @media print { .no-print { display: none; } }
-        </style></head><body>
-            <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <h2>CONVITTORI PER CLASSE</h2>
-            <div class="date-subtitle">${dataTestuale} — Elementi totali: <b>${totaleElementi}</b></div>
-
-            <div class="no-print">
-                <button onclick="window.print()" style="padding:6px 30px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    •STAMPA
-                </button>
-            </div>
-
-            <div class="grid-container">
-                ${colonneHtml.map(htmlDest => `
-                    <div class="colonna">
-                        <div class="column-header">
-                            <div class="h-cell h-class">Classe</div>
-                            <div class="h-cell h-name">Cognome</div>
-                            <div class="h-cell h-day">LU</div>
-                            <div class="h-cell h-day">MA</div>
-                            <div class="h-cell h-day">ME</div>
-                            <div class="h-cell h-day">GI</div>
-                            <div class="h-cell h-notes">Note</div>
-                        </div>
-                        ${htmlDest}
-                    </div>
-                `).join("")}
-            </div>
-        </body></html>
-    `);
-    popup.document.close();
 }
 
-//-- bus generico
-function generaPopUpStampaBusGenerico() {
-    const oggi = new Date(
-    (typeof getDataCorrente === 'function') ? getDataCorrente() : new Date()
-);
-    const dataTestuale = document.getElementById("todayDate").innerText;
-    const dataOggi = oggi.toLocaleDateString("it-IT");
-    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+/* ---------- Dispatch ---------- */
+if (window.APP_MODE === 'offline') {
+    avviaOffline();
+} else if (window.APP_MODE === 'online') {
+    avviaOnline().catch(err => console.error('❌ Bootstrap online:', err));
+}
+ /* ── BADGE OFFLINE / ONLINE ── */
+function aggiornaBadgeConnessione() {
+    const badge = document.getElementById('connection-status');
+    if (!badge) return;
 
-    if (typeof studenticonvittori === "undefined") {
-        console.error("Errore: studenticonvittori non definito.");
-        alert("Errore: database studenti non caricato.");
+    if (!navigator.onLine) {
+        badge.textContent = '🔴 OFFLINE — dati congelati';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
         return;
     }
 
-    const validi = studenticonvittori.filter((s) => {
-        if (!s.cognome) return false;
-        const classe = s.classe.toUpperCase();
-        const escluse = ["2A", "2B", "4C"];
-        return !escluse.includes(classe) && !classe.includes("P");
-    });
-
-    const resto = validi.filter((s) => s.classe !== "5A" && s.classe !== "5B");
-    const classe5A = validi.filter((s) => s.classe === "5A");
-    const classe5B = validi.filter((s) => s.classe === "5B");
-
-    resto.sort((a, b) => a.cognome.localeCompare(b.cognome));
-
-    const ordinaPerGruppoECognome = (a, b) => {
-        const gA = a.gruppo || "";
-        const gB = b.gruppo || "";
-        return (gA + a.cognome).localeCompare(gB + b.cognome);
-    };
-    classe5A.sort(ordinaPerGruppoECognome);
-    classe5B.sort(ordinaPerGruppoECognome);
-
-    const listaFinale = [...resto, ...classe5A, ...classe5B];
-
-    const itemsPerCol = Math.ceil(listaFinale.length / 3);
-    const colonneHtml = ["", "", ""];
-
-    listaFinale.forEach((s, index) => {
-        const colIndex = Math.floor(index / itemsPerCol);
-        const infoClasse = `${s.classe} ${s.percorso ? s.percorso : ""} ${s.gruppo ? "• " + s.gruppo : ""}`;
-
-        let bgStyle = "";
-        if (s.classe === "5A") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
-        } else if (s.classe === "5B") {
-            if (s.gruppo === "G1") bgStyle = "background-color: #eaf2f8;";
-            if (s.gruppo === "G2") bgStyle = "background-color: #fef9e7;";
-        }
-
-        const haAuto = COGNOMI_AUTO.includes(s.cognome.toUpperCase());
-
-        colonneHtml[colIndex] += `
-            <div class="bus-row" style="${bgStyle}">
-                <div class="b-cell b-room">${s.room || ""}</div>
-                <div class="b-cell b-name${haAuto ? ' cognome-auto' : ''}"><b>${s.cognome}</b></div>
-                <div class="b-cell b-class">${infoClasse}</div>
-                <div class="b-cell b-check"></div>
-                <div class="b-cell b-standby"></div> 
-                <div class="b-cell b-notes"></div>
-            </div>
-        `;
-    });
-    
-    const popup = window.open("", "_blank", "width=1200,height=800");
-    popup.document.write(`
-        <html lang="it"><head><title>Appello Bus - Schema Generico</title><style>
-            @page { size: A4 landscape; margin: 0.4cm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; color: #000; line-height: 1.1; }
-            h2 { text-align: center; text-transform: uppercase; margin: 2px 0 0 0; font-size: 1.1rem; }
-            .date-subtitle { text-align: center; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; color: #111; }
-            .timestamp { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; color: #777; }
-            .grid-container { display: flex; gap: 10px; justify-content: space-between; }
-            .colonna { width: 32.5%; display: flex; flex-direction: column; }
-            
-            .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.6rem; text-transform: uppercase; border: 1px solid #000; height: 18px; }
-            
-            .bus-row { display: flex; font-size: 0.68rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; page-break-inside: avoid; height: 22px; }
-            
-            .b-cell, .h-cell { padding: 2px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; box-sizing: border-box; }
-            
-            /* LARGHEZZE FISSE E BOX-SIZING PER ALLINEAMENTO PERFETTO */
-            .b-room, .h-room { width: 25px; font-size: 0.58rem; flex: 0 0 25px; }
-            .b-room { border-right: 1px solid #ccc; font-weight: bold; background: #f5f5f5; }
-            .h-room { border-right: 1px solid #555; }
-            
-            .b-name, .h-name { width: 120px; text-align: left; justify-content: flex-start; padding-left: 4px; flex: 0 0 120px; }
-            .b-name { border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
-            .h-name { border-right: 1px solid #555; }
-
-            .b-name.cognome-auto { justify-content: flex-end; text-align: right; padding-right: 4px; padding-left: 0; }
-            
-            .b-class, .h-class { width: 65px; font-size: 0.55rem; flex: 0 0 65px; }
-            .b-class { border-right: 1px solid #ccc; }
-            .h-class { border-right: 1px solid #555; }
-            
-            .b-check, .h-check { width: 22px; flex: 0 0 22px; }
-            .b-check { border-right: 1px solid #ccc; }
-            .h-check { border-right: 1px solid #555; }
-            
-            .b-standby, .h-standby { width: 25px; flex: 0 0 25px; border-right: 1px solid #ccc; }
-            .h-standby { border-right: 1px solid #555; }
-
-            .b-notes, .h-notes { flex-grow: 1; text-align: left; justify-content: flex-start; padding-left: 4px; }
-            
-            .no-print { text-align: center; margin-bottom: 8px; }
-            @media print { .no-print { display: none !important; } }
-        </style></head><body>
-            <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <h2>BUS CONVITTORI</h2>
-            <div class="date-subtitle no-print"> — Studenti tot: <b>${listaFinale.length}</b></div>
-            
-            <div class="no-print">
-                <button onclick="window.print()" style="padding:6px 30px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    •STAMPA
-                </button>
-            </div>
-
-            <div class="grid-container">
-                ${colonneHtml.map(htmlDest => `
-                    <div class="colonna">
-                        <div class="column-header">
-                            <div class="h-cell h-room">Rm</div>
-                            <div class="h-cell h-name">Cognome</div>
-                            <div class="h-cell h-class">Classe</div>
-                            <div class="h-cell h-check">Ce</div>
-                            <div class="h-cell h-standby">Sb</div>
-                            <div class="h-cell h-notes">Note</div>
-                        </div>
-                        ${htmlDest}
-                    </div>
-                `).join("")}
-            </div>
-        </body></html>
-    `);
-    popup.document.close();
+    const origin = window.APP_ORIGIN;
+    if (origin === 'firebase') {
+        badge.textContent = '🟢 Firebase';
+        badge.classList.add('connected');
+        badge.classList.remove('disconnected');
+    } else if (origin === 'locale-reale' || origin === 'localhost-demo') {
+        badge.textContent = '📴 Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    } else {
+        badge.textContent = '🎭 Demo';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    }
 }
+
+window.addEventListener('online',  aggiornaBadgeConnessione);
+window.addEventListener('offline', aggiornaBadgeConnessione);
+document.addEventListener('DOMContentLoaded', aggiornaBadgeConnessione);
+    
+</script>
+
+    <script>
+(function disegnaBanner() {
+    const b = document.getElementById('modeBanner');
+    if (!b) return;
+    const cfg = {
+        'locale-reale':   { bg:'#dcfce7', bd:'#16a34a', fg:'#14532d',
+                            txt:'📁 LOCALE' },
+        'github-demo':    { bg:'#fef3c7', bd:'#d97706', fg:'#78350f',
+                            txt:'🎭 DUMMY' },
+        'localhost-demo': { bg:'#e0e7ff', bd:'#4f46e5', fg:'#1e1b4b',
+                            txt:'🛠️ SVILUPPO' },
+        'firebase':       { bg:'#dbeafe', bd:'#2563eb', fg:'#1e3a8a',
+                            txt:'☁️ FIREBASE' }
+    };
+    const c = cfg[window.APP_ORIGIN] || cfg['firebase'];
+    b.style.background       = c.bg;
+    b.style.borderBottomColor = c.bd;
+    b.style.color            = c.fg;
+    b.textContent            = c.txt;
+    b.classList.add('visible');
+})();
+</script>
+</body>
+</html>
