@@ -13,8 +13,15 @@
  * ─────────────────────────────────────────────────────────────
  */
 window.NOTE_CLASSI = {
-  "4C": "solo GIO",
-  "5B": "mai GIO"
+  classi: {
+    "4C": "sì GIO",
+    "5B": "no GIO"
+  },
+  studenti: {
+    "5A": {
+      "TAPPELLA": "⚠️ solo VEN"
+    }
+  }
 };
 
 window.NOTA_LABORATORI_BUS =
