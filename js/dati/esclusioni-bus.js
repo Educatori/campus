@@ -6,7 +6,7 @@
  * Fonte unica: se domani cambia una regola, si cambia qui.
  *
  * ⚠️ Le liste NON sono identiche tra le varianti:
- *    • "mattina"    → 4C INCLUSA (compare come "solo GIO")
+ *    • "mattina"    → 4C INCLUSA (compare come "sì GIO")
  *    • "pomeriggio" → 4C esclusa
  *    • "generico"   → 4C esclusa
  *    • "transfer"   → 4C e i P esclusi (i P sono già coperti da
