@@ -8,6 +8,8 @@
  *
  * Dipendenze runtime:
  *   - cambiTurnoManuali                  → campus_hub-script.js (let globale)
+ *   - window.lateDinnerManuali           → campus_hub-script.js (oggetto globale)
+ *   - aggiornaBadgeCene()                → core/filtri.js
  *   - ricaricaListaStudenti()            → campus_hub-script.js
  *   - mostraDataReset()                  → core/persistenza.js
  *   - rimuoviEvidenziazioneTasti()       → core/filtri.js
@@ -18,7 +20,7 @@
  *   - window.salvaPermessiFirebase       → campus_hub.html (modulo Firebase)
  *
  * ⚠️ Caricare DOPO tutti gli altri moduli, PRIMA o DOPO il main
- *    è indifferente (le funzioni sono chiamate solo da onclick).
+ *    è indifferente (le funzioni sono chiamate solo onclick).
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -36,11 +38,13 @@ function resetDati(tipo) {
             "  • Stato ASSENTE\n" +
             "  • Stato NON CENA\n" +
             "  • Orari ESCE / ENTRA\n" +
-            "  • Switch turno\n\n" +
+            "  • Switch turno\n" +
+            "  • Late dinner manuali\n\n" +
             "NON verranno toccati:\n" +
             "  • Permessi permanenti (PP)\n" +
             "  • Programmazione assenze\n" +
-            "  • Assenti permesso\n\n" +
+            "  • Assenti permesso\n" +
+            "  • Note condivise (usare il tasto ✕ per svuotarle)\n" +
             "Vuoi procedere?";
 
         if (!confirm(msgPrima)) return;
@@ -89,6 +93,13 @@ function resetDati(tipo) {
         // Resetta i cambi turno manuali (variabile globale del main)
         cambiTurnoManuali = {};
 
+        // ── Resetta i late dinner manuali (memoria + badge) ──
+        // Il localStorage è già stato pulito da removeItem("datiConvitto"),
+        // ma window.lateDinnerManuali resta popolato in memoria e va svuotato
+        // per allineare card, badge e stato futuro (evita "late fantasma").
+        window.lateDinnerManuali = {};
+        if (typeof aggiornaBadgeCene === "function") aggiornaBadgeCene();
+
         // ── Timestamp reset (locale + Firebase) ──
         const adesso = new Date().toLocaleString("it-IT", {
             day: "2-digit", month: "2-digit", year: "numeric",
@@ -130,7 +141,7 @@ function resetDati(tipo) {
         const msgPrimaCompleto =
             "⚠️ RESET COMPLETO ⚠️\n\n" +
             "Verranno cancellati TUTTI i dati locali:\n" +
-            "  • Modifiche giornaliere (assente, no cena, orari, switch)\n" +
+            "  • Modifiche giornaliere (assente, no cena, orari, switch, late)\n" +
             "  • Programmazione assenze\n" +
             "  • Timestamp di reset\n\n" +
             "Vuoi procedere?";
@@ -157,6 +168,7 @@ function resetDati(tipo) {
             hour: "2-digit", minute: "2-digit"
         }));
         cambiTurnoManuali = {};
+        window.lateDinnerManuali = {};
         assenzeProgrammate = {};
         location.reload();
     }
