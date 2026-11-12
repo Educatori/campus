@@ -1627,3 +1627,62 @@ button[type="submit"]:hover {
     display: none;
 }
 #modeBanner.visible { display: block; }
+/* ─────────────────────────────────────────────────────────────
+   LATE DINNER BUTTON — magenta discreto a riposo, acceso on demand
+   Palette derivata da --late (#db2777) ma con saturazione ridotta
+   nello stato inattivo per non competere con LAB/PP/switched.
+   ───────────────────────────────────────────────────────────── */
+.btn-late {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7f5f6;              /* grigio-rosa quasi neutro */
+    color: #8b6472;                   /* magenta desaturato, leggibile ma spento */
+    border: 1px solid #e4dce0;        /* bordo tenue */
+    font-size: 0.68rem;
+    font-weight: 600;                 /* 700 → 600: meno assertivo a riposo */
+    padding: 1px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s,
+                color .15s, box-shadow .15s;
+    font-family: inherit;
+    line-height: 1.5;
+    letter-spacing: .3px;
+    margin-left: 4px;
+    vertical-align: middle;
+    user-select: none;
+    opacity: .85;                     /* micro-attenuazione globale */
+}
+
+/* Hover: si "sveglia" senza essere ancora acceso */
+.btn-late:hover {
+    background: #fdf2f8;
+    color: #9d174d;
+    border-color: #f9a8d4;
+    opacity: 1;
+}
+
+/* Active: pieno magenta, pieno contrasto */
+.btn-late.active {
+    background: #db2777;
+    color: #fff;
+    border-color: #be185d;
+    box-shadow: 0 0 0 2px rgba(219, 39, 119, .35);
+    font-weight: 700;                 /* torna assertivo quando attivo */
+    opacity: 1;
+}
+.btn-late.active:hover {
+    background: #be185d;
+    border-color: #9d174d;
+}
+
+/* Focus: accessibilità preservata anche a riposo */
+.btn-late:focus-visible {
+    outline: 2px solid #db2777;
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+/* Bordo laterale sulla card quando late dinner è attivo */
+.student-row.late-dinner { border-left: 4px solid #db2777; }
