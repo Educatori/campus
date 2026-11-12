@@ -8,12 +8,14 @@
  *   • validaERicerca()                → filtro per numero stanza
  *   • gestisciSaltoStanze()           → salta 126-200 nel campo stanza
  *   • filtraAssenti()                 → mostra solo assenti
- *   • filtraNoCena()                  → mostra solo non cena
+ *   • filtraNoCena()                  → mostra non-cena + late manuali
+ *   • aggiornaBadgeCene()             → badge numerico late su CENE
  *   • mostraFeedbackFiltro()          → toast con conteggio risultati
  *   • rimuoviEvidenziazioneTasti()    → pulisce i tasti filtro attivi
  *
  * Dipendenze runtime:
- *   - studenticonvittori   → data-loader.js (window)
+ *   - studenticonvittori        → data-loader.js (window)
+ *   - window.lateDinnerManuali  → gestito altrove (card late)
  *
  * ⚠️ Caricare DOPO core/stato.js.
  * ─────────────────────────────────────────────────────────────
@@ -162,7 +164,12 @@ function filtraAssenti() {
 }
 
 /**
- * Filtra e mostra solo gli studenti con NON CENA attivo
+ * Filtra e mostra chi NON è a cena al turno standard:
+ *   • dinner-no (dataset.dinnerno === "1" o classe "dinner-no")
+ *   • late dinner manuali (window.lateDinnerManuali[cognome] === true)
+ *
+ * Il criterio è unico: "non mangia al turno standard".
+ * Il dettaglio (non mangia / mangia dopo) è irrilevante per il filtro.
  */
 function filtraNoCena() {
     // Reset di eventuali filtri attivi
@@ -174,15 +181,21 @@ function filtraNoCena() {
     // Rimuovi evidenziazione dai tasti
     rimuoviEvidenziazioneTasti();
 
-    // Evidenzia il tasto NO CENE
+    // Evidenzia il tasto CENE
     if (window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add("tasto-attivo");
     }
 
+    const late = window.lateDinnerManuali || {};
+
     let count = 0;
     document.querySelectorAll(".student-row").forEach((r) => {
-        const isNoCena = r.dataset.dinnerno === "1" || r.classList.contains("dinner-no");
-        if (isNoCena) {
+        const cognome = (r.dataset.cognome || "").toUpperCase();
+        const isNoCena =
+            r.dataset.dinnerno === "1" || r.classList.contains("dinner-no");
+        const isLate = late[cognome] === true;
+
+        if (isNoCena || isLate) {
             r.style.display = "block";
             count++;
         } else {
@@ -190,8 +203,30 @@ function filtraNoCena() {
         }
     });
 
-    // Feedback visivo se non ci sono no cena
+    // Feedback visivo
     mostraFeedbackFiltro("NON CENA", count);
+}
+
+/**
+ * Aggiorna il badge numerico dentro il box CENE.
+ * Mostra il numero di late manuali attivi; nasconde il badge se 0.
+ * Va chiamata:
+ *   • al DOMContentLoaded (dopo l'init di lateDinnerManuali)
+ *   • in coda alla funzione che togglea il late sulla card
+ *   • opzionalmente dentro mostraTutti() per riallineare lo stato
+ */
+function aggiornaBadgeCene() {
+    const late = window.lateDinnerManuali || {};
+    const n = Object.values(late).filter(v => v === true).length;
+    const badge = document.getElementById("ceneLateCount");
+    if (!badge) return;
+
+    if (n > 0) {
+        badge.textContent = n;
+        badge.style.display = "";
+    } else {
+        badge.style.display = "none";
+    }
 }
 
 /**
@@ -220,8 +255,8 @@ function mostraFeedbackFiltro(tipo, count) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     `;
     feedback.setAttribute('role', 'status');
-feedback.setAttribute('aria-live', 'polite');
-    
+    feedback.setAttribute('aria-live', 'polite');
+
     feedback.innerHTML = `🔍 <b>${tipo}</b>: ${count} student${count === 1 ? 'e' : 'i'}`;
     document.body.appendChild(feedback);
 
@@ -239,6 +274,7 @@ function rimuoviEvidenziazioneTasti() {
         el.classList.remove("tasto-attivo");
     });
 }
+
 /**
  * Azzera TUTTI i filtri visivi e mostra nuovamente tutti gli studenti.
  * Non tocca la data simulata né ricostruisce il DOM.
@@ -269,7 +305,12 @@ function mostraTutti() {
         count++;
     });
 
-    // 5. Feedback
+    // 5. Riallinea il badge CENE (resta corretto anche dopo un "TUTTI")
+    if (typeof aggiornaBadgeCene === 'function') {
+        aggiornaBadgeCene();
+    }
+
+    // 6. Feedback
     if (typeof mostraFeedbackFiltro === 'function') {
         mostraFeedbackFiltro("TUTTI", count);
     }
