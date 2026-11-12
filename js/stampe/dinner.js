@@ -1,6 +1,6 @@
 /**
  * js/stampe/dinner.js
- * Stampa DINNER — include il blocco "LATE MANUALE" dalle card.
+ * Stampa DINNER — include il blocco "Altri aggiunti in manuale" dalle card.
  */
 
 function generaTestoClassiTurno(turno) {
@@ -158,19 +158,20 @@ function generaPopUpStampaDinner() {
         return `<div class="griglia-nomi">${items}</div>`;
     }
 
-    // ─── TESTO PERMESSI LATE DINNER (ORARI_PP + LATE manuale) ───
+    // ─── TESTO PERMESSI LATE DINNER (ORARI_PP + Altri aggiunti in manuale) ───
     let notaGiornoCorrente =
         (typeof generaTestoLateDinner === "function" && generaTestoLateDinner(giornoSett))
         || "";
 
     // Aggiungi i LATE selezionati a mano dalle card
+    // (lista in linea, separata da virgole)
     const lateManuali = Object.entries(window.lateDinnerManuali || {})
-        .filter(([_, attivo]) => attivo === true)
-        .map(([cognome]) => cognome.toUpperCase())
-        .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    .filter(([_, attivo]) => attivo === true)
+    .map(([cognome]) => cognome.toUpperCase())
+    .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
 
     if (lateManuali.length > 0) {
-        const rigaLate = `LATE MANUALE:\n${lateManuali.join(', ')}`;
+        const rigaLate = `Altri Aggiunti:\n${lateManuali.join(', ')}`;
         notaGiornoCorrente = notaGiornoCorrente.trim()
             ? notaGiornoCorrente.trim() + '\n' + rigaLate
             : rigaLate;
