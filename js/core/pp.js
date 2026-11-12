@@ -433,7 +433,7 @@ voci.push(`${cognome} [${out} > ${inn}]`);
     // Ordina alfabeticamente per leggibilità
     voci.sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
 
-    return `${labelLab} - PERMESSI CHE RICHIEDONO UN LATE DINNER:\n${voci.join(", ")}`;
+    return `${labelLab} - PERMESSI LATE DINNER:\n${voci.join(", ")}`;
 }
 
 // Espone globalmente (usata da js/stampe/dinner.js)
