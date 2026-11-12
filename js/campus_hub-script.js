@@ -50,7 +50,7 @@ function ricaricaListaStudenti() {
             const mappa = JSON.parse(raw);
             Object.entries(mappa).forEach(([cognome, info]) => {
                 if (info && typeof info.late !== "undefined") {
-                    window.lateDinnerManuali[cognome] = !!info.late;
+                    window.lateDinnerManuali[cognome.toUpperCase()] = !!info.late;
                 }
             });
         }
@@ -95,7 +95,7 @@ function ricaricaListaStudenti() {
             ? `<span class="pp-badge">🔒 ${statoPP.etichetta || 'PP'}</span>`
             : "";
 
-        const isLate = !!window.lateDinnerManuali[s.cognome];
+        const isLate = !!window.lateDinnerManuali[(s.cognome || "").toUpperCase()];
 
         r.innerHTML = `
             <div class="st-header">
@@ -180,6 +180,9 @@ function init() {
     popolaSelectClassiFiltro();
 
     mostraDataReset();
+
+    // ── badge CENE all'avvio (dopo il restore dei late) ──
+    if (typeof aggiornaBadgeCene === "function") aggiornaBadgeCene();
 }
 
 function haDirittoAlBus(s) {
@@ -200,7 +203,7 @@ function toggleSwitchTurno(btn) {
 function toggleLateDinner(btn) {
     const r = btn.closest(".student-row");
     if (!r) return;
-    const cognome = r.dataset.cognome;
+    const cognome = (r.dataset.cognome || "").toUpperCase();
     const attivo  = !window.lateDinnerManuali[cognome];
 
     window.lateDinnerManuali[cognome] = attivo;
@@ -208,6 +211,9 @@ function toggleLateDinner(btn) {
     btn.classList.toggle("active", attivo);
     btn.setAttribute("aria-pressed", attivo ? "true" : "false");
     r.classList.toggle("late-dinner", attivo);
+
+    // ── aggiorna il badge CENE ──
+    if (typeof aggiornaBadgeCene === "function") aggiornaBadgeCene();
 
     salvaDatiLocale();
 }
@@ -249,18 +255,21 @@ function isPPNoDinnerOggi(cognome, giorno) {
         if (typeof _orig !== 'function' || _orig.__lateWrapped) return;
 
         const wrapped = function () {
+            // 1. Fai scrivere a persistenza.js il resto dei dati
             _orig();
+
+            // 2. Inietta il flag `late` per ogni cognome e riscrivi
             try {
                 const raw = localStorage.getItem("datiConvitto");
-                if (raw) {
-                    const dati = JSON.parse(raw);
-                    Object.keys(dati).forEach((cognome) => {
-                        if (dati[cognome] && typeof dati[cognome] === "object") {
-                            dati[cognome].late = !!window.lateDinnerManuali?.[cognome];
-                        }
-                    });
-                    localStorage.setItem("datiConvitto", JSON.stringify(dati));
-                }
+                if (!raw) return;
+                const dati = JSON.parse(raw);
+                Object.keys(dati).forEach((cognome) => {
+                    if (dati[cognome] && typeof dati[cognome] === "object") {
+                        const lateKey = (cognome || "").toUpperCase();
+                        dati[cognome].late = !!window.lateDinnerManuali?.[lateKey];
+                    }
+                });
+                localStorage.setItem("datiConvitto", JSON.stringify(dati));
             } catch (e) { /* ignore */ }
         };
         wrapped.__lateWrapped = true;
