@@ -88,7 +88,10 @@ function generaRigaStudente(s) {
         const classeUpper = s.classe.toUpperCase();
         const cognomeUpper = s.cognome.toUpperCase();
 
-        const notaGiorni = (window.NOTE_CLASSI || {})[classeUpper] || "";
+        const noteCfg = window.NOTE_CLASSI || {};
+const notaClasse = (noteCfg.classi || {})[classeUpper] || "";
+const notaStudente = ((noteCfg.studenti || {})[classeUpper] || {})[cognomeUpper] || "";
+const notaGiorni = [notaClasse, notaStudente].filter(Boolean).join(" ");
 
         const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
         const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
