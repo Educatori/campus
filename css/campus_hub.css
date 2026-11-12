@@ -114,6 +114,21 @@ body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
 }
+/* OFFLINE → tinta calda/grigia, coerente con l'header #dddddd */
+body.mode-offline {
+    background: #e8e4dd;                 /* grigio caldo spento */
+    background-image:
+        radial-gradient(ellipse 90% 60% at 50% -10%,
+            rgba(202, 138, 4, 0.06), transparent);
+}
+
+/* ONLINE → tinta fredda/azzurra, coerente con l'header bianco */
+body.mode-online {
+    background: #eaf0f8;                 /* azzurro freddo leggero */
+    background-image:
+        radial-gradient(ellipse 90% 60% at 50% -10%,
+            rgba(37, 99, 235, 0.06), transparent);
+}
 
 h1, h2, h3, h4 {
     margin: 0;
@@ -157,7 +172,7 @@ header:not(.app-header) {
 
 /* OFFLINE → grigio chiaro */
 body.mode-offline header:not(.app-header) {
-    background: #dddddd;
+    background: #e8e4dd;
     border-color: rgba(202, 138, 4, 0.25);
 }
 /* ONLINE → bianco (come .app-header) */
