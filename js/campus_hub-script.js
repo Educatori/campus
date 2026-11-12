@@ -1,105 +1,9 @@
 /**
  * CAMPUS_HUB-SCRIPT.JS — Main applicativo
- * ─────────────────────────────────────────────────────────────
- * Questo file contiene SOLO il core dell'app:
- *
- *   • Costanti globali
- *       PAROLE_ASSENZA, PAROLE_NO_RIENTRO, COGNOMI_AUTO
- *
- *   • Stato globale residuo
- *       cambiTurnoManuali
- *
- *   • Rendering lista studenti
- *       ricaricaListaStudenti()
- *
- *   • Bootstrap
- *       init()
- *
- *   • Utility
- *       normalizzaOrario(), haDirittoAlBus(), toggleSwitchTurno()
- *
- *   • Logica laboratorio
- *       isStudenteInLabOggi(), isPPNoDinnerOggi()
- *
- * ─────────────────────────────────────────────────────────────
- * MODULI ESTRATTI (caricati separatamente in campus_hub.html)
- * ─────────────────────────────────────────────────────────────
- *
- *   js/core/stato.js
- *     ordineAlfabetico, dataSimulata, getDataCorrente, simulaData,
- *     resetSimulazione, aggiornaSimBadge, aggiornaDataHeader,
- *     updateClock, toggleOrdineLista
- *
- *   js/core/turni.js
- *     turnoStudente, costruisciTurni, setTurno
- *
- *   js/core/pp.js
- *     analizzaPP (window), controllaDinnerAutomatico,
- *     mostraPopupPPBloccato, mostraPopupAssenzaProgrammata,
- *     toggleAssenza, toggleDinnerNo, verificaStudenteStandBy
- *
- *   js/core/filtri.js
- *     popolaSelectClassiFiltro, filtraPerClasse, filtraAssenti,
- *     filtraNoCena, mostraFeedbackFiltro, rimuoviEvidenziazioneTasti,
- *     applicaFiltri, validaERicerca, gestisciSaltoStanze
- *
- *   js/core/persistenza.js
- *     salvaDatiLocale, caricaDatiLocale, renderDatiRemoti,
- *     mostraDataReset, aggiornaInfoReset, cancellaNote
- *
- *   js/pannello/assenze-programmate.js
- *     assenzeProgrammate, salvaAssenzeProgrammate,
- *     caricaAssenzeProgrammate, setAssenzeProgrammateFromRemote,
- *     ymdLocale, isAssenteProgrammato, aggiungiAssenza,
- *     renderListaAssenze, rimuoviAssenza, popolaSelectStudenti,
- *     popolaSelectClassi
- *
- *   js/pannello/side-panel.js
- *     togglePanel, isPanelOpen, listener click esterno,
- *     aggiornaAltezzaOverlay, listener resize/DOMContentLoaded,
- *     popolaListaPermessi
- *
- *   js/reset/reset-permessi.js
- *     resetDati, esportaPermessiJSON, importaPermessiJSON
- *
- *   js/stampe/dinner.js         → generaPopUpStampaDinner, generaPopUpStampaPresDin
- *   js/stampe/bus.js            → generaPopUpStampaBus, BusPomeriggio, BusGenerico
- *   js/stampe/transfer.js       → generaPopUpStampaTransfer
- *   js/stampe/uscite-rooming.js → generaPopUpStampaUscite, generaPopUpStampaRooming
- *   js/stampe/ritardi.js        → generaPopUpStampaSchedaRitardi
- *   js/stampe/convitto.js       → generaPopUpStampaConvitto
- *
- * ─────────────────────────────────────────────────────────────
- * ORDINE DI CARICAMENTO (campus_hub.html)
- * ─────────────────────────────────────────────────────────────
- *
- *   1.  offline/studenti_26_offline.js
- *   2.  offline/permessi_26_offline.js
- *   3.  js/core/stato.js
- *   4.  js/core/turni.js
- *   5.  js/core/pp.js
- *   6.  js/core/filtri.js
- *   7.  js/core/persistenza.js
- *   8.  js/pannello/assenze-programmate.js
- *   9.  js/pannello/side-panel.js
- *   10. js/campus_hub-script.js          ← questo file
- *   11. js/stampe/dinner.js
- *   12. js/stampe/bus.js
- *   13. js/stampe/transfer.js
- *   14. js/stampe/uscite-rooming.js
- *   15. js/stampe/ritardi.js
- *   16. js/stampe/convitto.js
- *   17. js/reset/reset-permessi.js
- *
- * ⚠️ I file core/* devono precedere questo file perché dichiarano
- *    variabili `let` (ordineAlfabetico, dataSimulata) che qui vengono
- *    lette al primo DOMContentLoaded.
- *
- * ⚠️ I file js/stampe/* e js/reset/* possono venire dopo perché
- *    espongono solo funzioni chiamate da onclick.
+ * (versione con LATE DINNER per-studente)
  */
 /* ─────────────────────────────────────────────────────────────
-   COSTANTI GLOBALI — parole chiave per dedurre stati dal PP
+   COSTANTI GLOBALI
    ───────────────────────────────────────────────────────────── */
 const PAROLE_ASSENZA = [
     "sosp", "sospeso", "sospensione",
@@ -109,21 +13,21 @@ const PAROLE_ASSENZA = [
     "ricovero", "ospedale",
     "stage", "alternanza"
 ];
- 
+
 const PAROLE_NO_RIENTRO = [
     "no", "non", "niente", "noreturn",
     "tardi", "ritardo", "ritardato",
     "dopo", "post"
 ];
-/* ─────────────────────────────────────────────────────────────
-   COGNOMI CON AUTO (🚗) — la lista vive in js/dati/cognomi-auto.js
-   (window.COGNOMI_AUTO). Qui la consumiamo soltanto.
-   ───────────────────────────────────────────────────────────── */
+
 const COGNOMI_AUTO = window.COGNOMI_AUTO || [];
 
-
-
 let cambiTurnoManuali = {};
+
+/* ── Late dinner manuale (per-student, toggle dalle card) ──
+   Esposto su window: lo legge dinner.js (stampa) e lo scrive
+   il wrapper di persistenza in fondo a questo file. */
+window.lateDinnerManuali = window.lateDinnerManuali || {};
 
 
 /**
@@ -133,27 +37,36 @@ function ricaricaListaStudenti() {
     const lista = document.getElementById("listaStudenti");
     if (!lista) return;
     lista.innerHTML = "";
-    // Reset filtro classe
     const classeFilter = document.getElementById("classeFilter");
     if (classeFilter) classeFilter.value = "";
 
     const data = getDataCorrente();
     const studenti = [...studenticonvittori];
 
- 
-// ── Ripristina preferenza ordinamento da localStorage ──
-ordineAlfabetico = localStorage.getItem("ordineAlfabetico") === "true";
-aggiornaBtnOrdineLista();
+    // ── Ripristina LATE da localStorage PRIMA di renderizzare ──
+    try {
+        const raw = localStorage.getItem("datiConvitto");
+        if (raw) {
+            const mappa = JSON.parse(raw);
+            Object.entries(mappa).forEach(([cognome, info]) => {
+                if (info && typeof info.late !== "undefined") {
+                    window.lateDinnerManuali[cognome] = !!info.late;
+                }
+            });
+        }
+    } catch (e) { /* ignore */ }
+
+    // ── Ripristina preferenza ordinamento da localStorage ──
+    ordineAlfabetico = localStorage.getItem("ordineAlfabetico") === "true";
+    aggiornaBtnOrdineLista();
 
     // ── Ordinamento condizionale (per room o alfabetico) ──
     studenti.sort((a, b) => {
         if (ordineAlfabetico) {
-            // Alfabetico per cognome
             const c = (a.cognome || "").localeCompare(b.cognome || "", "it", { sensitivity: "base" });
             if (c !== 0) return c;
             return (a.nome || "").localeCompare(b.nome || "", "it", { sensitivity: "base" });
         } else {
-            // Per room (default)
             return a.room.localeCompare(b.room, undefined, { numeric: true });
         }
     });
@@ -173,25 +86,27 @@ aggiornaBtnOrdineLista();
         r.dataset.percorso = s.percorso || "";
         r.dataset.dinnerno = "0";
 
-        // ── Calcola turno cena dello studente ──
         const turno = turnoStudente(s.classe, s.cognome);
-
-        // ── Calcola stato PP (assente/dinner dedotti dalle parole-chiave) ──
         const statoPP = analizzaPP(s.cognome, data.getDay());
 
-        // ── Badge turno cena (🍽 18:30 / 19:15) ──
         const turnoHtml = `<span class="st-turno t${turno}">🍽 ${turno === 1 ? '18:30' : '19:15'}</span>`;
 
-        // ── Badge PP bloccato (🔒 SOSP / GITA / ecc.) ──
         const ppBadge = (statoPP.assente || statoPP.dinnerNo)
             ? `<span class="pp-badge">🔒 ${statoPP.etichetta || 'PP'}</span>`
             : "";
+
+        const isLate = !!window.lateDinnerManuali[s.cognome];
 
         r.innerHTML = `
             <div class="st-header">
                 <div>
                     <span class="room-badge">${s.room}</span>
                     <button class="btn-switch" onclick="toggleSwitchTurno(this)" title="Cambia turno" aria-label="Cambia turno cena per ${s.cognome}">⇄</button>
+                    <button class="btn-late ${isLate ? 'active' : ''}"
+                            onclick="toggleLateDinner(this)"
+                            title="Attiva/disattiva late dinner"
+                            aria-label="Late dinner per ${s.cognome}"
+                            aria-pressed="${isLate ? 'true' : 'false'}">LATE</button>
                     ${ppBadge}
                 </div>
                 ${turnoHtml}
@@ -221,12 +136,17 @@ aggiornaBtnOrdineLista();
         if (statoPP.assente) {
             r.classList.add("assente");
             r.classList.add("dinner-no");
-            r.classList.add("pp-locked");   // ← marca la card come bloccata da PP
+            r.classList.add("pp-locked");
             r.dataset.dinnerno = "1";
         } else if (statoPP.dinnerNo) {
             r.classList.add("dinner-no");
-            r.classList.add("pp-locked");   // ← marca la card come bloccata da PP
+            r.classList.add("pp-locked");
             r.dataset.dinnerno = "1";
+        }
+
+        // ── LATE dinner manuale: bordo sulla card ──
+        if (isLate) {
+            r.classList.add("late-dinner");
         }
 
         lista.appendChild(r);
@@ -237,8 +157,6 @@ aggiornaBtnOrdineLista();
 
 // --- 1. INIZIALIZZAZIONE ---
 function init() {
-    // In modalità locale-reale usa SEMPRE il file, ignorando override vecchi
-    // (l'import via UI aggiorna il file stesso o usa Firebase, non localStorage).
     if (window.APP_MODE === 'offline' && window.APP_ORIGIN !== 'locale-reale') {
         const ppLocali = localStorage.getItem("ORARI_PP");
         if (ppLocali) {
@@ -246,11 +164,11 @@ function init() {
             catch (e) { console.warn("ORARI_PP locale non valido", e); }
         }
     }
-    
+
     caricaAssenzeProgrammate();
 
-aggiornaDataHeader();
-aggiornaSimBadge();
+    aggiornaDataHeader();
+    aggiornaSimBadge();
 
     updateClock();
     let clockInterval = null;
@@ -258,17 +176,15 @@ aggiornaSimBadge();
     clockInterval = setInterval(updateClock, 1000);
 
     ricaricaListaStudenti();
-    
-    // ← AGGIUNGI QUESTA RIGA
+
     popolaSelectClassiFiltro();
-    
+
     mostraDataReset();
 }
 
 function haDirittoAlBus(s) {
     return window.haDirittoAlBusVariante(s, "standard");
 }
-
 
 function toggleSwitchTurno(btn) {
     const r = btn.closest(".student-row");
@@ -278,6 +194,23 @@ function toggleSwitchTurno(btn) {
     salvaDatiLocale();
 }
 
+/* ─────────────────────────────────────────────────────────────
+   LATE DINNER — toggle per-studente
+   ───────────────────────────────────────────────────────────── */
+function toggleLateDinner(btn) {
+    const r = btn.closest(".student-row");
+    if (!r) return;
+    const cognome = r.dataset.cognome;
+    const attivo  = !window.lateDinnerManuali[cognome];
+
+    window.lateDinnerManuali[cognome] = attivo;
+
+    btn.classList.toggle("active", attivo);
+    btn.setAttribute("aria-pressed", attivo ? "true" : "false");
+    r.classList.toggle("late-dinner", attivo);
+
+    salvaDatiLocale();
+}
 
 // --- 4. LOGICA INPUT ---
 function normalizzaOrario(valore) {
@@ -287,29 +220,16 @@ function normalizzaOrario(valore) {
     return valore;
 }
 
-
-
-
 function isStudenteInLabOggi(classe, gruppo, dataOggetto) {
-    const giorno = dataOggetto.getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mer, 4=Gio, 5=Ven, 6=Sab
-
-    // Classi in laboratorio dinner per giorno (da permessi_26.js)
+    const giorno = dataOggetto.getDay();
     const classiLabOggi = (typeof LAB_DINNER !== "undefined" && LAB_DINNER[giorno]) || [];
-
-    // Se la classe non è in laboratorio oggi, esce subito
     if (!classiLabOggi.includes(classe)) return false;
-
-    // Per 5A e 5B il giovedì il laboratorio è a gruppi alterni (G1/G2)
-    // Il calendario CALENDARIO_GRUPPI_DINNER (in permessi_26.js) dice
-    // quale gruppo tocca quella settimana: "gr1" → G1, "gr2" → G2
     if ((classe === "5A" || classe === "5B") && giorno === 4) {
         const dataKey = dataOggetto.toLocaleDateString("it-IT");
         const gLab = CALENDARIO_GRUPPI_DINNER[dataKey];
-        if (!gLab) return false; // nessun gruppo in lab quella settimana (es. vacanza)
+        if (!gLab) return false;
         return (gLab === "gr1" && gruppo === "G1") || (gLab === "gr2" && gruppo === "G2");
     }
-
-    // Per tutte le altre classi (2P, 2A, 2B) il laboratorio è per tutta la classe
     return true;
 }
 
@@ -317,6 +237,42 @@ function isPPNoDinnerOggi(cognome, giorno) {
     return ASSENTI_PERMESSO[giorno]?.includes(cognome.toUpperCase());
 }
 
+/* ─────────────────────────────────────────────────────────────
+   PERSISTENZA STATO LATE
+   Wrappa salvaDatiLocale per iniettare `late` nel localStorage
+   subito dopo che persistenza.js ha scritto il resto.
+   (Gira in entrambe le modalità: online e offline.)
+   ───────────────────────────────────────────────────────────── */
+(function patchaSalvataggioLate() {
+    const patch = () => {
+        const _orig = window.salvaDatiLocale;
+        if (typeof _orig !== 'function' || _orig.__lateWrapped) return;
 
-// --- CARICAMENTO INIZIALE ---
-// init() viene chiamato da campus_hub.html DOPO il caricamento dei dati da Firebase
+        const wrapped = function () {
+            _orig();
+            try {
+                const raw = localStorage.getItem("datiConvitto");
+                if (raw) {
+                    const dati = JSON.parse(raw);
+                    Object.keys(dati).forEach((cognome) => {
+                        if (dati[cognome] && typeof dati[cognome] === "object") {
+                            dati[cognome].late = !!window.lateDinnerManuali?.[cognome];
+                        }
+                    });
+                    localStorage.setItem("datiConvitto", JSON.stringify(dati));
+                }
+            } catch (e) { /* ignore */ }
+        };
+        wrapped.__lateWrapped = true;
+        window.salvaDatiLocale = wrapped;
+        console.log("🔗 Wrapper LATE attivo su salvaDatiLocale");
+    };
+
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+        patch();
+    } else {
+        window.addEventListener("DOMContentLoaded", patch);
+    }
+})();
+
+// init() viene chiamato da campus_hub.html DOPO il caricamento dei dati
