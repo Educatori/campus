@@ -589,6 +589,27 @@ header:not(.app-header) h1 {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
+#ceneBox .late-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 5px;
+    border-radius: 9px;
+    background: #db2777;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+#ceneBox.tasto-attivo .late-count {
+    background: #fff;
+    color: #db2777;
+}
 
 /* ============================================================
    11. AZIONI GRID — categorie
