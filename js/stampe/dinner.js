@@ -86,6 +86,16 @@ function generaPopUpStampaDinner() {
             r.classList.contains("assente") ||
             r.dataset.dinnerno === "1";
 
+        // ─── Orari PP del giorno (per mostrare out → in accanto agli esclusi) ───
+        const ppOggi = (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome.toUpperCase()])
+            ? ORARI_PP[cognome.toUpperCase()][giornoSett]
+            : null;
+        const outPP = ppOggi ? normalizzaOrario(ppOggi.out || "") : "";
+        const inPP  = ppOggi ? normalizzaOrario(ppOggi.in  || "") : "";
+        const orarioLabel = (outPP.includes(":") || inPP.includes(":"))
+            ? `${outPP || "—"} → ${inPP || "—"}`
+            : "";
+
         if (turnoEffettivo === 1) {
             if (escluso) {
                 a1++;
@@ -93,7 +103,8 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: isLab ? "LAB" : ""
+                    nota: isLab ? "LAB" : "",
+                    orario: orarioLabel
                 });
             } else {
                 p1++;
@@ -105,7 +116,8 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: isLab ? "LAB" : ""
+                    nota: isLab ? "LAB" : "",
+                    orario: orarioLabel
                 });
             } else {
                 p2++;
@@ -122,7 +134,7 @@ function generaPopUpStampaDinner() {
     switch2.sort(ordinaCognome);
 
     function buildGrigliaNomi(lista, opzioni = {}) {
-        const { mostraNota = false, mostraClasse = true } = opzioni;
+        const { mostraNota = false, mostraClasse = true, mostraOrario = false } = opzioni;
 
         if (!lista.length) {
             return `<div class="griglia-nomi"><div class="nome-item"><i>Nessuno</i></div></div>`;
@@ -136,7 +148,10 @@ function generaPopUpStampaDinner() {
                 const tagNota = mostraNota && o.nota
                     ? ` <span class="tag-nota">${o.nota}</span>`
                     : "";
-                return `<div class="nome-item"><b>${o.cognome}</b> ${o.nome}${tagClasse}${tagNota}</div>`;
+                const tagOrario = mostraOrario && o.orario
+                    ? ` <span class="tag-orario">${o.orario}</span>`
+                    : "";
+                return `<div class="nome-item"><b>${o.cognome}</b> ${o.nome}${tagClasse}${tagNota}${tagOrario}</div>`;
             })
             .join("");
 
@@ -155,7 +170,7 @@ function generaPopUpStampaDinner() {
         .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
 
     if (lateManuali.length > 0) {
-        const rigaLate = `LATE MANUALE: ${lateManuali.join(', ')}`;
+        const rigaLate = `LATE MANUALE:\n${lateManuali.join(', ')}`;
         notaGiornoCorrente = notaGiornoCorrente.trim()
             ? notaGiornoCorrente.trim() + '\n' + rigaLate
             : rigaLate;
@@ -226,6 +241,14 @@ function generaPopUpStampaDinner() {
                 vertical-align: middle; margin-left: 4px;
                 border: 1px solid #f7dc6f;
             }
+            .tag-orario {
+                display: inline-block; background: #eef2ff; color: #3730a3;
+                font-size: 0.72em; font-weight: bold; padding: 1px 6px;
+                border-radius: 3px; font-family: "SF Mono", Consolas, monospace;
+                vertical-align: middle; margin-left: 4px;
+                border: 1px solid #c7d2fe;
+                letter-spacing: 0.02em;
+            }
             .no-print { margin-top: 20px; display: flex; justify-content: center; }
             .no-print button {
                 padding: 14px 50px; background: #27ae60; color: white;
@@ -269,7 +292,7 @@ function generaPopUpStampaDinner() {
                 <button onclick="window.print()">• STAMPA</button>
             </div>
 
-        <textarea class="editable-notes" rows="${Math.max(4, (notaGiornoCorrente.match(/\n/g) || []).length + 2)}">${notaGiornoCorrente}</textarea>
+            <textarea class="editable-notes" rows="${Math.max(4, (notaGiornoCorrente.match(/\n/g) || []).length + 2)}">${notaGiornoCorrente}</textarea>
 
             <div class="section">
                 <h3>1° turno — 18:30</h3>
@@ -287,7 +310,7 @@ function generaPopUpStampaDinner() {
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
-                ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true })}
+                ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true, mostraOrario: true })}
                 <div class="label-sezione">Cambi Turno</div>
                 ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
             </div>
@@ -308,7 +331,7 @@ function generaPopUpStampaDinner() {
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
-                ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true })}
+                ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true, mostraOrario: true })}
                 <div class="label-sezione">Cambi Turno</div>
                 ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
             </div>
