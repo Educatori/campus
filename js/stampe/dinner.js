@@ -78,13 +78,27 @@ function generaPopUpStampaDinner() {
             else switch2.push(obj);
         }
 
-        const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
+                const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
         const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
         const escluso =
             isLab ||
             isPPNoCena ||
             r.classList.contains("assente") ||
             r.dataset.dinnerno === "1";
+
+        // ─── Nota di esclusione: LAB ha precedenza, poi LATE ───
+        // isLateDinnerStudente() filtra già PP-assenza, PP-no-rientro,
+        // ASSENTI_PERMESSO e .assente; qui basta escludere solo isLab.
+        let notaEsclusione = "";
+        if (isLab) {
+            notaEsclusione = "LAB";
+        } else if (
+            escluso &&
+            typeof isLateDinnerStudente === "function" &&
+            isLateDinnerStudente(cognome, classe, giornoSett, turnoEffettivo, r)
+        ) {
+            notaEsclusione = "LATE";
+        }
 
         // ─── Orari PP del giorno (per mostrare out → in accanto agli esclusi) ───
         const ppOggi = (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome.toUpperCase()])
@@ -103,7 +117,7 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: isLab ? "LAB" : "",
+                    nota: notaEsclusione,
                     orario: orarioLabel
                 });
             } else {
@@ -116,7 +130,7 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: isLab ? "LAB" : "",
+                    nota: notaEsclusione,
                     orario: orarioLabel
                 });
             } else {
@@ -145,8 +159,9 @@ function generaPopUpStampaDinner() {
                 const tagClasse = mostraClasse && o.classe
                     ? ` <span class="tag-classe">${o.classe}</span>`
                     : "";
+                const notaClass = o.nota ? ` tag-${o.nota.toLowerCase()}` : "";
                 const tagNota = mostraNota && o.nota
-                    ? ` <span class="tag-nota">${o.nota}</span>`
+                    ? ` <span class="tag-nota${notaClass}">${o.nota}</span>`
                     : "";
                 const tagOrario = mostraOrario && o.orario
                     ? ` <span class="tag-orario">${o.orario}</span>`
@@ -241,6 +256,11 @@ function generaPopUpStampaDinner() {
                 border-radius: 3px; text-transform: uppercase;
                 vertical-align: middle; margin-left: 4px;
                 border: 1px solid #f7dc6f;
+            }    
+            .tag-late {
+                background: #e8f4fd;
+                color: #1f618d;
+                border: 1px solid #aed6f1;
             }
             .tag-orario {
                 display: inline-block; background: #eef2ff; color: #3730a3;
@@ -305,9 +325,10 @@ function generaPopUpStampaDinner() {
                     <span>Presenti: <input type="number" value="${p1}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
-                <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-                    ${n1.filter(o => o.nota === 'LAB').length > 0
-                        ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+             <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+                    ${n1.filter(o => o.nota === 'LAB').length > 0 ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+                        : ''}
+                    ${n1.filter(o => o.nota === 'LATE').length > 0 ? `<span>LATE: <input type="number" value="${n1.filter(o => o.nota === 'LATE').length}" style="font-size:1.1em; width:55px;"></span>`
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
@@ -327,8 +348,9 @@ function generaPopUpStampaDinner() {
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
                 <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-                    ${n2.filter(o => o.nota === 'LAB').length > 0
-                        ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+                    ${n2.filter(o => o.nota === 'LAB').length > 0   ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+                        : ''}
+                    ${n2.filter(o => o.nota === 'LATE').length > 0    ? `<span>LATE: <input type="number" value="${n2.filter(o => o.nota === 'LATE').length}" style="font-size:1.1em; width:55px;"></span>`
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
