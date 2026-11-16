@@ -133,45 +133,7 @@ function resetDati(tipo) {
             alert("✅ Reset completato (modalità locale).\n\nLe assenze programmate e i permessi permanenti sono stati mantenuti.");
         }
     }
-    else if (tipo === 'completo') {
-        // ═══════════════════════════════════════════════════════════
-        // RESET COMPLETO — tasto rimosso, codice inutilizzato
-        // conservato come documentazione
-        // ═══════════════════════════════════════════════════════════
-        const msgPrimaCompleto =
-            "⚠️ RESET COMPLETO ⚠️\n\n" +
-            "Verranno cancellati TUTTI i dati locali:\n" +
-            "  • Modifiche giornaliere (assente, no cena, orari, switch, late)\n" +
-            "  • Programmazione assenze\n" +
-            "  • Timestamp di reset\n\n" +
-            "Vuoi procedere?";
-
-        if (!confirm(msgPrimaCompleto)) return;
-
-        const confermaCompleto = prompt(
-            "⚠️ CONFERMA FINALE ⚠️\n\n" +
-            "Digita la parola:\n\n" +
-            "         RESET\n\n" +
-            "(tutto maiuscolo)"
-        );
-
-        if (confermaCompleto === null) return;
-        if (confermaCompleto.trim() !== "RESET") {
-            alert("❌ Reset annullato.\nIl testo digitato non corrisponde a \"RESET\".");
-            return;
-        }
-
-        localStorage.removeItem("datiConvitto");
-        localStorage.removeItem("assenzeProgrammate");
-        localStorage.setItem("dataUltimoReset", new Date().toLocaleString("it-IT", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit"
-        }));
-        cambiTurnoManuali = {};
-        window.lateDinnerManuali = {};
-        assenzeProgrammate = {};
-        location.reload();
-    }
+    
 }
 
 // ═══════════════════════════════════════════════════════════════
