@@ -1,4 +1,4 @@
-/**
+/** 
  * js/stampe/transfer.js
  * Stampa TRANSFER LUNCH.
  * Dipende da: tuttiStudenti, LAB_PRANZO (window).
