@@ -229,19 +229,25 @@ async function caricaDatiFirebase() {
 // ─────────────────────────────────────────────────────────────
 // 4. SALVATAGGIO SU FIREBASE
 // ─────────────────────────────────────────────────────────────
-async function salvaDatiFirebase() {
+async function salvaDatiFirebase(datiPrecalcolati) {
     try {
         const chiave = dataKeyFirebase(new Date());
-        const dati = {};
-        document.querySelectorAll('.student-row').forEach(r => {
-            dati[r.dataset.cognome] = {
-                esce:     r.querySelector('.in-u')?.value ?? "",
-                entra:    r.querySelector('.in-i')?.value ?? "",
-                assente:  r.classList.contains('assente'),
-                dinnerno: r.dataset.dinnerno ?? "0",
-                switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
-            };
-        });
+
+        let dati = datiPrecalcolati;
+
+        // Fallback: se nessuno passa i dati, leggo dal DOM (compatibilità)
+        if (!dati) {
+            dati = {};
+            document.querySelectorAll('.student-row').forEach(r => {
+                dati[r.dataset.cognome] = {
+                    esce:     r.querySelector('.in-u')?.value ?? "",
+                    entra:    r.querySelector('.in-i')?.value ?? "",
+                    assente:  r.classList.contains('assente'),
+                    dinnerno: r.dataset.dinnerno ?? "0",
+                    switch:   window.cambiTurnoManuali?.[r.dataset.cognome] ?? false
+                };
+            });
+        }
 
         await set(ref(db, `convitto/${chiave}/dati`), dati);
         await set(ref(db, `convitto/${chiave}/lastUpdate`), Date.now());
@@ -266,18 +272,9 @@ async function salvaNoteFirebase(testo) {
 window.salvaNoteFirebase = salvaNoteFirebase;
 
 // ─────────────────────────────────────────────────────────────
-// 5. WRAPPER salvataggio locale → Firebase
+// 5. WRAPPER salvataggio locale esiste in js/core/persistenza.js
 // ─────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-    const _orig = window.salvaDatiLocale;
-    if (typeof _orig === 'function') {
-        window.salvaDatiLocale = function () {
-            _orig();
-            window.salvaDatiFirebase();
-        };
-        console.log('🔗 Wrapper salvataggio attivo');
-    }
-});
+
 
 // ─────────────────────────────────────────────────────────────
 // 6. ESPOSIZIONE GLOBALE
@@ -294,7 +291,6 @@ console.log('🔧 data-loader.js pronto');
 // ─────────────────────────────────────────────────────────────
 
 let noteListenerAttivo = false;
-let noteRemoteInCorso = false;
 
 /**
  * Attiva il listener realtime sulle note.
@@ -305,30 +301,22 @@ function attivaNoteCondivise() {
     noteListenerAttivo = true;
 
     const noteRef = ref(db, 'convitto/note');
+    const ta = document.getElementById('dailyNotes');
 
     // 1) Ascolta i cambiamenti remoti
     onValue(noteRef, (snap) => {
         const testo = snap.exists() ? (snap.val() || "") : "";
-        const ta = document.getElementById('dailyNotes');
         if (!ta) return;
-
-        if (document.activeElement === ta) {
-            if (ta.value === testo) return;
-            return;
-        }
-
-        noteRemoteInCorso = true;
+        // Non sovrascrivere mentre l'utente sta digitando
+        if (document.activeElement === ta) return;
         ta.value = testo;
-        noteRemoteInCorso = false;
     });
 
     // 2) Salva su Firebase con debounce
-    const ta = document.getElementById('dailyNotes');
     if (ta) {
         let debounceTimer = null;
 
         ta.addEventListener('input', () => {
-            if (noteRemoteInCorso) return;
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
                 try {

@@ -5,20 +5,7 @@
 /* ─────────────────────────────────────────────────────────────
    COSTANTI GLOBALI
    ───────────────────────────────────────────────────────────── */
-const PAROLE_ASSENZA = [
-    "sosp", "sospeso", "sospensione",
-    "gita", "viaggio", "vacanza",
-    "assente", "assenza",
-    "malattia", "casa", "famiglia",
-    "ricovero", "ospedale",
-    "stage", "alternanza"
-];
 
-const PAROLE_NO_RIENTRO = [
-    "no", "non", "niente", "noreturn",
-    "tardi", "ritardo", "ritardato",
-    "dopo", "post"
-];
 
 const COGNOMI_AUTO = window.COGNOMI_AUTO || [];
 
@@ -155,7 +142,8 @@ function ricaricaListaStudenti() {
     caricaDatiLocale();
 }
 
-// --- 1. INIZIALIZZAZIONE ---
+let _clockInterval = null;
+
 function init() {
     if (window.APP_MODE === 'offline' && window.APP_ORIGIN !== 'locale-reale') {
         const ppLocali = localStorage.getItem("ORARI_PP");
@@ -165,15 +153,15 @@ function init() {
         }
     }
 
+    // ── clock: un solo interval, gestito a livello di modulo ──
+    if (_clockInterval) clearInterval(_clockInterval);
+    _clockInterval = setInterval(updateClock, 1000);
+    updateClock();                     // aggiorna subito senza aspettare 1s
+
     caricaAssenzeProgrammate();
 
     aggiornaDataHeader();
     aggiornaSimBadge();
-
-    updateClock();
-    let clockInterval = null;
-    if (clockInterval) clearInterval(clockInterval);
-    clockInterval = setInterval(updateClock, 1000);
 
     ricaricaListaStudenti();
 
@@ -181,7 +169,6 @@ function init() {
 
     mostraDataReset();
 
-    // ── badge CENE all'avvio (dopo il restore dei late) ──
     if (typeof aggiornaBadgeCene === "function") aggiornaBadgeCene();
 }
 
@@ -244,43 +231,37 @@ function isPPNoDinnerOggi(cognome, giorno) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   PERSISTENZA STATO LATE
+   PERSISTENZA STATO LATE sostituito da hook
    Wrappa salvaDatiLocale per iniettare `late` nel localStorage
    subito dopo che persistenza.js ha scritto il resto.
    (Gira in entrambe le modalità: online e offline.)
    ───────────────────────────────────────────────────────────── */
-(function patchaSalvataggioLate() {
-    const patch = () => {
-        const _orig = window.salvaDatiLocale;
-        if (typeof _orig !== 'function' || _orig.__lateWrapped) return;
+/* ─────────────────────────────────────────────────────────────
+   HOOK LATE DINNER
+   Registra un hook che inietta `late` nell'oggetto `dati` prima
+   che venga salvato su localStorage e Firebase.
+   ───────────────────────────────────────────────────────────── */
+(function registraHookLate() {
+    const hook = (dati) => {
+        Object.keys(dati).forEach((cognome) => {
+            if (dati[cognome] && typeof dati[cognome] === "object") {
+                const lateKey = (cognome || "").toUpperCase();
+                dati[cognome].late = !!window.lateDinnerManuali?.[lateKey];
+            }
+        });
+    };
 
-        const wrapped = function () {
-            // 1. Fai scrivere a persistenza.js il resto dei dati
-            _orig();
-
-            // 2. Inietta il flag `late` per ogni cognome e riscrivi
-            try {
-                const raw = localStorage.getItem("datiConvitto");
-                if (!raw) return;
-                const dati = JSON.parse(raw);
-                Object.keys(dati).forEach((cognome) => {
-                    if (dati[cognome] && typeof dati[cognome] === "object") {
-                        const lateKey = (cognome || "").toUpperCase();
-                        dati[cognome].late = !!window.lateDinnerManuali?.[lateKey];
-                    }
-                });
-                localStorage.setItem("datiConvitto", JSON.stringify(dati));
-            } catch (e) { /* ignore */ }
-        };
-        wrapped.__lateWrapped = true;
-        window.salvaDatiLocale = wrapped;
-        console.log("🔗 Wrapper LATE attivo su salvaDatiLocale");
+    // Attende che persistenza.js abbia creato l'array
+    const registra = () => {
+        window._hooksSalvataggio = window._hooksSalvataggio || [];
+        window._hooksSalvataggio.push(hook);
+        console.log("🔗 Hook LATE registrato su salvataggio");
     };
 
     if (document.readyState === "complete" || document.readyState === "interactive") {
-        patch();
+        registra();
     } else {
-        window.addEventListener("DOMContentLoaded", patch);
+        window.addEventListener("DOMContentLoaded", registra);
     }
 })();
 
