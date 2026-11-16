@@ -1,0 +1,459 @@
+/**
+ * js/stampe/dinner.js
+ * Stampa DINNER — include il blocco "Altri aggiunti in manuale" dalle card.
+ */
+
+function generaTestoClassiTurno(turno) {
+    const giornoSettimana = getDataCorrente().getDay();
+    const turni = window.TURNI_DINNER || {};
+    const overrideClassi = window.OVERRIDE_TURNI_DINNER_CLASSI || {};
+
+    const baseTurno = turni[turno] || [];
+    const baseSet = new Set(baseTurno);
+
+    const tutteLeClassi = new Set([
+        ...(turni[1] || []),
+        ...(turni[2] || [])
+    ]);
+
+    const classiDelTurno = [];
+    tutteLeClassi.forEach(classe => {
+        let turnoEffettivo = baseSet.has(classe) ? turno : (turno === 1 ? 2 : 1);
+        const ov = overrideClassi[classe];
+        if (ov && ov[giornoSettimana] !== undefined) {
+            turnoEffettivo = ov[giornoSettimana];
+        }
+        if (turnoEffettivo === turno) classiDelTurno.push(classe);
+    });
+
+    const ordinate = [
+        ...classiDelTurno.filter(c => baseSet.has(c)),
+        ...classiDelTurno.filter(c => !baseSet.has(c))
+    ];
+
+    return ordinate.join(', ');
+}
+
+function generaPopUpStampaDinner() {
+    let a1 = 0, p1 = 0, a2 = 0, p2 = 0;
+    let n1 = [], n2 = [], switch1 = [], switch2 = [];
+
+    const oggi = getDataCorrente();
+    const giornoSett = oggi.getDay();
+    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+    const dataOggi = oggi.toLocaleDateString("it-IT");
+    const dataTestuale = document.getElementById("todayDate").innerText;
+
+    function estraiNome(nomeCompleto, cognome) {
+        if (!nomeCompleto) return "";
+        const cognomeUpper = (cognome || "").toUpperCase();
+        if (nomeCompleto.toUpperCase().startsWith(cognomeUpper)) {
+            return nomeCompleto.substring(cognome.length).trim();
+        }
+        return nomeCompleto;
+    }
+
+    document.querySelectorAll(".student-row").forEach((r) => {
+        const cognome = r.dataset.cognome || "";
+        const nomeCompleto = r.dataset.nomeCompleto || "";
+        const classe = r.dataset.classe || "";
+        const nome = estraiNome(nomeCompleto, cognome);
+
+        const turnoOriginale = TURNI_DINNER[1].includes(classe) ? 1 : 2;
+        let turnoEffettivo = turnoStudente(classe, cognome);
+
+        if (cambiTurnoManuali[cognome]) {
+            turnoEffettivo = turnoEffettivo === 1 ? 2 : 1;
+        }
+
+        if (turnoEffettivo !== turnoOriginale) {
+            const nota = turnoEffettivo === 1 ? "da 2° a 1°" : "da 1° a 2°";
+            const obj = {
+                cognome: cognome.toUpperCase(),
+                nome: nome,
+                classe: classe,
+                nota: nota
+            };
+            if (turnoEffettivo === 1) switch1.push(obj);
+            else switch2.push(obj);
+        }
+
+        const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
+        const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
+        const escluso =
+            isLab ||
+            isPPNoCena ||
+            r.classList.contains("assente") ||
+            r.dataset.dinnerno === "1";
+
+        const ppOggi = (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome.toUpperCase()])
+            ? ORARI_PP[cognome.toUpperCase()][giornoSett]
+            : null;
+        const outPP = ppOggi ? normalizzaOrario(ppOggi.out || "") : "";
+        const inPP  = ppOggi ? normalizzaOrario(ppOggi.in  || "") : "";
+        const orarioLabel = (outPP.includes(":") || inPP.includes(":"))
+            ? `${outPP || "—"} → ${inPP || "—"}`
+            : "";
+
+        if (turnoEffettivo === 1) {
+            if (escluso) {
+                a1++;
+                n1.push({
+                    cognome: cognome.toUpperCase(),
+                    nome: nome,
+                    classe: classe,
+                    nota: isLab ? "LAB" : "",
+                    orario: orarioLabel
+                });
+            } else {
+                p1++;
+            }
+        } else {
+            if (escluso) {
+                a2++;
+                n2.push({
+                    cognome: cognome.toUpperCase(),
+                    nome: nome,
+                    classe: classe,
+                    nota: isLab ? "LAB" : "",
+                    orario: orarioLabel
+                });
+            } else {
+                p2++;
+            }
+        }
+    });
+
+    const ordinaCognome = (a, b) =>
+        a.cognome.localeCompare(b.cognome, "it", { sensitivity: "base" });
+
+    n1.sort(ordinaCognome);
+    n2.sort(ordinaCognome);
+    switch1.sort(ordinaCognome);
+    switch2.sort(ordinaCognome);
+
+    function buildGrigliaNomi(lista, opzioni = {}) {
+        const { mostraNota = false, mostraClasse = true, mostraOrario = false } = opzioni;
+
+        if (!lista.length) {
+            return `<div class="griglia-nomi"><div class="nome-item"><i>Nessuno</i></div></div>`;
+        }
+
+        const items = lista
+            .map((o) => {
+                const tagClasse = mostraClasse && o.classe
+                    ? ` <span class="tag-classe">${o.classe}</span>`
+                    : "";
+                const tagNota = mostraNota && o.nota
+                    ? ` <span class="tag-nota">${o.nota}</span>`
+                    : "";
+                const tagOrario = mostraOrario && o.orario
+                    ? ` <span class="tag-orario">${o.orario}</span>`
+                    : "";
+                return `<div class="nome-item"><b>${o.cognome}</b> ${o.nome}${tagClasse}${tagNota}${tagOrario}</div>`;
+            })
+            .join("");
+
+        return `<div class="griglia-nomi">${items}</div>`;
+    }
+
+    let notaGiornoCorrente =
+        (typeof generaTestoLateDinner === "function" && generaTestoLateDinner(giornoSett))
+        || "";
+
+    const lateManuali = Object.entries(window.lateDinnerManuali || {})
+        .filter(([_, attivo]) => attivo === true)
+        .map(([cognome]) => cognome.toUpperCase())
+        .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+
+    if (lateManuali.length > 0) {
+        const rigaLate = `Altri Aggiunti:\n${lateManuali.join(', ')}`;
+        notaGiornoCorrente = notaGiornoCorrente.trim()
+            ? notaGiornoCorrente.trim() + '\n' + rigaLate
+            : rigaLate;
+    }
+
+    if (!notaGiornoCorrente) {
+        notaGiornoCorrente = "NESSUN PERMESSO LATE DINNER OGGI";
+    }
+
+    const popup = window.open("", "_blank", "width=1000,height=900");
+    popup.document.write(`
+        <html lang="it"><head><title>Riepilogo Dinner - ${dataTestuale}</title><style>
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 portrait",
+                pageMargin: "1cm"
+            })}
+            body { padding: 30px 40px; position: relative; color: #222; }
+            h2 { text-align: center; text-transform: uppercase; margin-top: 20px; margin-bottom: 6px; font-size: 1.6em; letter-spacing: 1px; }
+            h3 { font-size: 1em; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+            .timestamp { top: 10px; right: 20px; font-size: 0.8em; color: #666; }
+            .date { text-align: center; font-size: 1.15em; margin-bottom: 20px; color: #444; }
+            .editable-notes {
+                width: 100%; box-sizing: border-box;
+                border: 1px dashed #ccc; font-size: 1em; font-weight: bold;
+                text-align: center; text-transform: uppercase; padding: 10px;
+                margin-bottom: 24px; font-family: inherit; resize: vertical;
+            }
+            .section {
+                margin-bottom: 28px; border-left: 6px solid #333;
+                padding-left: 18px; page-break-inside: avoid;
+            }
+            .section h3 { color: #2c3e50; }
+            .stats-row {
+                display: flex; gap: 24px; align-items: center;
+                flex-wrap: wrap; margin-bottom: 12px;
+            }
+            .stats-row span {
+                font-size: 0.95em; font-weight: 600;
+                display: flex; align-items: center; gap: 6px;
+            }
+            .stats-row input {
+                font-size: 1.3em; font-weight: bold; width: 65px;
+                border: none; border-bottom: 2px solid #000;
+                text-align: center; background: transparent;
+                font-family: inherit; color: #000;
+            }
+            .label-sezione {
+                font-size: 0.85em; font-weight: bold;
+                text-transform: uppercase; color: #555;
+                margin-bottom: 4px; letter-spacing: 0.5px;
+            }
+            .griglia-nomi {
+                display: grid; grid-template-columns: repeat(2, 1fr);
+                gap: 3px 20px; margin: 4px 0 14px 0;
+                font-size: 0.85em; color: #333; line-height: 1.5;
+            }
+            .nome-item {
+                padding: 2px 4px; border-bottom: 1px dotted #e0e0e0;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            .nome-item b { color: #000; }
+            .tag-classe {
+                display: inline-block; background: #ecf0f1; color: #2c3e50;
+                font-size: 0.75em; font-weight: bold; padding: 1px 6px;
+                border-radius: 3px; text-transform: uppercase;
+                vertical-align: middle; margin-left: 4px;
+            }
+            .tag-nota {
+                display: inline-block; background: #fef9e7; color: #b7950b;
+                font-size: 0.75em; font-weight: bold; padding: 1px 6px;
+                border-radius: 3px; text-transform: uppercase;
+                vertical-align: middle; margin-left: 4px;
+                border: 1px solid #f7dc6f;
+            }
+            .tag-orario {
+                display: inline-block; background: #eef2ff; color: #3730a3;
+                font-size: 0.72em; font-weight: bold; padding: 1px 6px;
+                border-radius: 3px; font-family: "SF Mono", Consolas, monospace;
+                vertical-align: middle; margin-left: 4px;
+                border: 1px solid #c7d2fe;
+                letter-spacing: 0.02em;
+            }
+            @media print {
+                body { padding: 8px 12px; font-size: 0.9em; }
+                .editable-notes { border: none; margin-bottom: 12px; padding: 6px; }
+                .griglia-nomi {
+                    grid-template-columns: repeat(2, 1fr);   /* ← 2 colonne in stampa */
+                    font-size: 0.62em; gap: 0px 16px;
+                    margin: 2px 0 8px 0; line-height: 1.2;
+                }
+                .nome-item { padding: 0; }
+                .section {
+                    page-break-inside: avoid;
+                    margin-bottom: 14px; padding-left: 12px;
+                    border-left-width: 4px;
+                }
+                h2 { font-size: 1.3em; margin: 8px 0 4px 0; }
+                h3 { font-size: 0.9em; margin-bottom: 6px; }
+                .date { font-size: 0.95em; margin-bottom: 12px; }
+                .stats-row { gap: 16px; margin-bottom: 8px; }
+                .stats-row span { font-size: 0.85em; }
+                .stats-row input { font-size: 1.1em; width: 55px; }
+                .label-sezione { font-size: 0.75em; margin-bottom: 2px; }
+            }
+        </style></head><body>
+
+            <div class="timestamp">aggiornamento ${dataOggi} ore ${oraEsatta}</div>
+            ${window.STAMPA_LAYOUT.intestazione({
+                titolo: "Riepilogo Dinner",
+                sottotitolo: dataTestuale,
+                titoloStyle: "font-size:1.6em;margin-top:20px;letter-spacing:1px;",
+                sottotitoloStyle: "font-size:1.15em;margin-bottom:20px;color:#444;"
+            })}
+
+            ${window.STAMPA_LAYOUT.bottoneStampa({ testo: "• STAMPA" })}
+
+            <textarea class="editable-notes" rows="${Math.max(4, (notaGiornoCorrente.match(/\n/g) || []).length + 2)}">${notaGiornoCorrente}</textarea>
+
+            <div class="section">
+                <h3>1° turno — 18:30</h3>
+                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI ${generaTestoClassiTurno(1)}
+                </div>
+                <div class="stats-row">
+                    <span>Esclusi: <input type="number" value="${a1}"></span>
+                    <span>Presenti: <input type="number" value="${p1}"></span>
+                    <span>+ EDU: <input type="number" value="2"></span>
+                </div>
+                <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+                    ${n1.filter(o => o.nota === 'LAB').length > 0
+                        ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+                        : ''}
+                </div>
+                <div class="label-sezione">Esclusi</div>
+                ${buildGrigliaNomi(n1, { mostraNota: true, mostraClasse: true, mostraOrario: true })}
+                <div class="label-sezione">Cambi Turno</div>
+                ${buildGrigliaNomi(switch1, { mostraNota: true, mostraClasse: true })}
+            </div>
+
+            <div class="section">
+                <h3>2° turno — 19:15</h3>
+                <div style="font-size:0.75em;color:#777;margin-bottom:8px;font-style:italic;">
+                    CLASSI ${generaTestoClassiTurno(2)}
+                </div>
+                <div class="stats-row">
+                    <span>Esclusi: <input type="number" value="${a2}"></span>
+                    <span>Presenti: <input type="number" value="${p2}"></span>
+                    <span>+ EDU: <input type="number" value="2"></span>
+                </div>
+                <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+                    ${n2.filter(o => o.nota === 'LAB').length > 0
+                        ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
+                        : ''}
+                </div>
+                <div class="label-sezione">Esclusi</div>
+                ${buildGrigliaNomi(n2, { mostraNota: true, mostraClasse: true, mostraOrario: true })}
+                <div class="label-sezione">Cambi Turno</div>
+                ${buildGrigliaNomi(switch2, { mostraNota: true, mostraClasse: true })}
+            </div>
+
+        </body></html>`);
+    popup.document.close();
+}
+
+// --- PRESENZE dinner
+function generaPopUpStampaPresDin() {
+    const oggi = getDataCorrente();
+    const dataTestuale = document.getElementById("todayDate").innerText;
+    const dataOggi = oggi.toLocaleDateString("it-IT");
+    const oraEsatta = oggi.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+    if (typeof studenticonvittori === "undefined") {
+        console.error("Errore: studenticonvittori non definito.");
+        alert("Errore: database studenti non caricato.");
+        return;
+    }
+
+    function parseClasse(classe) {
+        if (!classe) return { num: 999, lettera: "Z" };
+        const match = classe.toString().toUpperCase().match(/^(\d+)([A-Z]?)$/);
+        if (match) return { num: parseInt(match[1]), lettera: match[2] || "A" };
+        return { num: 999, lettera: "Z" };
+    }
+
+    function ordinaPerClasseECognome(a, b) {
+        const classeA = parseClasse(a.classe);
+        const classeB = parseClasse(b.classe);
+        if (classeA.num !== classeB.num) return classeA.num - classeB.num;
+        if (classeA.lettera !== classeB.lettera) return classeA.lettera.localeCompare(classeB.lettera);
+        const cognomeA = (a.cognome || "").toUpperCase();
+        const cognomeB = (b.cognome || "").toUpperCase();
+        return cognomeA.localeCompare(cognomeB);
+    }
+
+    const { turno1, turno2 } = costruisciTurni();
+    turno1.sort(ordinaPerClasseECognome);
+    turno2.sort(ordinaPerClasseECognome);
+
+    function buildTurnoHtml(studentiInTurno) {
+        const numColonne = 3;
+        const totali = studentiInTurno.length;
+        const itemsPerColonna = Math.ceil(totali / numColonne);
+        const colonneHtml = ["", "", ""];
+
+        studentiInTurno.forEach((s, idx) => {
+            const colIdx = Math.floor(idx / itemsPerColonna);
+            let classeDisplay = (s.classe || "").toString().toUpperCase();
+            colonneHtml[colIdx] += `
+                <div class="d-row">
+                    <div class="d-cell d-class"><b>${classeDisplay}</b></div>
+                    <div class="d-cell d-name"><b>${s.cognome}</b>&nbsp${s.nome || ""}</div>
+                    <div class="d-cell d-day"></div>
+                    <div class="d-cell d-day"></div>
+                    <div class="d-cell d-day"></div>
+                    <div class="d-cell d-day"></div>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="grid-container">
+                ${colonneHtml.map((htmlContenuto) => `
+                    <div class="colonna">
+                        <div class="column-header">
+                            <div class="h-cell h-class">Classe</div>
+                            <div class="h-cell h-name">Cognome e Nome</div>
+                            <div class="h-cell h-day">LU</div>
+                            <div class="h-cell h-day">MA</div>
+                            <div class="h-cell h-day">ME</div>
+                            <div class="h-cell h-day">GI</div>
+                        </div>
+                        ${htmlContenuto}
+                    </div>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    const htmlTurno1 = buildTurnoHtml(turno1);
+    const htmlTurno2 = buildTurnoHtml(turno2);
+
+    const popup = window.open("", "_blank", "width=1200,height=800");
+    popup.document.write(`
+        <html lang="it"><head><title>Stampa Appello Cena - Due Turni</title><style>
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 landscape",
+                pageMargin: "0.3cm"
+            })}
+            html, body { max-height: 100%; overflow: hidden; }
+            body { padding: 2px; line-height: 1.0; }
+            .main-title { text-align: center; text-transform: uppercase; margin: 0; font-size: 1.0rem; font-weight: bold; }
+            .date-subtitle { text-align: center; font-size: 0.75rem; margin-bottom: 3px; color: #444; }
+            .turno-section { margin-bottom: 6px; page-break-inside: avoid !important; break-inside: avoid; }
+            .turno-title { background: #555; color: #fff; padding: 1px 6px; font-size: 0.72rem; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; border-radius: 2px; }
+            .grid-container { display: flex; gap: 8px; justify-content: space-between; page-break-inside: avoid !important; }
+            .colonna { width: 32.8%; display: flex; flex-direction: column; }
+            .column-header { display: flex; background: #333; color: white; font-weight: bold; font-size: 0.55rem; text-transform: uppercase; border: 1px solid #000; height: 14px; }
+            .d-row { display: flex; font-size: 0.56rem; border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; height: 14px !important; box-sizing: border-box; }
+            .d-cell, .h-cell { padding: 0px 2px; text-align: center; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; height: 100%; }
+            .d-class, .h-class { width: 35px; font-size: 0.54rem; }
+            .d-class { border-right: 1px solid #ccc; background: #f5f5f5; font-weight: bold; }
+            .h-class { border-right: 1px solid #555; }
+            .d-name, .h-name { flex-grow: 1; text-align: left; justify-content: flex-start; border-right: 1px solid #ccc; text-transform: uppercase; text-overflow: ellipsis; }
+            .h-name { border-right: 1px solid #555; }
+            .d-day, .h-day { width: 18px; font-size: 0.54rem; font-weight: bold; }
+            .d-day { border-right: 1px solid #ccc; }
+            .d-day:last-child { border-right: none; }
+            .h-day { border-right: 1px solid #555; }
+        </style></head><body>
+            <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
+            ${window.STAMPA_LAYOUT.intestazione({
+                titolo: "REGISTRO PRESENZE DINNER",
+                sottotitolo: dataTestuale
+            })}
+
+            ${window.STAMPA_LAYOUT.bottoneStampa()}
+
+            <div class="turno-section">
+                <div class="turno-title">1° Turno (Ore 18:30) — Tot: ${turno1.length}</div>
+                ${htmlTurno1}
+            </div>
+            <div class="turno-section">
+                <div class="turno-title">2° Turno (Ore 19:15) — Tot: ${turno2.length}</div>
+                ${htmlTurno2}
+            </div>
+        </body></html>
+    `);
+    popup.document.close();
+}
