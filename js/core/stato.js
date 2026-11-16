@@ -138,7 +138,7 @@ function aggiornaBtnOrdineLista() {
         btn.textContent = "A-Z / Room";
     } else {
         btn.style.background = "var(--surface)";
-        btn.style.color = "var(--az-active)";
+        btn.style.color = "black";
         btn.textContent = "Room / A-Z";
     }
 }

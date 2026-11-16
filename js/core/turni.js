@@ -16,10 +16,9 @@
  * Usato da:
  *   - campus_hub-script.js (ricaricaListaStudenti, setTurno dai tasti filtro)
  *   - stampe/dinner.js (generaPopUpStampaDinner, generaPopUpStampaPresDin)
- *   - stampe/convitto.js? No, quello non lo usa
  *   - core/pp.js (controllaDinnerAutomatico)
  *
- * ⚠️ Caricare DOPO core/stato.js (usa getDataCorrente). 
+ * ⚠️ Caricare DOPO core/stato.js (usa getDataCorrente).
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -73,13 +72,18 @@ function costruisciTurni() {
     return { turno1, turno2 };
 }
 
-function setTurno(turno) {
+/**
+ * Filtro visivo 1° / 2° turno.
+ * @param {number} turno - 1 oppure 2
+ * @param {Event}  [event] - Evento click (per evidenziare il tasto attivo)
+ */
+function setTurno(turno, event) {
     // 1. Rimuove l'evidenziazione dai bottoni (se cliccati)
     if (typeof rimuoviEvidenziazioneTasti === 'function') {
         rimuoviEvidenziazioneTasti();
     }
-    if (window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add("tasto-attivo");
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("tasto-attivo");
     }
 
     let count = 0; // Contatore per il popup
@@ -88,7 +92,7 @@ function setTurno(turno) {
         const classe = r.dataset.classe;
         const cognome = r.dataset.cognome;
         const turnoEffettivo = turnoStudente(classe, cognome);
-        
+
         if (turnoEffettivo === turno) {
             r.style.display = "block";
             count++;

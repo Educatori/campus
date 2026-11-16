@@ -3,7 +3,7 @@
  * ─────────────────────────────────────────────────────────────
  * Salvataggio e caricamento dei dati giornalieri + timestamp reset.
  *
- *   • salvaDatiLocale()          → localStorage + Firebase (online)
+ *   • salvaDatiLocale sostituita da HOOK → localStorage + Firebase (online)
  *   • caricaDatiLocale()         → riapplica stato alle card esistenti
  *   • renderDatiRemoti()         → applica dati da Firebase realtime
  *   • mostraDataReset()          → wrapper di aggiornaInfoReset
@@ -15,7 +15,7 @@
  *   - getDataCorrente()          → core/stato.js
  *   - analizzaPP()               → core/pp.js
  *   - controllaDinnerAutomatico()→ core/pp.js
- *   - isAssenteProgrammato()     → campus_hub-script.js
+ *   - isAssenteProgrammato()     → pannello/assenze-programmate.js
  *   - ORARI_PP                   → data-loader.js (window)
  *   - window.salvaDatiFirebase   → data-loader.js
  *   - window.salvaNoteFirebase   → data-loader.js
@@ -24,23 +24,41 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+// ─────────────────────────────────────────────────────────────
+// HOOK DI SALVATAGGIO
+// ─────────────────────────────────────────────────────────────
+// Chi vuole arricchire `dati` prima del salvataggio si registra qui.
+// Gli hook ricevono l'oggetto `dati` e possono mutarlo in-place.
+// Vengono eseguiti nell'ordine di registrazione.
+// ─────────────────────────────────────────────────────────────
+
+window._hooksSalvataggio = window._hooksSalvataggio || [];
+
 function salvaDatiLocale() {
     const dati = {};
     document.querySelectorAll(".student-row").forEach((r) => {
         dati[r.dataset.cognome] = {
-            esce: r.querySelector(".in-u").value,
-            entra: r.querySelector(".in-i").value,
-            assente: r.classList.contains("assente"),
+            esce:     r.querySelector(".in-u").value,
+            entra:    r.querySelector(".in-i").value,
+            assente:  r.classList.contains("assente"),
             dinnerno: r.dataset.dinnerno,
-            switch: cambiTurnoManuali[r.dataset.cognome] || false
+            switch:   cambiTurnoManuali[r.dataset.cognome] || false
         };
     });
+
+    // ── Esegui hook (possono arricchire `dati` in-place) ──
+    window._hooksSalvataggio.forEach(fn => {
+        try { fn(dati); }
+        catch (e) { console.error('❌ Hook salvataggio fallito:', e); }
+    });
+
+    // ── Persistenza locale ──
     localStorage.setItem("datiConvitto", JSON.stringify(dati));
 
-    // ─── Sync su Firebase (solo in modalità online) ───
+    // ── Sync Firebase (solo online) ──
     if (window.APP_MODE === 'online' &&
         typeof window.salvaDatiFirebase === 'function') {
-        window.salvaDatiFirebase()
+        window.salvaDatiFirebase(dati)
             .catch(err => console.error('❌ Sync dati giornalieri fallita:', err));
     }
 }
@@ -53,7 +71,10 @@ function caricaDatiLocale() {
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
         const cgn = cognome.toUpperCase();
-        const d = dati[cognome];
+
+        // Lookup tollerante al case: Firebase salva con chiavi uppercase,
+        // il DOM può avere mixed-case. Proviamo entrambe le varianti.
+        const d = dati[cognome] || dati[cgn];
 
         // ── Analizza il PP per dedurre assenza / no-cena ──
         const statoPP = analizzaPP(cgn, giornoSettimana);
@@ -153,7 +174,8 @@ function renderDatiRemoti(datiGiorno) {
 
     document.querySelectorAll(".student-row").forEach((r) => {
         const cognome = r.dataset.cognome;
-        const d = datiGiorno[cognome];
+        const cgn = cognome.toUpperCase();
+        const d = datiGiorno[cognome] || datiGiorno[cgn];
 
         // Salta se l'utente sta editando i campi di questa riga
         const inputAttivo = document.activeElement;
@@ -172,9 +194,9 @@ function renderDatiRemoti(datiGiorno) {
         // ─── Recupera gli orari PP del giorno per questo studente ───
         let ppOut = "";
         let ppIn = "";
-        if (ORARI_PP[cognome] && ORARI_PP[cognome][giornoSettimana]) {
-            ppOut = ORARI_PP[cognome][giornoSettimana].out || "";
-            ppIn  = ORARI_PP[cognome][giornoSettimana].in || "";
+        if (ORARI_PP[cgn] && ORARI_PP[cgn][giornoSettimana]) {
+            ppOut = ORARI_PP[cgn][giornoSettimana].out || "";
+            ppIn  = ORARI_PP[cgn][giornoSettimana].in  || "";
         }
 
         // ─── Applica stato ASSENTE ───
@@ -277,7 +299,8 @@ function cancellaNote() {
             noteInput.value = "";
             // Scrivi su Firebase → tutti gli utenti connessi lo vedranno
             if (typeof window.salvaNoteFirebase === 'function') {
-                window.salvaNoteFirebase("");
+                Promise.resolve(window.salvaNoteFirebase(""))
+                    .catch(err => console.error('❌ Errore cancellazione note:', err));
             }
         }
     }

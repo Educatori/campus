@@ -7,8 +7,8 @@
  *   • applicaFiltri()                 → ricerca testuale libera
  *   • validaERicerca()                → filtro per numero stanza
  *   • gestisciSaltoStanze()           → salta 126-200 nel campo stanza
- *   • filtraAssenti()                 → mostra solo assenti
- *   • filtraNoCena()                  → mostra non-cena + late manuali
+ *   • filtraAssenti(event)            → mostra solo assenti
+ *   • filtraNoCena(event)             → mostra non-cena + late manuali
  *   • aggiornaBadgeCene()             → badge numerico late su CENE
  *   • mostraFeedbackFiltro()          → toast con conteggio risultati
  *   • rimuoviEvidenziazioneTasti()    → pulisce i tasti filtro attivi
@@ -133,8 +133,9 @@ function gestisciSaltoStanze(el) {
 
 /**
  * Filtra e mostra solo gli studenti ASSENTI
+ * @param {Event} [event] - Evento click (per evidenziare il tasto attivo)
  */
-function filtraAssenti() {
+function filtraAssenti(event) {
     // Reset di eventuali filtri attivi
     const searchInput = document.getElementById("search");
     if (searchInput) searchInput.value = "";
@@ -144,9 +145,9 @@ function filtraAssenti() {
     // Rimuovi evidenziazione dai tasti
     rimuoviEvidenziazioneTasti();
 
-    // Evidenzia il tasto ASSENTI (event disponibile negli onclick inline)
-    if (window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add("tasto-attivo");
+    // Evidenzia il tasto ASSENTI
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("tasto-attivo");
     }
 
     let count = 0;
@@ -170,8 +171,10 @@ function filtraAssenti() {
  *
  * Il criterio è unico: "non mangia al turno standard".
  * Il dettaglio (non mangia / mangia dopo) è irrilevante per il filtro.
+ *
+ * @param {Event} [event] - Evento click (per evidenziare il tasto attivo)
  */
-function filtraNoCena() {
+function filtraNoCena(event) {
     // Reset di eventuali filtri attivi
     const searchInput = document.getElementById("search");
     if (searchInput) searchInput.value = "";
@@ -182,8 +185,8 @@ function filtraNoCena() {
     rimuoviEvidenziazioneTasti();
 
     // Evidenzia il tasto CENE
-    if (window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add("tasto-attivo");
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("tasto-attivo");
     }
 
     const late = window.lateDinnerManuali || {};
@@ -278,8 +281,10 @@ function rimuoviEvidenziazioneTasti() {
 /**
  * Azzera TUTTI i filtri visivi e mostra nuovamente tutti gli studenti.
  * Non tocca la data simulata né ricostruisce il DOM.
+ *
+ * @param {Event} [event] - Evento click (per evidenziare il tasto attivo)
  */
-function mostraTutti() {
+function mostraTutti(event) {
     // 1. Pulisci i campi di ricerca concorrenti
     const search = document.getElementById("search");
     if (search) search.value = "";
@@ -294,8 +299,8 @@ function mostraTutti() {
     }
 
     // 3. Evidenzia il tasto GLOBALE stesso (coerenza con gli altri)
-    if (window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add("tasto-attivo");
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("tasto-attivo");
     }
 
     // 4. Mostra tutte le righe
