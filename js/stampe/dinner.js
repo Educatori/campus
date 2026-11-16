@@ -1,4 +1,4 @@
-/**
+/** 
  * js/stampe/dinner.js
  * Stampa DINNER — include il blocco "Altri aggiunti in manuale" dalle card.
  */
