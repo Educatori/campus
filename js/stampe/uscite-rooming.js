@@ -1,4 +1,4 @@
-/**
+/** 
  * js/stampe/uscite-rooming.js
  * Stampe: generaPopUpStampaUscite, generaPopUpStampaRooming.
  * Dipende da: studenticonvittori (window).
