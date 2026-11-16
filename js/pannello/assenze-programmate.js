@@ -49,53 +49,7 @@ function toggleBoxAggiungi() {
     }
 }
 
-/**
- * Filtra le opzioni del <select> studenti in base al testo digitato.
- * Mantiene gli optgroup visibili solo se contengono almeno un match.
- */
-function filtraSelectStudenti(query) {
-    const sel = document.getElementById("selectStudente");
-    if (!sel) return;
 
-    const q = (query || "").trim().toLowerCase();
-
-    // Se la ricerca è vuota → mostra la lista completa
-    if (!q) {
-        popolaSelectStudenti();
-        return;
-    }
-
-    // Filtra l'array di appoggio
-    const match = _studentiOrdinati.filter((s) => {
-        const cognome = (s.cognome || "").toLowerCase();
-        const nome    = (s.nome || "").toLowerCase();
-        const classe  = (s.classe || "").toLowerCase();
-        return cognome.includes(q) || nome.includes(q) || classe.includes(q);
-    });
-
-    // Raggruppa per classe
-    const gruppi = {};
-    match.forEach((s) => {
-        if (!gruppi[s.classe]) gruppi[s.classe] = [];
-        gruppi[s.classe].push(s);
-    });
-
-    let html = `<option value="">-- Seleziona Nome (${match.length}) --</option>`;
-    Object.keys(gruppi).sort().forEach((classe) => {
-        html += `<optgroup label="${classe}">`;
-        gruppi[classe].forEach((s) => {
-            html += `<option value="${s.cognome}">${s.cognome} ${s.nome}</option>`;
-        });
-        html += `</optgroup>`;
-    });
-
-    sel.innerHTML = html;
-
-    // Se c'è un match esatto unico, selezionalo automaticamente
-    if (match.length === 1) {
-        sel.value = match[0].cognome;
-    }
-}
 // ─────────────────────────────────────────────────────────────
 // SALVA / CARICA
 // ─────────────────────────────────────────────────────────────
