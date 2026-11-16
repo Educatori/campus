@@ -1,4 +1,4 @@
-/**
+/** 
  * js/stampe/_layout.js
  * ─────────────────────────────────────────────────────────────
  * CSS e HTML condivisi da tutte le stampe.
