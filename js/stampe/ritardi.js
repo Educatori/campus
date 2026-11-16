@@ -1,4 +1,4 @@
-/** 
+/**
  * js/stampe/ritardi.js
  * Stampa scheda RITARDI MATTINO.
  */
