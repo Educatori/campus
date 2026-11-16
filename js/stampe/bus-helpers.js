@@ -1,4 +1,4 @@
-/**
+/** 
  * js/stampe/bus-helpers.js
  * ─────────────────────────────────────────────────────────────
  * Helper condivisi dalle 3 stampe BUS.
