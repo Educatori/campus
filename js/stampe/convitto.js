@@ -131,8 +131,12 @@ function generaPopUpStampaConvitto() {
 
     popup.document.write(`
     <html lang="it"><head><title>Riepilogo Convitto - ${dataStampa}</title><style>
-        @page { size: A3 portrait; margin: 0.6cm 0.3cm 0.3cm 0.3cm; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        ${window.STAMPA_LAYOUT.cssBase({
+            pageSize: "A3 portrait",
+            pageMargin: "0.6cm 0.3cm 0.3cm 0.3cm",
+            fontFamily: "'Segoe UI', Arial, sans-serif"
+        })}
+        body { margin: 0; padding: 0; }
         h2 { text-align: center; text-transform: uppercase; font-size: 1.1em; margin: 4px 0; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; }
 
@@ -158,10 +162,8 @@ function generaPopUpStampaConvitto() {
         .bg-gray { background: #f9f9f9 !important; }
         .page-break { page-break-after: always; page-break-inside: avoid; }
         .footer-timestamp { text-align: right; font-size: 0.70em; margin-top: 5px; font-style: italic; color: #555; }
-        .no-print { text-align: center; margin: 10px; }
-        @media print { .no-print { display: none; } }
     </style></head><body>
-        <div class="no-print"><button onclick="window.print()" style="padding:15px 50px; background:#27ae60; color:white; font-weight:bold; border-radius:80px; border:none; cursor:pointer;">•STAMPA</button></div>
+        ${window.STAMPA_LAYOUT.bottoneStampa()}
 
         <h2>MASCHILE - piano 1° - ${dataStampa}</h2>
         <table>

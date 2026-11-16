@@ -2,7 +2,7 @@
  * js/stampe/ritardi.js
  * Stampa scheda RITARDI MATTINO.
  */
-    function generaPopUpStampaSchedaRitardi() {
+function generaPopUpStampaSchedaRitardi() {
     const oggi = getDataCorrente();
     const oggiReale = new Date();
     const dataOggi = oggiReale.toLocaleDateString("it-IT");
@@ -17,9 +17,9 @@
     }
 
     const validi = studenticonvittori.filter((s) => {
-    if (!s.cognome) return false;
-    return window.haDirittoAlBusVariante(s, "mattina");
-});
+        if (!s.cognome) return false;
+        return window.haDirittoAlBusVariante(s, "mattina");
+    });
 
     validi.sort((a, b) => a.cognome.localeCompare(b.cognome, "it", { sensitivity: "base" }));
 
@@ -54,9 +54,12 @@
         const cognomeUpper = s.cognome.toUpperCase();
         const classeUpper = (s.classe || "").toUpperCase();
 
-        const notaGiorni = (window.NOTE_CLASSI || {})[classeUpper] || "";
+        const noteCfg = window.NOTE_CLASSI || {};
+        const notaClasse = (noteCfg.classi || {})[classeUpper] || "";
+        const notaStudente = ((noteCfg.studenti || {})[classeUpper] || {})[cognomeUpper] || "";
+        const notaGiorni = [notaClasse, notaStudente].filter(Boolean).join(" ");
 
-        const haAuto = COGNOMI_AUTO.includes(cognomeUpper);
+        const haAuto = (window.COGNOMI_AUTO || []).includes(cognomeUpper);
         const notaCustom = [notaGiorni, haAuto ? "🚗" : ""].filter(Boolean).join(" ");
 
         const classeHtml = classeUpper === "4C"
@@ -82,16 +85,18 @@
     const popup = window.open("", "_blank", "width=1200,height=900");
     popup.document.write(`
         <html lang="it"><head><title>Ritardi Mattino - ${meseCapitalizzato}</title><style>
-            @page { size: A4 portrait; margin: 0.3cm 0.4cm 0.3cm 0.4cm; }
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 portrait",
+                pageMargin: "0.3cm 0.4cm 0.3cm 0.4cm"
+            })}
+            /* override body: questa stampa usa flex per riempire la pagina */
             html { height: 100%; }
             body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 margin: 0; padding: 0;
-                color: #000; line-height: 1.05;
+                line-height: 1.05;
                 height: 100%;
                 display: flex;
                 flex-direction: column;
-                -webkit-print-color-adjust: exact; print-color-adjust: exact;
             }
             .header-block { flex: 0 0 auto; position: relative; }
             .table-wrap   { flex: 1 1 auto; min-height: 0; display: flex; }
@@ -99,8 +104,8 @@
 
             h2 { text-align: center; text-transform: uppercase; margin: 1px 0 0 0; font-size: 0.9rem; letter-spacing: 1px; }
             .date-subtitle { text-align: center; font-size: 0.68rem; margin-bottom: 2px; color: #444; text-transform: capitalize; font-style: italic; }
-            .timestamp { position: absolute; top: 1px; right: 6px; font-size: 0.5rem; color: #777; }
-            
+            .timestamp { top: 1px; right: 6px; font-size: 0.5rem; }
+
             table {
                 width: 100%; height: 100%;
                 border-collapse: collapse;
@@ -146,9 +151,7 @@
             .t-name.cognome-auto { text-align: right; padding-right: 3px; padding-left: 0; }
 
             .footer-block { text-align: right; font-size: 0.5rem; margin-top: 1px; font-style: italic; color: #555; }
-            .no-print { text-align: center; margin: 3px 0; }
             @media print {
-                .no-print { display: none !important; }
                 body { padding: 0; }
                 .timestamp { display: none !important; }
                 .t-cell { padding: 0 2px !important; }
@@ -159,13 +162,11 @@
 
             <div class="header-block">
                 <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-                <h2>Ritardi Mattino</h2>
-                <div class="date-subtitle">Trasporto del mese di ${meseCapitalizzato}</div>
-                <div class="no-print">
-                    <button onclick="window.print()" style="padding:4px 24px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        •STAMPA
-                    </button>
-                </div>
+                ${window.STAMPA_LAYOUT.intestazione({
+                    titolo: "Ritardi Mattino",
+                    sottotitolo: `Trasporto del mese di ${meseCapitalizzato}`
+                })}
+                ${window.STAMPA_LAYOUT.bottoneStampa()}
             </div>
 
             <div class="table-wrap">

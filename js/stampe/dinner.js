@@ -78,7 +78,7 @@ function generaPopUpStampaDinner() {
             else switch2.push(obj);
         }
 
-                const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
+        const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
         const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
         const escluso =
             isLab ||
@@ -86,21 +86,6 @@ function generaPopUpStampaDinner() {
             r.classList.contains("assente") ||
             r.dataset.dinnerno === "1";
 
-        // ─── Nota di esclusione: LAB ha precedenza, poi LATE ───
-        // isLateDinnerStudente() filtra già PP-assenza, PP-no-rientro,
-        // ASSENTI_PERMESSO e .assente; qui basta escludere solo isLab.
-        let notaEsclusione = "";
-        if (isLab) {
-            notaEsclusione = "LAB";
-        } else if (
-            escluso &&
-            typeof isLateDinnerStudente === "function" &&
-            isLateDinnerStudente(cognome, classe, giornoSett, turnoEffettivo, r)
-        ) {
-            notaEsclusione = "LATE";
-        }
-
-        // ─── Orari PP del giorno (per mostrare out → in accanto agli esclusi) ───
         const ppOggi = (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome.toUpperCase()])
             ? ORARI_PP[cognome.toUpperCase()][giornoSett]
             : null;
@@ -117,7 +102,7 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: notaEsclusione,
+                    nota: isLab ? "LAB" : "",
                     orario: orarioLabel
                 });
             } else {
@@ -130,7 +115,7 @@ function generaPopUpStampaDinner() {
                     cognome: cognome.toUpperCase(),
                     nome: nome,
                     classe: classe,
-                    nota: notaEsclusione,
+                    nota: isLab ? "LAB" : "",
                     orario: orarioLabel
                 });
             } else {
@@ -159,9 +144,8 @@ function generaPopUpStampaDinner() {
                 const tagClasse = mostraClasse && o.classe
                     ? ` <span class="tag-classe">${o.classe}</span>`
                     : "";
-                const notaClass = o.nota ? ` tag-${o.nota.toLowerCase()}` : "";
                 const tagNota = mostraNota && o.nota
-                    ? ` <span class="tag-nota${notaClass}">${o.nota}</span>`
+                    ? ` <span class="tag-nota">${o.nota}</span>`
                     : "";
                 const tagOrario = mostraOrario && o.orario
                     ? ` <span class="tag-orario">${o.orario}</span>`
@@ -173,17 +157,14 @@ function generaPopUpStampaDinner() {
         return `<div class="griglia-nomi">${items}</div>`;
     }
 
-    // ─── TESTO PERMESSI LATE DINNER (ORARI_PP + Altri aggiunti in manuale) ───
     let notaGiornoCorrente =
         (typeof generaTestoLateDinner === "function" && generaTestoLateDinner(giornoSett))
         || "";
 
-    // Aggiungi i LATE selezionati a mano dalle card
-    // (lista in linea, separata da virgole)
     const lateManuali = Object.entries(window.lateDinnerManuali || {})
-    .filter(([_, attivo]) => attivo === true)
-    .map(([cognome]) => cognome.toUpperCase())
-    .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+        .filter(([_, attivo]) => attivo === true)
+        .map(([cognome]) => cognome.toUpperCase())
+        .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
 
     if (lateManuali.length > 0) {
         const rigaLate = `Altri Aggiunti:\n${lateManuali.join(', ')}`;
@@ -199,10 +180,14 @@ function generaPopUpStampaDinner() {
     const popup = window.open("", "_blank", "width=1000,height=900");
     popup.document.write(`
         <html lang="it"><head><title>Riepilogo Dinner - ${dataTestuale}</title><style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px 40px; position: relative; color: #222; }
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 portrait",
+                pageMargin: "1cm"
+            })}
+            body { padding: 30px 40px; position: relative; color: #222; }
             h2 { text-align: center; text-transform: uppercase; margin-top: 20px; margin-bottom: 6px; font-size: 1.6em; letter-spacing: 1px; }
             h3 { font-size: 1em; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-            .timestamp { position: absolute; top: 10px; right: 20px; font-size: 0.8em; color: #666; }
+            .timestamp { top: 10px; right: 20px; font-size: 0.8em; color: #666; }
             .date { text-align: center; font-size: 1.15em; margin-bottom: 20px; color: #444; }
             .editable-notes {
                 width: 100%; box-sizing: border-box;
@@ -256,11 +241,6 @@ function generaPopUpStampaDinner() {
                 border-radius: 3px; text-transform: uppercase;
                 vertical-align: middle; margin-left: 4px;
                 border: 1px solid #f7dc6f;
-            }    
-            .tag-late {
-                background: #e8f4fd;
-                color: #1f618d;
-                border: 1px solid #aed6f1;
             }
             .tag-orario {
                 display: inline-block; background: #eef2ff; color: #3730a3;
@@ -270,22 +250,12 @@ function generaPopUpStampaDinner() {
                 border: 1px solid #c7d2fe;
                 letter-spacing: 0.02em;
             }
-            .no-print { margin-top: 20px; display: flex; justify-content: center; }
-            .no-print button {
-                padding: 14px 50px; background: #27ae60; color: white;
-                font-weight: bold; border-radius: 80px; border: none;
-                cursor: pointer; font-size: 0.95em;
-                font-family: inherit; letter-spacing: 1px;
-                box-shadow: 0 4px 12px rgba(39,174,96,0.3);
-            }
-            .no-print button:hover { filter: brightness(1.08); }
             @media print {
                 body { padding: 8px 12px; font-size: 0.9em; }
-                .no-print { display: none; }
                 .editable-notes { border: none; margin-bottom: 12px; padding: 6px; }
                 .griglia-nomi {
-                    grid-template-columns: repeat(3, 1fr);
-                    font-size: 0.62em; gap: 0px 12px;
+                    grid-template-columns: repeat(2, 1fr);   /* ← 2 colonne in stampa */
+                    font-size: 0.62em; gap: 0px 16px;
                     margin: 2px 0 8px 0; line-height: 1.2;
                 }
                 .nome-item { padding: 0; }
@@ -302,16 +272,17 @@ function generaPopUpStampaDinner() {
                 .stats-row input { font-size: 1.1em; width: 55px; }
                 .label-sezione { font-size: 0.75em; margin-bottom: 2px; }
             }
-            @page { size: A4 portrait; margin: 1cm; }
         </style></head><body>
 
             <div class="timestamp">aggiornamento ${dataOggi} ore ${oraEsatta}</div>
-            <h2>Riepilogo Dinner</h2>
-            <div class="date">${dataTestuale}</div>
+            ${window.STAMPA_LAYOUT.intestazione({
+                titolo: "Riepilogo Dinner",
+                sottotitolo: dataTestuale,
+                titoloStyle: "font-size:1.6em;margin-top:20px;letter-spacing:1px;",
+                sottotitoloStyle: "font-size:1.15em;margin-bottom:20px;color:#444;"
+            })}
 
-            <div class="no-print">
-                <button onclick="window.print()">• STAMPA</button>
-            </div>
+            ${window.STAMPA_LAYOUT.bottoneStampa({ testo: "• STAMPA" })}
 
             <textarea class="editable-notes" rows="${Math.max(4, (notaGiornoCorrente.match(/\n/g) || []).length + 2)}">${notaGiornoCorrente}</textarea>
 
@@ -325,10 +296,9 @@ function generaPopUpStampaDinner() {
                     <span>Presenti: <input type="number" value="${p1}"></span>
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
-             <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-                    ${n1.filter(o => o.nota === 'LAB').length > 0 ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
-                        : ''}
-                    ${n1.filter(o => o.nota === 'LATE').length > 0 ? `<span>LATE: <input type="number" value="${n1.filter(o => o.nota === 'LATE').length}" style="font-size:1.1em; width:55px;"></span>`
+                <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
+                    ${n1.filter(o => o.nota === 'LAB').length > 0
+                        ? `<span>LAB: <input type="number" value="${n1.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
@@ -348,9 +318,8 @@ function generaPopUpStampaDinner() {
                     <span>+ EDU: <input type="number" value="2"></span>
                 </div>
                 <div class="stats-row" style="font-size:0.85em; margin-top:-4px;">
-                    ${n2.filter(o => o.nota === 'LAB').length > 0   ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
-                        : ''}
-                    ${n2.filter(o => o.nota === 'LATE').length > 0    ? `<span>LATE: <input type="number" value="${n2.filter(o => o.nota === 'LATE').length}" style="font-size:1.1em; width:55px;"></span>`
+                    ${n2.filter(o => o.nota === 'LAB').length > 0
+                        ? `<span>LAB: <input type="number" value="${n2.filter(o => o.nota === 'LAB').length}" style="font-size:1.1em; width:55px;"></span>`
                         : ''}
                 </div>
                 <div class="label-sezione">Esclusi</div>
@@ -443,12 +412,14 @@ function generaPopUpStampaPresDin() {
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html lang="it"><head><title>Stampa Appello Cena - Due Turni</title><style>
-            @page { size: A4 landscape; margin: 0.3cm; }
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 landscape",
+                pageMargin: "0.3cm"
+            })}
             html, body { max-height: 100%; overflow: hidden; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 2px; color: #000; line-height: 1.0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { padding: 2px; line-height: 1.0; }
             .main-title { text-align: center; text-transform: uppercase; margin: 0; font-size: 1.0rem; font-weight: bold; }
             .date-subtitle { text-align: center; font-size: 0.75rem; margin-bottom: 3px; color: #444; }
-            .timestamp { position: absolute; top: 3px; right: 10px; font-size: 0.55rem; color: #777; }
             .turno-section { margin-bottom: 6px; page-break-inside: avoid !important; break-inside: avoid; }
             .turno-title { background: #555; color: #fff; padding: 1px 6px; font-size: 0.72rem; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; border-radius: 2px; }
             .grid-container { display: flex; gap: 8px; justify-content: space-between; page-break-inside: avoid !important; }
@@ -465,17 +436,15 @@ function generaPopUpStampaPresDin() {
             .d-day { border-right: 1px solid #ccc; }
             .d-day:last-child { border-right: none; }
             .h-day { border-right: 1px solid #555; }
-            .no-print { text-align: center; margin-bottom: 5px; }
-            @media print { .no-print { display: none; } }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <div class="main-title">REGISTRO PRESENZE DINNER</div>
-            <div class="date-subtitle">${dataTestuale}</div>
-            <div class="no-print">
-                <button onclick="window.print()" style="padding:4px 30px; background: #27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    •STAMPA
-                </button>
-            </div>
+            ${window.STAMPA_LAYOUT.intestazione({
+                titolo: "REGISTRO PRESENZE DINNER",
+                sottotitolo: dataTestuale
+            })}
+
+            ${window.STAMPA_LAYOUT.bottoneStampa()}
+
             <div class="turno-section">
                 <div class="turno-title">1° Turno (Ore 18:30) — Tot: ${turno1.length}</div>
                 ${htmlTurno1}

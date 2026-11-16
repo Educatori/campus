@@ -26,13 +26,13 @@ function generaPopUpStampaTransfer() {
 
     const classi = {};
 
-tuttiStudenti.forEach((s) => {
-    if (!s.cognome || s.cognome.trim() === "") return;
-    if (!window.haDirittoAlBusVariante(s, "transfer")) return;
-    const nomeClasse = s.classe ? s.classe.toUpperCase().trim() : "SENZA CLASSE";
-    if (!classi[nomeClasse]) classi[nomeClasse] = [];
-    classi[nomeClasse].push(s);
-});
+    tuttiStudenti.forEach((s) => {
+        if (!s.cognome || s.cognome.trim() === "") return;
+        if (!window.haDirittoAlBusVariante(s, "transfer")) return;
+        const nomeClasse = s.classe ? s.classe.toUpperCase().trim() : "SENZA CLASSE";
+        if (!classi[nomeClasse]) classi[nomeClasse] = [];
+        classi[nomeClasse].push(s);
+    });
 
     const elencoClassi = Object.keys(classi).sort();
 
@@ -110,57 +110,49 @@ tuttiStudenti.forEach((s) => {
     const popup = window.open("", "_blank", "width=1200,height=800");
     popup.document.write(`
         <html lang="it"><head><title>Transfer Lunch Completo - ${dataOggi}</title><style>
-            @page { size: A4 portrait; margin: 0.6cm 0.4cm 0.5cm 0.4cm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; color: #000; line-height: 1.0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            ${window.STAMPA_LAYOUT.cssBase({
+                pageSize: "A4 portrait",
+                pageMargin: "0.6cm 0.4cm 0.5cm 0.4cm"
+            })}
+            body { padding: 0; line-height: 1.0; }
             h2 { text-align: center; text-transform: uppercase; margin: 0; font-size: 1.0rem; }
             .date-subtitle { text-align: center; font-size: 0.75rem; margin-bottom: 3px; color: #444; }
             .lab-info { font-size: 0.95rem; font-weight: bold; color: #b7950b; }
-            .timestamp { position: absolute; top: 3px; right: 10px; font-size: 0.55rem; color: #777; }
-            
+
             .grid-container { display: flex; gap: 6px; justify-content: space-between; align-items: flex-start; }
             .colonna { width: 33.1%; display: flex; flex-direction: column; }
-            
+
             .fake-header { display: flex; background: #2c3e50; color: white; font-weight: bold; font-size: 0.52rem; text-transform: uppercase; height: 14px; box-sizing: border-box; border: 1.2px solid #000; margin-bottom: 2px; }
             .h-cell { padding: 2px 2px; text-align: left; display: flex; align-items: center; justify-content: center; height: 100%; box-sizing: border-box; border-right: 1px solid #000; }
             .h-cell:last-child { border-right: none; }
-            
+
             .blocco-classe { page-break-inside: avoid !important; break-inside: avoid-page !important; margin-bottom: 4px; width: 100%; }
-            
+
             table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1.2px solid #000; }
             tr { height: 15px !important; box-sizing: border-box; }
-            
+
             .t-cell { padding: 0px 2px; font-size: 0.54rem; border-right: 1px solid #000; border-bottom: 1px solid #ddd; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; height: 13px !important; line-height: 12px; box-sizing: border-box; }
             tr:last-child .t-cell { border-bottom: none; }
             .t-cell:last-child { border-right: none; }
-            
+
             tr.esterno td.t-room { border-left: 2px dashed #7f8c8d; }
-            
+
             .t-room, .h-room { width: 22px; text-align: center; }
             .t-room { font-weight: bold; background: #f5f5f5; }
             .t-name, .h-name { width: 105px; text-transform: uppercase; }
             .t-class, .h-class { width: 50px; text-align: center; }
             .t-details, .h-notes { flex-grow: 1; }
             .t-details { font-size: 0.50rem; color: #444; }
-            
+
             .lab-badge { font-size: 0.44rem; color: #b7950b; font-weight: bold; }
-            
-            .no-print { text-align: center; margin-bottom: 4px; }
-            @media print { 
-                .no-print { display: none; }
-            }
         </style></head><body>
             <div class="timestamp">Generato il ${dataOggi} alle ${oraEsatta}</div>
-            <h2>TRANSFER LUNCH</h2>
-            <div class="date-subtitle">
-    <span class="lab-info">LAB [LUN 5A+3A BUS 19-31-47]; [MAR 4A+3B BUS 31-39-42]; <br> [MER 4B+1A BUS 34-43-41]; [GIO 4C+1B BUS 34-37-44]</span>
-    — Studenti tot: <b>${totaleElementi}</b>
-</div>
-            
-            <div class="no-print">
-                <button onclick="window.print()" style="padding:4px 30px; background:#27ae60; color:white; font-weight:bold; border-radius:20px; border:none; cursor:pointer; font-size:0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    •STAMPA
-                </button>
-            </div>
+            ${window.STAMPA_LAYOUT.intestazione({
+                titolo: "TRANSFER LUNCH",
+                sottotitolo: `<span class="lab-info">LAB [LUN 5A+3A BUS 19-31-47]; [MAR 4A+3B BUS 31-39-42]; <br> [MER 4B+1A BUS 34-43-41]; [GIO 4C+1B BUS 34-37-44]</span> — Studenti tot: <b>${totaleElementi}</b>`
+            })}
+
+            ${window.STAMPA_LAYOUT.bottoneStampa()}
 
             <div class="grid-container">
                 ${colonneHtml
