@@ -23,6 +23,15 @@ function generaPopUpStampaConvitto() {
 
         const sOriginale = studenticonvittori.find((st) => st.cognome === cognome);
 
+               // Legge i valori attuali dagli input
+        const inputU = r.querySelector(".in-u").value.trim();
+        const inputI = r.querySelector(".in-i").value.trim();
+
+        // Se l'input è identico al PP, significa che è stato auto-compilato
+        // e NON è un inserimento manuale. Quindi lo nascondiamo.
+        const oraUmanuale = (inputU === ppOut || inputU === "") ? "" : inputU;
+        const oraImanuale = (inputI === ppIn || inputI === "") ? "" : inputI;
+
         if (!camere[room]) camere[room] = [];
         camere[room].push({
             classe:   r.dataset.classe,
@@ -30,8 +39,8 @@ function generaPopUpStampaConvitto() {
             cognome:  cognome,
             dinnerno: r.dataset.dinnerno,
             presente: !r.classList.contains("assente"),
-            oraU:     r.querySelector(".in-u").value,
-            oraI:     r.querySelector(".in-i").value,
+            oraU:     oraUmanuale,  // ← Solo inserimenti manuali
+            oraI:     oraImanuale,  // ← Solo inserimenti manuali
             ppOut:    ppOut,
             ppIn:     ppIn,
             gruppo:   r.dataset.gruppo,
@@ -40,7 +49,7 @@ function generaPopUpStampaConvitto() {
             isForesteria: false
         });
     });
-
+    
     function righeForesteriaVuote() {
         const riga = () => ({
             classe:   "Foresteria",
