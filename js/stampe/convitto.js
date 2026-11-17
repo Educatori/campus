@@ -8,7 +8,7 @@ function generaPopUpStampaConvitto() {
     const dataStampa = document.getElementById("todayDate").innerText;
     const oraStampa = new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     const dataOggiStampa = new Date().toLocaleDateString("it-IT");
-    const giornoSettimana = new Date().getDay();
+    const giornoSettimana = getDataCorrente().getDay();
     const camere = {};
 
     document.querySelectorAll(".student-row").forEach((r) => {
@@ -23,6 +23,11 @@ function generaPopUpStampaConvitto() {
 
         const sOriginale = studenticonvittori.find((st) => st.cognome === cognome);
 
+        // Assenza programmata (side panel) ⇒ assente + dinner-no + stand-by
+        const assenteProgrammato =
+            typeof isAssenteProgrammato === "function" &&
+            isAssenteProgrammato(cognome, getDataCorrente());
+
                // Legge i valori attuali dagli input
         const inputU = r.querySelector(".in-u").value.trim();
         const inputI = r.querySelector(".in-i").value.trim();
@@ -34,19 +39,19 @@ function generaPopUpStampaConvitto() {
 
         if (!camere[room]) camere[room] = [];
         camere[room].push({
-            classe:   r.dataset.classe,
-            percorso: r.dataset.percorso,
-            cognome:  cognome,
-            dinnerno: r.dataset.dinnerno,
-            presente: !r.classList.contains("assente"),
-            oraU:     oraUmanuale,  // ← Solo inserimenti manuali
-            oraI:     oraImanuale,  // ← Solo inserimenti manuali
-            ppOut:    ppOut,
-            ppIn:     ppIn,
-            gruppo:   r.dataset.gruppo,
-            bus:      haDirittoAlBus(sOriginale),
-            isStandBy: verificaStudenteStandBy(r),
-            isForesteria: false
+    classe:   r.dataset.classe,
+    percorso: r.dataset.percorso,
+    cognome:  cognome,
+    dinnerno: assenteProgrammato ? "1" : r.dataset.dinnerno,   // ← era r.dataset.dinnerno
+    presente: !r.classList.contains("assente") && !assenteProgrammato, // ← aggiunto && !assenteProgrammato
+    oraU:     oraUmanuale,
+    oraI:     oraImanuale,
+    ppOut:    ppOut,
+    ppIn:     ppIn,
+    gruppo:   r.dataset.gruppo,
+    bus:      haDirittoAlBus(sOriginale),
+    isStandBy: verificaStudenteStandBy(r),   // già include l'assenza programmata (punto 1)
+    isForesteria: false
         });
     });
     
