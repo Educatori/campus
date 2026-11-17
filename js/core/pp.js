@@ -325,87 +325,20 @@ function verificaStudenteStandBy(r) {
     // 1. Stato assente visivo
     if (r.classList.contains("assente")) return true;
 
-    // 2. Deduci dal PP (coerente con analizzaPP)
+    // 2. Assenza programmata (side panel) ⇒ stand-by
+    if (typeof isAssenteProgrammato === "function" &&
+        isAssenteProgrammato(cognome, getDataCorrente())) return true;
+
+    // 3. Deduci dal PP (coerente con analizzaPP)
     const statoPP = analizzaPP(cognome, giornoSettimana);
     if (statoPP.assente || statoPP.dinnerNo) return true;
 
-    // 3. Controlla il campo ingresso
+    // 4. Controlla il campo ingresso
     const inputIngresso = r.querySelector(".in-i");
     const val = inputIngresso ? inputIngresso.value.trim().toLowerCase() : "";
     const tokens = val.split(/[\s,;/\-]+/).filter(Boolean);
     return tokens.some(t => PAROLE_NO_RIENTRO.includes(t));
 }
-
-// ═══════════════════════════════════════════════════════════════
-// isLateDinnerStudente() — Helper condiviso
-// ═══════════════════════════════════════════════════════════════
-/**
- * Determina se uno studente ha diritto al late dinner per il giorno
- * indicato. Stessa logica di generaTestoLateDinner(), ma riutilizzabile
- * anche da js/stampe/dinner.js per la nota "LATE".
- *
- * @param {string} cognome
- * @param {string} [classe]           - se assente, la cerca
- * @param {number} giorno             - 0=Dom … 6=Sab
- * @param {number} [turnoEffettivo]   - se assente, turnoStudente()
- * @param {HTMLElement} [riga]        - se presente, evita querySelector
- * @returns {boolean}
- */
-function isLateDinnerStudente(cognome, classe, giorno, turnoEffettivo, riga) {
-    if (typeof ORARI_PP === "undefined" || !ORARI_PP) return false;
-
-    const cgn = (cognome || "").toUpperCase();
-    const pp = ORARI_PP[cgn] && ORARI_PP[cgn][giorno];
-    if (!pp) return false;
-
-    const out = normalizzaOrario(pp.out || "");
-    const inn = normalizzaOrario(pp.in  || "");
-    if (!out.includes(":") || !inn.includes(":")) return false;
-
-    // PP dice assente / no-cena → non è late dinner
-    const stato = analizzaPP(cgn, giorno);
-    if (stato.assente || stato.dinnerNo) return false;
-
-    // ASSENTI_PERMESSO[giorno]
-    if (typeof ASSENTI_PERMESSO !== "undefined" && ASSENTI_PERMESSO[giorno]) {
-        const assentiOggi = ASSENTI_PERMESSO[giorno]
-            .map(c => (c || "").toUpperCase())
-            .filter(Boolean);
-        if (assentiOggi.includes(cgn)) return false;
-    }
-
-    // Assenza "viva" nel DOM (manuale o programmata)
-    const r = riga || document.querySelector(
-        `.student-row[data-cognome="${cgn.replace(/"/g, '\\"')}"]`
-    );
-    if (r && r.classList.contains("assente")) return false;
-
-    // Turno e limite
-    let cls = classe;
-    if (!cls && r) cls = r.dataset.classe;
-    if (!cls && typeof studenticonvittori !== "undefined") {
-        const s = studenticonvittori.find(
-            x => (x.cognome || "").toUpperCase() === cgn
-        );
-        cls = s ? s.classe : "";
-    }
-
-    let turno = turnoEffettivo;
-    if (!turno) {
-        turno = cls ? turnoStudente(cls, cgn) : 1;
-        // coerenza con campus_hub-script.js: rispetta lo switch manuale
-        if (typeof cambiTurnoManuali !== "undefined" && cambiTurnoManuali[cgn]) {
-            turno = turno === 1 ? 2 : 1;
-        }
-    }
-
-    const limite = turno === 1 ? "18:30" : "19:15";
-
-    // È late dinner se all'ora limite è fuori:
-    //   esce prima o all'inizio cena  AND  rientra dopo
-    return (out <= limite) && (inn > limite);
-}
-window.isLateDinnerStudente = isLateDinnerStudente;
 
 // ═══════════════════════════════════════════════════════════════
 // generaTestoLateDinner() — Costruisce la stringa "late dinner"
@@ -433,29 +366,83 @@ window.isLateDinnerStudente = isLateDinnerStudente;
 function generaTestoLateDinner(giorno) {
     if (typeof ORARI_PP === "undefined" || !ORARI_PP) return "";
 
-    // Etichetta LAB del giorno (da config-static.js)
+    // ─── Etichetta LAB del giorno (da config-static.js) ───
     const classiLab = (typeof LAB_DINNER !== "undefined" && LAB_DINNER[giorno]) || [];
     const labelLab  = classiLab.length
         ? `LAB ${classiLab.join("/")}`
         : "PERMESSI";
 
+    // ─── Limite orario per turno (coerente con controllaDinnerAutomatico) ───
+    const limiteTurno = (turno) => (turno === 1 ? "18:30" : "19:15");
+
     const voci = [];
 
     Object.keys(ORARI_PP).forEach((cognome) => {
-        // Unica fonte di verità per il late dinner
-        if (!isLateDinnerStudente(cognome, "", giorno)) return;
+        const pp = ORARI_PP[cognome] && ORARI_PP[cognome][giorno];
+        if (!pp) return;
 
-        const pp  = ORARI_PP[cognome][giorno];
         const out = normalizzaOrario(pp.out || "");
         const inn = normalizzaOrario(pp.in  || "");
-        voci.push(`${cognome} [${out} > ${inn}]`);
+        // Orari non numerici (es. "NO R", "SOSP") → non sono late dinner
+        if (!out.includes(":") || !inn.includes(":")) return;
+
+        // ─── FILTRO 1: PP dice assente / no-cena ───
+        const stato = analizzaPP(cognome, giorno);
+        if (stato.assente || stato.dinnerNo) return;
+
+        // ─── FILTRO 2: ASSENTI_PERMESSO per il giorno corrente ───
+        // (nel file reale gli array contengono '', quindi è inerte,
+        //  ma resta utile se un giorno verranno popolati)
+        if (typeof ASSENTI_PERMESSO !== "undefined" && ASSENTI_PERMESSO[giorno]) {
+            const assentiOggi = ASSENTI_PERMESSO[giorno]
+                .map(c => (c || "").toUpperCase())
+                .filter(Boolean);
+            if (assentiOggi.includes(cognome.toUpperCase())) return;
+        }
+
+        // ─── FILTRO 3: SOLO assenza "viva" nel DOM ───
+        // NON guardare dinnerno: chi ha un late dinner ha per
+        // definizione dinnerno=1 (orario tardi), quindi escluderlo
+        // cancellerebbe proprio i late dinner.
+        const riga = document.querySelector(
+            `.student-row[data-cognome="${cognome.toUpperCase().replace(/"/g, '\\"')}"]`
+        );
+        if (riga && riga.classList.contains("assente")) return;
+        // ─── FILTRO 3b: assenza programmata ───
+        if (typeof isAssenteProgrammato === "function" &&
+        isAssenteProgrammato(cognome, getDataCorrente())) return;
+        
+        
+       // ─── FILTRO 4: è davvero un late dinner? ───
+// È late dinner se all'ora limite del suo turno è FUORI:
+//   • esce prima o all'inizio cena  → out <= limite
+//   • rientra dopo l'inizio cena    → in  >  limite
+// Se rientra prima (in <= limite) è a cena anche se era uscito.
+let classe = riga ? riga.dataset.classe : "";
+if (!classe) {
+    const s = (typeof studenticonvittori !== "undefined" && studenticonvittori)
+        ? studenticonvittori.find(
+            x => (x.cognome || "").toUpperCase() === cognome.toUpperCase()
+          )
+        : null;
+    classe = s ? s.classe : "";
+}
+const turno  = classe ? turnoStudente(classe, cognome) : 1;
+const limite = limiteTurno(turno);
+
+const isLateDinner = (out <= limite) && (inn > limite);
+if (!isLateDinner) return;
+
+voci.push(`${cognome} [${out} > ${inn}]`);
     });
 
     if (!voci.length) return "";
 
+    // Ordina alfabeticamente per leggibilità
     voci.sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
 
     return `${labelLab} - PERMESSI LATE DINNER:\n${voci.join(", ")}`;
 }
 
+// Espone globalmente (usata da js/stampe/dinner.js)
 window.generaTestoLateDinner = generaTestoLateDinner;
