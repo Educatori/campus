@@ -250,15 +250,17 @@ function generaPopUpStampaDinner() {
                 border: 1px solid #c7d2fe;
                 letter-spacing: 0.02em;
             }
-            @media print {
+        @media print {
                 body { padding: 8px 12px; font-size: 0.9em; }
                 .editable-notes { border: none; margin-bottom: 12px; padding: 6px; }
                 .griglia-nomi {
-                    grid-template-columns: repeat(2, 1fr);   /* ← 2 colonne in stampa */
-                    font-size: 0.62em; gap: 0px 16px;
-                    margin: 2px 0 8px 0; line-height: 1.2;
+                    grid-template-columns: repeat(2, 1fr);
+                    font-size: 0.8em;          
+                    gap: 0px 16px;
+                    margin: 4px 0 12px 0; 
+                    line-height: 1.3;
                 }
-                .nome-item { padding: 0; }
+                .nome-item { padding: 1px 0; }
                 .section {
                     page-break-inside: avoid;
                     margin-bottom: 14px; padding-left: 12px;
@@ -270,7 +272,14 @@ function generaPopUpStampaDinner() {
                 .stats-row { gap: 16px; margin-bottom: 8px; }
                 .stats-row span { font-size: 0.85em; }
                 .stats-row input { font-size: 1.1em; width: 55px; }
-                .label-sezione { font-size: 0.75em; margin-bottom: 2px; }
+                .label-sezione { font-size: 0.9em; margin-bottom: 4px; }
+                
+                /* Ridimensionamento dei tag per la stampa */
+                .tag-classe, .tag-nota, .tag-orario {
+                    font-size: 0.85em;
+                    padding: 2px 6px;
+                    vertical-align: middle;
+                }
             }
         </style></head><body>
 
