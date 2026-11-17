@@ -408,13 +408,19 @@ function generaPopUpStampaBusGenerico() {
 
     const listaFinale = [...resto, ...classe5A, ...classe5B];
 
-    const righeHtml = listaFinale.map((s) => {
+        const righeHtml = listaFinale.map((s) => {
         const infoClasse = `${s.classe} ${s.percorso ? s.percorso : ""} ${s.gruppo ? "• " + s.gruppo : ""}`;
         const bgStyle = _bgStyleQuinte(s);
+
+        const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
+        const standBy = (rigaElemento && typeof verificaStudenteStandBy === "function" && verificaStudenteStandBy(rigaElemento))
+            ? "➖"
+            : "";
+
         return window.BUS_HELPERS.generaRiga(
             s,
             ["room", "nome", "classe", "check", "standby", "note"],
-            { bgStyle, classeHtml: infoClasse }
+            { bgStyle, classeHtml: infoClasse, standBy }
         );
     });
 
