@@ -78,12 +78,16 @@ function generaPopUpStampaDinner() {
             else switch2.push(obj);
         }
 
-        const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
+                const isLab = isStudenteInLabOggi(classe, r.dataset.gruppo, oggi);
         const isPPNoCena = isPPNoDinnerOggi(cognome, giornoSett);
+        const assenteProgrammato =
+            typeof isAssenteProgrammato === "function" &&
+            isAssenteProgrammato(cognome, getDataCorrente());
         const escluso =
             isLab ||
             isPPNoCena ||
             r.classList.contains("assente") ||
+            assenteProgrammato ||                       // ← assenza programmata
             r.dataset.dinnerno === "1";
 
         const ppOggi = (typeof ORARI_PP !== "undefined" && ORARI_PP[cognome.toUpperCase()])
