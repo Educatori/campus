@@ -1,5 +1,5 @@
 /**
- * js/stampe/layout.js
+ * js/stampe/_layout.js
  * ─────────────────────────────────────────────────────────────
  * CSS e HTML condivisi da tutte le stampe.
  *
@@ -38,9 +38,10 @@
             : "";
 
         return `
-            @page { size: ${pageSize}; margin: ${pageMargin}; }
-            body {
-                font-family: ${fontFamily};
+        @page { size: ${pageSize}; margin: ${pageMargin}; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+        font-family: ${fontFamily};
                 margin: 0; padding: 5px;
                 color: #000; line-height: 1.1;
                 ${colorAdjust}
