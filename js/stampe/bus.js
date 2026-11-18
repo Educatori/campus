@@ -42,12 +42,12 @@ const BUS_LAYOUT_GEN = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// Helper: colori 5A/5B
+// Helper: border 5A/5B
 // ─────────────────────────────────────────────────────────────
 function _bgStyleQuinte(s) {
     if (s.classe === "5A" || s.classe === "5B") {
-        if (s.gruppo === "G1") return "background-color: #eaf2f8;";
-        if (s.gruppo === "G2") return "background-color: #fef9e7;";
+        if (s.gruppo === "G1") return "border-left: 2px solid #808080; border-right: 2px solid #808080;";
+        if (s.gruppo === "G2") return "border-left: 2px dotted #808080; border-right: 2px dotted #808080;";
     }
     return "";
 }
@@ -116,7 +116,7 @@ function generaPopUpStampaBus(ordinamento) {
 
     const righeHtml = validi.map((s) => {
         let bgStyle = _bgStyleQuinte(s);
-        if (s.classe === "4C") bgStyle = "border-left: 4px dashed #2c3e50;";
+        if (s.classe === "4C") bgStyle = "border-left: 2px dashed #808080; border-right: 2px dashed #808080;";
 
         const rigaElemento = document.querySelector(`.student-row[data-cognome="${s.cognome}"]`);
         let standBy = "";
