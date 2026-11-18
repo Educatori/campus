@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+ <!-- ===== FAVICON ===== -->
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Campus Hub</title>
@@ -37,6 +41,27 @@ h1 {
     margin-bottom: 8px;
 }
 
+/* ─── LINK NASCOSTO NEL TITOLO ───────────────────────────── */
+h1 .titolo-link {
+    color: inherit;
+    text-decoration: none;
+    background: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    cursor: default;
+}
+h1 .titolo-link:hover,
+h1 .titolo-link:active {
+    color: inherit;
+    text-decoration: none;
+}
+/* Accessibilità: focus visibile solo da tastiera */
+h1 .titolo-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}    
+    
 #todayDate {
     font-size: 0.78rem;
     text-transform: uppercase;
@@ -238,7 +263,9 @@ h1 {
 <body>
 
 <div class="header-container">
-    <h1>• CAMPUS Index •</h1>
+    <h1>
+    • CAMPUS INDEX •
+</h1>
     <div id="todayDate">Caricamento...</div>
     <div id="digitalClock">00:00:00</div>
 </div>
@@ -255,15 +282,12 @@ h1 {
         <span>HUB</span>
     </a>
 
-        <a href="https://educatori.github.io/attivita/attivicampus.html" class="link-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 4h12v16H6z"/>
-            <path d="M9 8h6"/>
-            <path d="M9 12h6"/>
-            <path d="M9 16h4"/>
-        </svg>
-        <span>Attività</span>
-    </a>
+       <a href="/gestione/gestione.html" class="link-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 6.5a8 8 0 1 0 0 11V12h-6"/>
+</svg>
+    <span>Gestione</span>
+</a>
     
    
 
