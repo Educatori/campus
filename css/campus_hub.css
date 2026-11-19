@@ -193,6 +193,12 @@ body.mode-online #digitalClock {
     text-shadow: 0 0 20px var(--accent-dim);
 }
 
+/* Il banner "☁️ FIREBASE" è inutile in modalità online: nascondilo */
+body.mode-online #modeBanner {
+    display: none !important;
+}
+
+
 header:not(.app-header) h1 {
     font-size: 1.4rem;
     font-weight: 700;
