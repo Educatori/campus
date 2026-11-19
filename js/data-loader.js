@@ -76,6 +76,57 @@ function normalizzaPP(ppData) {
     return risultato;
 }
 
+/**
+ * Normalizza gli assenti con permesso da Firebase.
+ * Firebase trasforma {"1":[...],"2":[...]} in [null,[...],[...]].
+ * Questo li riconverte in oggetto con chiavi stringa.
+ */
+function normalizzaAssenti(assData) {
+    const risultato = {};
+    for (const [giorno, lista] of Object.entries(assData || {})) {
+        if (Array.isArray(lista)) {
+            // lista già array di cognomi → ok, ma la chiave è il giorno
+            risultato[giorno] = lista.filter(Boolean);
+        } else if (typeof lista === 'string') {
+            risultato[giorno] = [lista];
+        } else if (lista && typeof lista === 'object') {
+            // oggetto {0:"ROSSI",1:"BIANCHI"} → array
+            risultato[giorno] = Object.values(lista).filter(Boolean);
+        }
+    }
+    return risultato;
+}
+
+/**
+ * Normalizza gli override turni dinner da Firebase.
+ * Firebase trasforma {"1":1,"2":2,"3":2} in [null,1,2,2].
+ * Questo li riconverte in oggetto con chiavi numeriche.
+ */
+function normalizzaOverride(ovData) {
+    const risultato = {};
+    for (const [cognome, giorni] of Object.entries(ovData || {})) {
+        if (Array.isArray(giorni)) {
+            const obj = {};
+            giorni.forEach((v, i) => {
+                if (i > 0 && v !== null && v !== undefined && v !== '') {
+                    obj[String(i)] = Number(v);
+                }
+            });
+            if (Object.keys(obj).length) risultato[cognome] = obj;
+        } else if (giorni && typeof giorni === 'object') {
+            // già oggetto → normalizza solo i valori a numero
+            const obj = {};
+            for (const [g, v] of Object.entries(giorni)) {
+                if (v !== null && v !== undefined && v !== '') {
+                    obj[String(g)] = Number(v);
+                }
+            }
+            if (Object.keys(obj).length) risultato[cognome] = obj;
+        }
+    }
+    return risultato;
+}
+
 // ─────────────────────────────────────────────────────────────
 // 3. CARICAMENTO DA FIREBASE
 // ─────────────────────────────────────────────────────────────
@@ -129,35 +180,40 @@ async function caricaDatiFirebase() {
             }
         }
 
-    // 3c-bis. Override turni dinner (cognomi → turno per giorno)
-    // Mutazione IN-PLACE: OVERRIDE_TURNI_DINNER è usato bare da turni.js,
-    // quindi deve restare la stessa reference del const del file offline.
+      // 3c-bis. Override turni dinner (cognomi → turno per giorno)
         const ovSnap = await get(ref(db, 'overrides_turni_dinner'));
         if (ovSnap.exists()) {
             const ovData = ovSnap.val();
             if (ovData && Object.keys(ovData).length > 0) {
+                const normalizzati = normalizzaOverride(ovData);
                 if (window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
                     Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
-                    Object.assign(window.OVERRIDE_TURNI_DINNER, ovData);
+                    Object.assign(window.OVERRIDE_TURNI_DINNER, normalizzati);
                 } else {
-                    window.OVERRIDE_TURNI_DINNER = ovData;
+                    window.OVERRIDE_TURNI_DINNER = normalizzati;
                 }
-                console.log(`   🍽 Override turni: ${Object.keys(window.OVERRIDE_TURNI_DINNER).length} studenti`);
+                console.log(`   🍽 Override turni: ${Object.keys(window.OVERRIDE_TURNI_DINNER).length} studenti (normalizzati)`);
             }
         } else {
             console.warn('   ⚠️ Nodo "overrides_turni_dinner" assente → override individuali disattivati');
         }
 
-    // 3d. Assenti permesso
+        // 3d. Assenti permesso
         const assSnap = await get(ref(db, 'assenti_permesso'));
         if (assSnap.exists()) {
             const assData = assSnap.val();
             if (assData && Object.keys(assData).length > 0) {
-                window.ASSENTI_PERMESSO = assData;
-                console.log(`   🚫 Assenti permesso: ${Object.keys(assData).length} giorni`);
+                const normalizzati = normalizzaAssenti(assData);
+                if (window.ASSENTI_PERMESSO && typeof window.ASSENTI_PERMESSO === 'object' && !Array.isArray(window.ASSENTI_PERMESSO)) {
+                    Object.keys(window.ASSENTI_PERMESSO).forEach(k => delete window.ASSENTI_PERMESSO[k]);
+                    Object.assign(window.ASSENTI_PERMESSO, normalizzati);
+                } else {
+                    window.ASSENTI_PERMESSO = normalizzati;
+                }
+                console.log(`   🚫 Assenti permesso: ${Object.keys(window.ASSENTI_PERMESSO).length} giorni (normalizzati)`);
             }
         }
-
+        
     // 3e. Dati giornalieri
         const chiaveOggi = dataKeyFirebase(new Date());
         const giornoSnap = await get(ref(db, `convitto/${chiaveOggi}`));
@@ -283,6 +339,8 @@ window.caricaDatiFirebase = caricaDatiFirebase;
 window.salvaDatiFirebase  = salvaDatiFirebase;
 window.dataKeyFirebase    = dataKeyFirebase;
 window.normalizzaPP       = normalizzaPP;
+window.normalizzaAssenti  = normalizzaAssenti;
+window.normalizzaOverride = normalizzaOverride;
 
 console.log('🔧 data-loader.js pronto');
 
@@ -394,6 +452,8 @@ export {
     salvaNoteFirebase,
     dataKeyFirebase,
     normalizzaPP,
+    normalizzaAssenti,     
+    normalizzaOverride,   
     attivaNoteCondivise,
     attivaUltimoAggiornamento,
     pubblicaUltimoReset
