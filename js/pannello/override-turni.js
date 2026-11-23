@@ -1,7 +1,31 @@
 /* ============================================================
    OVERRIDE TURNI CENA
    Gestione override individuali per il turno di cena.
+   ────────────────────────────────────────────────────────────
+   ⚠️  Le scritture avvengono SOLO su Firebase (nodo
+       overrides_turni_dinner). In modalità offline o demo
+       locale il salvataggio è bloccato: per aggiornare gli
+       override in quel caso va modificato a mano
+       offline/permessi_26_offline.js.
    ============================================================ */
+
+/* ── Utility: verifica se le scritture Firebase sono disponibili ── */
+function overrideOnlineDisponibile() {
+    return navigator.onLine && typeof window.ref === 'function'
+        && typeof window.update === 'function' && window.db;
+}
+
+/* ── Mostra/nasconde l'avviso "valido solo online" ── */
+function aggiornaAvvisoOffline() {
+    const avviso = document.getElementById('overrideAvvisoOffline');
+    if (!avviso) return;
+
+    if (overrideOnlineDisponibile()) {
+        avviso.style.display = 'none';
+    } else {
+        avviso.style.display = 'flex';
+    }
+}
 
 /* ── Autocomplete studente ── */
 function suggerisciStudentiOverride(query) {
@@ -46,6 +70,18 @@ function selezionaStudenteOverride(cognome) {
 
 /* ── Salva override ── */
 async function salvaOverrideTurno() {
+    // ── GUARD: blocca se offline o Firebase non disponibile ──
+    if (!overrideOnlineDisponibile()) {
+        alert(
+            '📴 Operazione non disponibile offline.\n\n' +
+            'Gli override vengono salvati solo su Firebase.\n' +
+            'Per aggiornarli in modalità offline o demo locale,\n' +
+            'modifica manualmente il file:\n' +
+            'offline/permessi_26_offline.js'
+        );
+        return;
+    }
+
     const cognome = document.getElementById('overrideStudenteSelezionato').value;
     const giorno  = document.getElementById('overrideGiorno').value;
     const turno   = Number(document.getElementById('overrideTurno').value);
@@ -56,11 +92,9 @@ async function salvaOverrideTurno() {
     }
 
     try {
-        // Scrive solo il giorno specifico, preservando gli altri giorni
         await window.update(window.ref(window.db, `overrides_turni_dinner/${cognome}`),
             { [giorno]: turno });
 
-        // Aggiorna la copia locale
         if (!window.OVERRIDE_TURNI_DINNER) window.OVERRIDE_TURNI_DINNER = {};
         if (!window.OVERRIDE_TURNI_DINNER[cognome]) window.OVERRIDE_TURNI_DINNER[cognome] = {};
         window.OVERRIDE_TURNI_DINNER[cognome][giorno] = turno;
@@ -77,6 +111,18 @@ async function salvaOverrideTurno() {
 
 /* ── Rimuovi override (un giorno specifico) ── */
 async function rimuoviOverrideTurno() {
+    // ── GUARD: blocca se offline o Firebase non disponibile ──
+    if (!overrideOnlineDisponibile()) {
+        alert(
+            '📴 Operazione non disponibile offline.\n\n' +
+            'Gli override vengono salvati solo su Firebase.\n' +
+            'Per aggiornarli in modalità offline o demo locale,\n' +
+            'modifica manualmente il file:\n' +
+            'offline/permessi_26_offline.js'
+        );
+        return;
+    }
+
     const cognome = document.getElementById('overrideStudenteSelezionato').value;
     const giorno  = document.getElementById('overrideGiorno').value;
 
@@ -110,6 +156,18 @@ async function rimuoviOverrideTurno() {
 
 /* ── Rimuovi tutti gli override di uno studente ── */
 async function rimuoviTuttiOverride(cognome) {
+    // ── GUARD: blocca se offline o Firebase non disponibile ──
+    if (!overrideOnlineDisponibile()) {
+        alert(
+            '📴 Operazione non disponibile offline.\n\n' +
+            'Gli override vengono salvati solo su Firebase.\n' +
+            'Per aggiornarli in modalità offline o demo locale,\n' +
+            'modifica manualmente il file:\n' +
+            'offline/permessi_26_offline.js'
+        );
+        return;
+    }
+
     if (!confirm(`Rimuovere TUTTI gli override di ${cognome}?`)) return;
     try {
         await window.update(window.ref(window.db),
@@ -131,6 +189,30 @@ function renderListaOverrideAttivi() {
     const container = document.getElementById('listaOverrideAttivi');
     if (!container) return;
 
+    // Aggiorna visibilità avviso
+    aggiornaAvvisoOffline();
+
+    // ── Aggiorna lo stato dei pulsanti in base alla disponibilità ──
+    const disponibile = overrideOnlineDisponibile();
+    const btnSalva   = document.querySelector('#boxOverrideTurni button[onclick*="salvaOverrideTurno"]');
+    const btnRimuovi = document.querySelector('#boxOverrideTurni button[onclick*="rimuoviOverrideTurno"]');
+
+    [btnSalva, btnRimuovi].forEach(btn => {
+        if (!btn) return;
+        if (!disponibile) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.title = 'Non disponibile offline — modifica manualmente permessi_26_offline.js';
+        } else {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.title = '';
+        }
+    });
+
+    // ── Corpo della lista ──
     const override = window.OVERRIDE_TURNI_DINNER || {};
     const cognomi = Object.keys(override).sort();
 
@@ -147,6 +229,8 @@ function renderListaOverrideAttivi() {
 
     container.innerHTML = cognomi.map(cognome => {
         const giorni = override[cognome];
+        if (!giorni || typeof giorni !== 'object') return '';
+
         const dettagli = Object.entries(giorni)
             .sort(([a], [b]) => Number(a) - Number(b))
             .map(([g, t]) => `${giorniNome[g] || g}: T${t}`)
@@ -164,11 +248,29 @@ function renderListaOverrideAttivi() {
                 </div>
                 <button onclick="rimuoviTuttiOverride('${cognome}')"
                         title="Rimuovi tutti gli override di ${cognome}"
+                        ${!disponibile ? 'disabled' : ''}
                         style="background:var(--absent-dim);color:var(--absent);
                                border:none;border-radius:50%;width:24px;height:24px;
-                               cursor:pointer;font-weight:bold;font-size:0.75rem;">
+                               cursor:${disponibile ? 'pointer' : 'not-allowed'};
+                               font-weight:bold;font-size:0.75rem;
+                               opacity:${disponibile ? '1' : '0.5'};">
                     ✕
                 </button>
             </div>`;
     }).join('');
 }
+
+/* ── Aggiorna pulsanti e avviso quando cambia la connessione ── */
+window.addEventListener('online',  () => {
+    aggiornaAvvisoOffline();
+    renderListaOverrideAttivi();
+});
+window.addEventListener('offline', () => {
+    aggiornaAvvisoOffline();
+    renderListaOverrideAttivi();
+});
+
+/* ── Chiamata iniziale al caricamento ── */
+document.addEventListener('DOMContentLoaded', () => {
+    aggiornaAvvisoOffline();
+});
