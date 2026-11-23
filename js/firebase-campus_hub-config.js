@@ -8,7 +8,7 @@ import {
     signOut,
     onAuthStateChanged,
     setPersistence,
-    browserSessionPersistence
+    browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -26,7 +26,7 @@ const app  = initializeApp(firebaseConfig);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
-// Sessione limitata al tab corrente (chiudi il browser → logout)
-setPersistence(auth, browserSessionPersistence).catch(console.error);
+// ✅ Sessione persistente: sopravvive alla chiusura del browser e al riavvio di Windows
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 export { db, ref, get, child, set, update, onValue, auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
