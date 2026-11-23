@@ -301,66 +301,80 @@
         <div id="listaPermessiContent"></div>
     </details>
 
-        <!-- ── OVERRIDE TURNI CENA (details) ── -->
-    <details id="boxOverrideTurni">
-        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
-                        color:var(--text);padding:6px 0;user-select:none;">
-            🍽 Override Turno Cena
-        </summary>
-        <div style="font-size:0.75rem;color:var(--text-2);
-                    margin:6px 0 10px 0;font-style:italic;">
-            Forza il turno di cena per un singolo studente in un giorno specifico
-        </div>
+    <!-- ── OVERRIDE TURNI CENA (details) ── -->
+<details id="boxOverrideTurni">
+    <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                    color:var(--text);padding:6px 0;user-select:none;">
+        🍽 Override Turno Cena
+    </summary>
+    <div style="font-size:0.75rem;color:var(--text-2);
+                margin:6px 0 10px 0;font-style:italic;">
+        Forza il turno di cena per un singolo studente in un giorno specifico
+    </div>
 
-        <!-- Autocomplete studente -->
-        <div style="position: relative; margin-bottom: 10px;">
-            <input type="text" id="overrideCercaStudente" placeholder="🔍 Cerca studente..."
-                   autocomplete="off" oninput="suggerisciStudentiOverride(this.value)">
-            <div id="overrideListaSuggerimenti" style="display:none; position:absolute; top:100%; left:0; right:0;
-                        background:var(--surface); border:1px solid var(--border-2); border-radius:var(--radius);
-                        box-shadow:var(--shadow-lg); z-index:100; max-height:150px; overflow-y:auto; margin-top:4px;">
-            </div>
-            <input type="hidden" id="overrideStudenteSelezionato" value="">
-        </div>
+    <!-- ⚠️ AVVISO: visibile solo offline -->
+<div id="overrideAvvisoOffline" style="
+            background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--radius);
+            padding:10px 12px;margin-bottom:12px;font-size:0.75rem;
+            color:#92400e;line-height:1.5;align-items:flex-start;gap:8px;
+            display:none;">
+    <span style="font-size:1.1rem;flex-shrink:0;line-height:1;">⚠️</span>
+    <span>
+        <b>Valido solo online.</b><br>
+        In modalità offline o demo locale il salvataggio non viene eseguito,
+        ma è necessario modificare manualmente l'archivio.
+    </span>
+</div>
 
-        <!-- Giorno e turno -->
-        <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <div style="flex:1;">
-                <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Giorno</label>
-                <select id="overrideGiorno" style="width:100%;">
-                    <option value="1">Lunedì</option>
-                    <option value="2">Martedì</option>
-                    <option value="3">Mercoledì</option>
-                    <option value="4">Giovedì</option>
-                </select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Turno</label>
-                <select id="overrideTurno" style="width:100%;">
-                    <option value="1">1° Turno</option>
-                    <option value="2">2° Turno</option>
-                </select>
-            </div>
+    <!-- Autocomplete studente -->
+    <div style="position: relative; margin-bottom: 10px;">
+        <input type="text" id="overrideCercaStudente" placeholder="🔍 Cerca studente..."
+               autocomplete="off" oninput="suggerisciStudentiOverride(this.value)">
+        <div id="overrideListaSuggerimenti" style="display:none; position:absolute; top:100%; left:0; right:0;
+                    background:var(--surface); border:1px solid var(--border-2); border-radius:var(--radius);
+                    box-shadow:var(--shadow-lg); z-index:100; max-height:150px; overflow-y:auto; margin-top:4px;">
         </div>
+        <input type="hidden" id="overrideStudenteSelezionato" value="">
+    </div>
 
-        <button class="btn-add-assenza btn-green" onclick="salvaOverrideTurno()">Salva Override</button>
-        <button class="btn-add-assenza" style="background:var(--surface-2);color:var(--text-2);margin-top:6px;"
-                onclick="rimuoviOverrideTurno()">Rimuovi Override</button>
-
-        <!-- Lista override attivi -->
-        <div style="margin-top:16px;">
-            <div style="font-size:0.75rem;font-weight:700;color:var(--text-2);
-                        text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
-                Override attivi
-            </div>
-            <div id="listaOverrideAttivi" style="
-                max-height:220px; overflow-y:auto;
-                border:1px solid var(--border); border-radius:var(--radius);
-                background:var(--surface-2);
-            ">
-            </div>
+    <!-- Giorno e turno -->
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Giorno</label>
+            <select id="overrideGiorno" style="width:100%;">
+                <option value="1">Lunedì</option>
+                <option value="2">Martedì</option>
+                <option value="3">Mercoledì</option>
+                <option value="4">Giovedì</option>
+            </select>
         </div>
-    </details>
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Turno</label>
+            <select id="overrideTurno" style="width:100%;">
+                <option value="1">1° Turno</option>
+                <option value="2">2° Turno</option>
+            </select>
+        </div>
+    </div>
+
+    <button class="btn-add-assenza btn-green" onclick="salvaOverrideTurno()">Salva Override</button>
+    <button class="btn-add-assenza" style="background:var(--surface-2);color:var(--text-2);margin-top:6px;"
+            onclick="rimuoviOverrideTurno()">Rimuovi Override</button>
+
+    <!-- Lista override attivi -->
+    <div style="margin-top:16px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-2);
+                    text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+            Override attivi
+        </div>
+        <div id="listaOverrideAttivi" style="
+            max-height:220px; overflow-y:auto;
+            border:1px solid var(--border); border-radius:var(--radius);
+            background:var(--surface-2);
+        ">
+        </div>
+    </div>
+</details>
     
 </div>
     
