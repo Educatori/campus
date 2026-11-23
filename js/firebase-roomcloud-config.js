@@ -1,5 +1,5 @@
-/* FIREBASE-ROOMCLOUD-CONFIG.JS */
-// firebase-roomcloud-config.js
+/* firebase-roomcloud-config.js */
+
 export const firebaseConfig = {
   apiKey: "AIzaSyAlvE48F1flTIZ1KyU_FKIV30w60pWFphE",
   authDomain: "rooms-2ff73.firebaseapp.com",
@@ -10,3 +10,4 @@ export const firebaseConfig = {
   appId: "1:955413485941:web:e878ea05b066dd78bd9b3c",
   measurementId: "G-NSGBDTEJNQ"
 };
+
