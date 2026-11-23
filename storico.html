@@ -111,7 +111,7 @@
                         -webkit-background-clip:text;
                         background-clip:text;
                         -webkit-text-fill-color:transparent;
-                    ">Storico Giornaliero</h2>
+                    ">Archivio Giornaliero</h2>
 
                     <p style="
                         font-size:0.9rem;
@@ -377,20 +377,47 @@ $('btnLogout').onclick = async () => {
 };
 
 // Auth
+let isAuthReady = false; // ← NUOVO: flag per il primo controllo
+
 onAuthStateChanged(auth, (user) => {
     window._storicoAuthAvviato = true;
 
     const authLoading = document.getElementById('authLoading');
     if (authLoading) authLoading.style.display = 'none';
 
-    if (!user) {
-        loginScreen.style.display = 'flex';
-        container.style.display = 'none';
+    // ── 1. PRIMO CARICAMENTO: nascondi tutto e aspetta Firebase ──
+    if (!isAuthReady) {
+        loginScreen.style.display = 'none';
+        container.style.display   = 'none';
+
+        setTimeout(() => {
+            isAuthReady = true;
+
+            if (user) {
+                // Sessione ripristinata: mostra l'app e carica i dati
+                loginScreen.style.display = 'none';
+                container.style.display   = 'block';
+                statusBadge.textContent = '🟢 Firebase';
+                carica();
+            } else {
+                // Nessuna sessione: mostra login
+                loginScreen.style.display = 'flex';
+                container.style.display   = 'none';
+            }
+        }, 500);
         return;
     }
+
+    // ── 2. CAMBIAMENTI SUCCESSIVI (login/logout manuale) ──
+    if (!user) {
+        loginScreen.style.display = 'flex';
+        container.style.display   = 'none';
+        return;
+    }
+
     loginScreen.style.display = 'none';
-    container.style.display = 'block';
-    statusBadge.textContent = '🟢 Firebase';
+    container.style.display   = 'block';
+    statusBadge.textContent   = '🟢 Firebase';
     carica();
 });
 
