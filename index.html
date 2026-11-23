@@ -9,6 +9,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Campus Hub</title>
 <link rel="stylesheet" href="css/campus_hub.css">
+    
+    <script>
+  // ── Pulizia: deregistra eventuali service worker precedenti ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        reg.unregister();
+        console.log('🗑️ Service worker deregistrato:', reg.scope);
+      });
+    });
+    // Svuota anche le cache lasciate dal vecchio SW
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  }
+</script>
 <style>
 /* ─── INDEX-SPECIFIC ─────────────────────────────────────────── */
 body {
