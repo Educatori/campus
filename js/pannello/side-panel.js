@@ -8,9 +8,11 @@
  *   • aggiornaAltezzaOverlay()  → calcola altezza dell'overlay sfocato
  *   • listener resize + DOMContentLoaded
  *   • popolaListaPermessi()     → contenuto sezione "Permessi Permanenti"
+ *   • renderListaOverrideAttivi() → contenuto sezione "Override Turni Cena"
  *
  * Dipendenze runtime:
  *   - ORARI_PP                    → data-loader.js (window)
+ *   - OVERRIDE_TURNI_DINNER       → data-loader.js / permessi_26_offline.js (window)
  *   - popolaSelectStudenti()      → pannello/assenze-programmate.js
  *   - popolaSelectClassi()        → pannello/assenze-programmate.js
  *   - renderListaAssenze()        → pannello/assenze-programmate.js
@@ -52,6 +54,7 @@ function apriPannello(panel) {
     if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
     if (typeof renderListaAssenze   === "function") renderListaAssenze();
     if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
+    if (typeof renderListaOverrideAttivi === "function") renderListaOverrideAttivi();  // ← NUOVO
     aggiornaAltezzaOverlay();
     impostaInertBackground(true);
 }
@@ -164,6 +167,8 @@ window.addEventListener("resize", () => {
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
         aggiornaAltezzaOverlay();
+        // Popola la lista override anche al primo caricamento
+        if (typeof renderListaOverrideAttivi === "function") renderListaOverrideAttivi();  // ← NUOVO
     }, 150);
 });
 
@@ -253,4 +258,60 @@ function popolaListaPermessi() {
 
     // Blocco import/export + lista permessi
     container.innerHTML = bloccoImportExport + listaHtml;
+}
+
+// ─────────────────────────────────────────────────────────────
+// CONTENUTO SEZIONE "OVERRIDE TURNI CENA"
+// ─────────────────────────────────────────────────────────────
+/**
+ * Mostra la lista degli override attivi (da window.OVERRIDE_TURNI_DINNER).
+ * Ogni riga ha un pulsante ✕ per rimuovere tutti gli override
+ * di quello studente.
+ */
+function renderListaOverrideAttivi() {
+    const container = document.getElementById('listaOverrideAttivi');
+    if (!container) return;
+
+    const override = window.OVERRIDE_TURNI_DINNER || {};
+    const cognomi = Object.keys(override).sort();
+
+    if (cognomi.length === 0) {
+        container.innerHTML = `
+            <div style="padding:14px;text-align:center;color:var(--text-muted);
+                        font-style:italic;font-size:0.78rem;">
+                Nessun override attivo
+            </div>`;
+        return;
+    }
+
+    const giorniNome = { 1: 'Lun', 2: 'Mar', 3: 'Mer', 4: 'Gio' };
+
+    container.innerHTML = cognomi.map(cognome => {
+        const giorni = override[cognome];
+        if (!giorni || typeof giorni !== 'object') return '';
+
+        const dettagli = Object.entries(giorni)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([g, t]) => `${giorniNome[g] || g}: T${t}`)
+            .join(' · ');
+
+        return `
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        padding:8px 12px;border-bottom:1px solid var(--border);
+                        font-size:0.8rem;">
+                <div>
+                    <b>${cognome}</b>
+                    <div style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);">
+                        ${dettagli}
+                    </div>
+                </div>
+                <button onclick="rimuoviTuttiOverride('${cognome}')"
+                        title="Rimuovi tutti gli override di ${cognome}"
+                        style="background:var(--absent-dim);color:var(--absent);
+                               border:none;border-radius:50%;width:24px;height:24px;
+                               cursor:pointer;font-weight:bold;font-size:0.75rem;">
+                    ✕
+                </button>
+            </div>`;
+    }).join('');
 }
