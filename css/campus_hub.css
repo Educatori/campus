@@ -964,7 +964,6 @@ header:not(.app-header) h1 {
     transform: translateX(100%);
     transition: transform 0.3s ease;
     pointer-events: none;
-    
 }
 #sidePanel.open { transform: translateX(0); }
 
@@ -985,81 +984,47 @@ header:not(.app-header) h1 {
     background: var(--bg-2);
     border-left: 1px solid var(--border-2);
     box-shadow: -8px 0 40px rgba(0,0,0,0.15);
-    padding: 24px;
+    
+    /* Top 0: attacca il contenuto al bordo superiore. Padding laterale e inferiore. */
+    padding: 0 24px 24px 24px; 
+    
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     pointer-events: auto;
-    position: relative; 
-}
-
-#sidePanel h3 {
-    color: var(--text);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-    font-size: 0.9rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    position: relative;
 }
 
 /* ------------------------------------------------------------
-   UNIFORMAZIONE CAMPI FORM NEL SIDE PANEL
-   Stile identico alla toolbar per coerenza visiva totale.
+   HEADER STICKY (Titolo + Pallini)
    ------------------------------------------------------------ */
-#sidePanel select,
-#sidePanel input[type="text"],
-#sidePanel input[type="date"] {
-    background: var(--bg-3);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius); /* 12px, come in toolbar */
-    color: var(--text);
-    padding: 9px 14px;
-    font-family: var(--font);
-    font-size: 0.82rem;
-    width: 100%;
-    outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
-    box-sizing: border-box;
-    margin-bottom: 10px; /* Spaziatura pulita tra un campo e l'altro */
-}
-
-#sidePanel select:focus,
-#sidePanel input[type="text"]:focus,
-#sidePanel input[type="date"]:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
-#sidePanel input::placeholder {
-    color: var(--text-muted);
-}
-
-/* Rimuove il margin-bottom dall'ultimo campo per non creare buchi extra */
-#sidePanel input[type="date"]:last-of-type {
-    margin-bottom: 14px; 
-}
-
-#sidePanel hr {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 16px 0;
-}
-
 .side-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-
-    /* ── STICKY: resta in cima mentre scorri il pannello ── */
+    
+    /* Stickiness: si attacca in cima e fa scorrere il testo sotto */
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--bg-2);                 /* stesso sfondo del pannello */
+    
+    /* Sfondo solido per coprire il testo che scorre dietro */
+    background: var(--bg-2);
     border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-    margin-top: -24px;                       /* compensa il padding-top:24px di #sidePanelContent */
-    padding-top: 24px;                       /* ripristina lo spazio sopra il titolo */
+    
+    /* Padding per staccare i tasti dal bordo e dal contenuto sottostante */
+    padding-top: 20px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+.side-panel-header h3 {
+    color: var(--text);
+    /* border-bottom: 1px solid var(--border); <- Rimosso, la linea è sull'header */
+    padding-bottom: 0;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .side-panel-close {
@@ -1081,16 +1046,57 @@ header:not(.app-header) h1 {
     color: var(--absent);
 }
 
-/* ── Le sezioni non finiscono sotto l'header sticky ──
-   scroll-margin-top = altezza header (misurata in JS) + respiro.
-   Il fallback 110px copre titolo+riga pallini+bordino. */
+/* ------------------------------------------------------------
+   UNIFORMAZIONE CAMPI FORM NEL SIDE PANEL
+   ------------------------------------------------------------ */
+#sidePanel select,
+#sidePanel input[type="text"],
+#sidePanel input[type="date"] {
+    background: var(--bg-3);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 9px 14px;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    width: 100%;
+    outline: none;
+    transition: border-color var(--t), box-shadow var(--t);
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+#sidePanel select:focus,
+#sidePanel input[type="text"]:focus,
+#sidePanel input[type="date"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+#sidePanel input::placeholder {
+    color: var(--text-muted);
+}
+
+#sidePanel input[type="date"]:last-of-type {
+    margin-bottom: 14px; 
+}
+
+#sidePanel hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+}
+
+/* ── Le sezioni non finiscono sotto l'header sticky ── */
 #boxProgrammate,
 #boxPermessiPermanenti,
 #boxOverrideTurni {
     scroll-margin-top: var(--panel-header-h, 110px);
 }
 
-/* Tasto Conferma verde (identico al tasto Importa) */
+/* ------------------------------------------------------------
+   TASTI NEL PANNELLO
+   ------------------------------------------------------------ */
 .btn-add-assenza.btn-green {
     background: #27ae60;
     color: white;
@@ -1100,7 +1106,7 @@ header:not(.app-header) h1 {
 
 .btn-add-assenza.btn-green:hover {
     background: #219a52;
-    filter: none; /* Rimuove il brightness di default */
+    filter: none;
 }
 
 .btn-add-assenza.btn-green:active {
@@ -1125,7 +1131,7 @@ header:not(.app-header) h1 {
 .btn-add-assenza-toggle {
     width: 100%;
     padding: 10px 14px;
-    margin: 4px 0 10px 0; /* Aggiunto margine inferiore per distanziare dalla lista */
+    margin: 4px 0 10px 0;
     background: #dc2626;
     color: #fff;
     border: none;
@@ -1140,10 +1146,8 @@ header:not(.app-header) h1 {
 
 .btn-add-assenza-toggle:hover  { background: #b91c1c; }
 .btn-add-assenza-toggle:active { transform: scale(0.98); }
+.btn-add-assenza-toggle.aperto { background: #991b1b; }
 
-.btn-add-assenza-toggle.aperto {
-    background: #991b1b;
-}
 
 /* ============================================================
    16. LOGIN SCREEN
