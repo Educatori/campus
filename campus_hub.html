@@ -431,14 +431,23 @@
     
     <style>
         /* Header del pannello sempre visibile durante lo scroll */
+/* Header del pannello sempre visibile durante lo scroll */
 #sidePanelContent .side-panel-header {
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--surface);      /* opaco, così il contenuto scorre "sotto" */
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding-bottom: 8px;
     margin-bottom: 4px;
+}
+
+/* Le sezioni target non devono finire sotto l'header sticky:
+   scroll-margin-top = altezza header + piccolo gap (gestita via JS) */
+#boxProgrammate,
+#boxPermessiPermanenti,
+#boxOverrideTurni {
+    scroll-margin-top: var(--panel-header-h, 96px);
 }
     #panelQuickNav .nav-dot {
         transition: transform .15s ease, box-shadow .15s ease;
