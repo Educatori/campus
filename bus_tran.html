@@ -78,7 +78,7 @@
 
   .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
   .td-name{text-transform:uppercase;}
-  .td-details{width:38px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+  .td-details{width:70px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
   .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
   .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
   .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
@@ -125,7 +125,6 @@
   .totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
   .totale-riga .tr-presenti .lab-count{color:var(--lab-cell-color);font-size:.72rem;display:block;font-weight:normal;}
 
-  /* selettore turno per singola classe (nella riga totali) */
   .tr-turno-scelta{
     display:flex;gap:3px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
   }
@@ -139,26 +138,6 @@
   .tr-turno-scelta button.sel2{background:#2563eb;color:#fff;border-color:#2563eb;}
   .tr-turno-scelta button.sel3{background:#9333ea;color:#fff;border-color:#9333ea;}
   .tr-turno-scelta button.selL{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
-
-  @page{size:A4 portrait;margin:.5cm .4cm;}
-  @media print{
-    .no-print{display:none !important;}
-    body{padding:2px;}
-    .class-block{display:block !important;page-break-inside:avoid;}
-    .class-block + .class-block{page-break-before:always;}
-    .students-table td{font-size:.66rem;padding:1px 3px;}
-    .td-day{width:46px;}
-    .td-day[data-state="X"]{background:var(--present-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .td-day[data-state="O"]{background:var(--absent-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .td-day[data-state="LAB"]{background:var(--lab-cell-bg) !important;color:var(--lab-cell-color) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .total-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .totale-riga{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .tr-turno-scelta button.sel1,
-    .tr-turno-scelta button.sel2,
-    .tr-turno-scelta button.sel3,
-    .tr-turno-scelta button.selL{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  }
 </style>
 </head>
 <body>
@@ -170,7 +149,7 @@
 <div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
 
 <div class="toolbar no-print">
-  <button class="btn-print" onclick="window.print()">• Stampa / PDF</button>
+  <button class="btn-print" onclick="stampaPDF()">• Stampa / PDF</button>
   <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
   <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
 </div>
@@ -239,10 +218,8 @@
 var STORAGE_KEY = "transfer_lunch_appello_v1";
 var STORAGE_TURNI = "transfer_lunch_turni_v1";
 var stato = {};
-var turniClassi = {};       // { "1A": 1|2|3|"LAB", ... }
-var filtroTurnoTotali = 0;  // 0=tutti, 1/2/3, "LAB"
-
-/* Ciclo stati cella: "" → X → O → LAB → "" */
+var turniClassi = {};
+var filtroTurnoTotali = 0;
 var CICLO_STATI = ["", "X", "O", "LAB"];
 
 /* ============================================================
@@ -256,21 +233,19 @@ function giornoCorrente(){
     nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
   };
 }
-
 function codiceGiorno(){
   var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
   return sigle[new Date().getDay()];
 }
 
 /* ============================================================
-   STATO (localStorage separato dal convitto)
+   STATO
    ============================================================ */
 function caricaStato(){
   try{
     var raw = localStorage.getItem(STORAGE_KEY);
     if(raw) stato = JSON.parse(raw) || {};
   }catch(e){ stato = {}; }
-
   try{
     var rawT = localStorage.getItem(STORAGE_TURNI);
     if(rawT) turniClassi = JSON.parse(rawT) || {};
@@ -294,7 +269,7 @@ function getClassiLabOggi(){
 }
 
 /* ============================================================
-   TURNO DI UNA CLASSE — 1, 2, 3 o "LAB". Default 1.
+   TURNO DI UNA CLASSE
    ============================================================ */
 function turnoClasse(nomeClasse){
   var t = turniClassi[nomeClasse];
@@ -302,7 +277,6 @@ function turnoClasse(nomeClasse){
   if (t === "LAB") return "LAB";
   return 1;
 }
-
 function setTurnoClasse(nomeClasse, turno){
   turniClassi[nomeClasse] = turno;
   salvaTurni();
@@ -318,15 +292,11 @@ function getStudentiTransfer(){
   var filtrati = [];
   tutti.forEach(function(s){
     if (!s || !s.cognome || String(s.cognome).trim() === "") return;
-
     if (typeof window.haDirittoAlBusVariante === "function"){
       try{
         if (!window.haDirittoAlBusVariante(s, "transfer")) return;
-      }catch(e){
-        console.warn('Errore haDirittoAlBusVariante:', e);
-      }
+      }catch(e){}
     }
-
     var nomeClasse = s.classe ? String(s.classe).toUpperCase().trim() : "SENZA CLASSE";
     filtrati.push({
       classe: nomeClasse,
@@ -347,7 +317,7 @@ function getStudentiTransfer(){
 }
 
 /* ============================================================
-   HELPER: conta X e LAB di una classe per oggi
+   CONTEGGIO PER CLASSE
    ============================================================ */
 function contaClasse(nomeClasse){
   var codice = codiceGiorno();
@@ -378,7 +348,7 @@ function render(){
       ? '<span class="err">⚠️ Errore:</span> ' + window._transferLoadError.message
       : (window.APP_MODE !== 'online'
           ? '<span class="err">⚠️ Modalità offline:</span> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
-          : '<span class="err">⚠️ Nessuno studente con diritto transfer.</span> Verifica che <code>tuttiStudenti</code> sia popolato.');
+          : '<span class="err">⚠️ Nessuno studente con diritto transfer.</span>');
     container.innerHTML = '<div class="loading">' + errMsg + '</div>';
     document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
     return;
@@ -400,7 +370,6 @@ function render(){
     var studentiClasse = classi[nomeClasse];
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
 
-    /* ---------- Blocco classe ---------- */
     var block = document.createElement("div");
     block.className = "class-block" + (idx === 0 ? " visible" : "");
     block.setAttribute("data-classe", nomeClasse);
@@ -409,7 +378,7 @@ function render(){
     titleBar.className = "class-title-bar";
     titleBar.innerHTML =
       "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>" +
-      (isLab ? '<span class="lab-tag">🍽️ In laboratorio oggi</span>' : "");
+      (isLab ? '<span class="lab-tag">In laboratorio oggi</span>' : "");
     block.appendChild(titleBar);
 
     var table = document.createElement("table");
@@ -421,7 +390,7 @@ function render(){
       var th = document.createElement("th");
       th.textContent = txt;
       if (txt === "Room") th.style.width = "42px";
-      if (txt === "Note") th.style.width = "38px";
+      if (txt === "Note") th.style.width = "70px";
       if (txt === g.sigla){
         th.style.width = "56px";
         th.title = g.nome;
@@ -504,19 +473,14 @@ function render(){
 
     aggiornaTotaleClasse(nomeClasse, tbody);
 
-    /* ---------- Pulsante selettore classe ---------- */
     var btn = document.createElement("button");
     btn.textContent = nomeClasse;
     btn.setAttribute("data-classe", nomeClasse);
     if (isLab) btn.classList.add("has-lab");
     if (idx === 0) btn.classList.add("active");
     btn.addEventListener("click", function(){
-      container.querySelectorAll(".class-block").forEach(function(b){
-        b.classList.remove("visible");
-      });
-      selector.querySelectorAll("button").forEach(function(b){
-        b.classList.remove("active");
-      });
+      container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+      selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
       var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
       if (target) target.classList.add("visible");
       btn.classList.add("active");
@@ -525,7 +489,7 @@ function render(){
   });
 
   /* ============================================================
-     SCHEDA TOTALI (dopo l'ultima classe)
+     SCHEDA TOTALI
      ============================================================ */
   var blockTotali = document.createElement("div");
   blockTotali.className = "class-block";
@@ -536,7 +500,6 @@ function render(){
   titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
   blockTotali.appendChild(titleTotali);
 
-  // Selettore filtro turno
   var turnoSel = document.createElement("div");
   turnoSel.className = "turno-selector no-print";
   [
@@ -562,7 +525,6 @@ function render(){
   });
   blockTotali.appendChild(turnoSel);
 
-  // Lista totali
   var listaTot = document.createElement("div");
   listaTot.className = "totali-lista";
 
@@ -577,16 +539,13 @@ function render(){
     riga.className = "totale-riga" + (isLab ? " lab" : "");
 
     var presentiHtml = conteggio.x + '<small>presenti</small>';
-    if (conteggio.lab > 0){
-      presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
-    }
+    if (conteggio.lab > 0) presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
 
     riga.innerHTML =
       '<span class="tr-classe">' + nomeClasse + '</span>' +
       '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
       '<span class="tr-turno-scelta" data-turno-classe="' + nomeClasse + '"></span>';
 
-    // Selettore turno per QUESTA classe (1T / 2T / 3T / LAB)
     var turnoSelRiga = riga.querySelector('.tr-turno-scelta');
     [1, 2, 3, "LAB"].forEach(function(t){
       var tb = document.createElement("button");
@@ -619,18 +578,13 @@ function render(){
   blockTotali.appendChild(listaTot);
   container.appendChild(blockTotali);
 
-  /* ---------- Pulsante selettore Totali ---------- */
   var btnTot = document.createElement("button");
   btnTot.textContent = "📊 Totali";
   btnTot.setAttribute("data-classe", "__TOTALI__");
   btnTot.classList.add("btn-totali");
   btnTot.addEventListener("click", function(){
-    container.querySelectorAll(".class-block").forEach(function(b){
-      b.classList.remove("visible");
-    });
-    selector.querySelectorAll("button").forEach(function(b){
-      b.classList.remove("active");
-    });
+    container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+    selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
     var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
     if (target) target.classList.add("visible");
     btnTot.classList.add("active");
@@ -652,7 +606,6 @@ function aggiornaTotaleClasse(nomeClasse, tbody){
     cell.innerHTML = html;
   }
 }
-
 function aggiornaTotaliGlobali(elencoClassi){
   elencoClassi.forEach(function(nomeClasse){
     var c = contaClasse(nomeClasse);
@@ -688,7 +641,7 @@ function aggiornaSottotitolo(){
     " • Presenti oggi: <b>" + totX + "</b>" +
     " • Assenti oggi: <b>" + totO + "</b>";
   if (totLab > 0) html += " • Lab: <b>" + totLab + "</b>";
-  if (classiLab.length) html += " • 🍽️ Classi: <b>" + classiLab.join(", ") + "</b>";
+  if (classiLab.length) html += " • LAB Classi: <b>" + classiLab.join(", ") + "</b>";
 
   document.getElementById("subtitle").innerHTML = html;
 }
@@ -697,7 +650,7 @@ function aggiornaSottotitolo(){
    AZIONI
    ============================================================ */
 function azzeraTutto(){
-  if (!confirm("Azzerare tutte le X, O e LAB di oggi?\n\n(Le scelte dei turni 1T/2T/3T/LAB restano invariate)")) return;
+  if (!confirm("Azzerare tutte le X, O e LAB di oggi?\n\n(Le scelte dei turni restano invariate)")) return;
   var codice = codiceGiorno();
   for (var k in stato){
     if (k.split("|")[2] === codice) delete stato[k];
@@ -705,7 +658,6 @@ function azzeraTutto(){
   salvaStato();
   render();
 }
-
 function esportaStato(){
   var exportObj = {
     data: new Date().toISOString(),
@@ -725,6 +677,147 @@ function esportaStato(){
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, 200);
+}
+
+/* ============================================================
+   STAMPA PDF — layout A4 landscape, 3 colonne come transfer.js
+   ============================================================ */
+function stampaPDF(){
+  var studenti = getStudentiTransfer();
+  if (studenti.length === 0){
+    alert("Nessuno studente da stampare.");
+    return;
+  }
+
+  var classiLab = getClassiLabOggi();
+  var g = giornoCorrente();
+  var codice = codiceGiorno();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+  var ora = new Date().toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
+
+  // Raggruppa per classe
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+
+  // Costruisci blocchi HTML per classe
+  var blocchiClassi = elencoClassi.map(function(nomeClasse){
+    var lista = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var righeHtml = lista.map(function(s){
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+      var dettagli = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+      var k = keyOf(s.classe, s.cognome);
+      var st = stato[k] || "";
+
+      var classeBadge = isLab ? '<b>' + nomeClasse + '</b> <span class="lab-badge">(LAB)</span>' : '<b>' + nomeClasse + '</b>';
+      var esternoClass = !isConvittore ? "esterno" : "";
+
+      return '<tr class="' + esternoClass + '">' +
+        '<td class="t-cell t-room">' + roomInfo + '</td>' +
+        '<td class="t-cell t-name"><b>' + s.cognome + '</b>&nbsp;' + (s.nome || "") + '</td>' +
+        '<td class="t-cell t-class">' + classeBadge + '</td>' +
+        '<td class="t-cell t-details">' + (dettagli || "") + '</td>' +
+        '<td class="t-cell t-pres" data-state="' + st + '">' + (st === "LAB" ? "LAB" : st) + '</td>' +
+        '</tr>';
+    }).join("");
+
+    return '<div class="blocco-classe">' +
+      '<table>' +
+        '<tbody>' + righeHtml + '</tbody>' +
+      '</table>' +
+    '</div>';
+  });
+
+  // Distribuzione in 3 colonne bilanciate (come transfer.js)
+  var colonne = ["", "", ""];
+  var colIdx = 0;
+  var elementiCol = 0;
+  var totaleElementi = studenti.length;
+  var targetPerColonna = Math.ceil(totaleElementi / 3);
+
+  elencoClassi.forEach(function(nomeClasse){
+    var quanti = classi[nomeClasse].length;
+    if (elementiCol > 0 && elementiCol + quanti / 1.5 > targetPerColonna && colIdx < 2){
+      colIdx++;
+      elementiCol = 0;
+    }
+    colonne[colIdx] += blocchiClassi[elencoClassi.indexOf(nomeClasse)];
+    elementiCol += quanti;
+  });
+
+  // Intestazione colonne
+  var headerColonna =
+    '<div class="fake-header">' +
+      '<div class="h-cell h-room">Room</div>' +
+      '<div class="h-cell h-name">Cognome e Nome</div>' +
+      '<div class="h-cell h-class">Classe</div>' +
+      '<div class="h-cell h-notes">Note</div>' +
+      '<div class="h-cell h-pres">Pres.</div>' +
+    '</div>';
+
+  var colonneHtml = colonne.map(function(htmlDest){
+    if (!htmlDest.trim()) return "";
+    return '<div class="colonna">' + headerColonna + htmlDest + '</div>';
+  }).join("");
+
+  // Info laboratori per il sottotitolo
+  var labInfo = 'LAB [LUN 5A+3A BUS 19-31-47]; [MAR 4A+3B BUS 31-39-42]; [MER 4B+1A BUS 34-43-41]; [GIO 4C+1B BUS 34-37-44]';
+
+  // Apri popup di stampa
+  var popup = window.open("", "_blank", "width=1200,height=800");
+  popup.document.write(
+    '<html lang="it"><head><title>Transfer Lunch - ' + dataIt + '</title><style>' +
+    '@page{size:A4 landscape;margin:0.4cm 0.3cm 0.3cm 0.3cm;}' +
+    '*,*::before,*::after{box-sizing:border-box;}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:0;color:#000;line-height:1;}' +
+    '.timestamp{position:absolute;top:4px;right:10px;font-size:0.55rem;color:#777;}' +
+    '.no-print{display:flex;justify-content:center;margin-bottom:6px;}' +
+    '.no-print button{padding:6px 26px;color:white;background:#27ae60;font-weight:bold;border-radius:20px;border:none;cursor:pointer;font-size:0.85rem;}' +
+    'h2{text-align:center;text-transform:uppercase;margin:0 0 2px 0;font-size:0.95rem;}' +
+    '.date-subtitle{text-align:center;font-size:0.65rem;margin-bottom:6px;color:#444;}' +
+    '.lab-info{font-size:0.7rem;font-weight:bold;color:#b7950b;}' +
+    '.grid-container{display:flex;gap:6px;justify-content:space-between;align-items:flex-start;}' +
+    '.colonna{width:33.1%;display:flex;flex-direction:column;}' +
+    '.fake-header{display:flex;background:#2c3e50;color:white;font-weight:bold;font-size:0.5rem;text-transform:uppercase;height:14px;box-sizing:border-box;border:1.2px solid #000;margin-bottom:2px;}' +
+    '.h-cell{padding:2px 2px;display:flex;align-items:center;justify-content:center;height:100%;box-sizing:border-box;border-right:1px solid #000;}' +
+    '.h-cell:last-child{border-right:none;}' +
+    '.blocco-classe{page-break-inside:avoid!important;break-inside:avoid-page!important;margin-bottom:4px;width:100%;}' +
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.2px solid #000;}' +
+    'tr{height:15px!important;box-sizing:border-box;}' +
+    '.t-cell{padding:0 2px;font-size:0.52rem;border-right:1px solid #000;border-bottom:1px solid #ddd;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;height:13px!important;line-height:12px;box-sizing:border-box;}' +
+    'tr:last-child .t-cell{border-bottom:none;}' +
+    '.t-cell:last-child{border-right:none;}' +
+    'tr.esterno td.t-room{border-left:2px dashed #7f8c8d;}' +
+    '.t-room,.h-room{width:22px;text-align:center;}' +
+    '.t-room{font-weight:bold;background:#f5f5f5;}' +
+    '.t-name,.h-name{width:100px;text-transform:uppercase;}' +
+    '.t-class,.h-class{width:48px;text-align:center;}' +
+    '.t-details,.h-notes{flex-grow:1;}' +
+    '.t-details{font-size:0.48rem;color:#444;}' +
+    '.t-pres,.h-pres{width:34px;text-align:center;font-weight:bold;}' +
+    '.t-pres[data-state="X"]{background:#d5f5e3;color:#1e8449;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="O"]{background:#fadbd8;color:#a93226;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="LAB"]{background:#fef3c7;color:#b45309;font-size:0.42rem;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.lab-badge{font-size:0.42rem;color:#b7950b;font-weight:bold;}' +
+    '@media print{.no-print{display:none!important;}}' +
+    '</style></head><body>' +
+    '<div class="timestamp">Generato il ' + dataIt + ' alle ' + ora + '</div>' +
+    '<div class="no-print"><button onclick="window.print()">•STAMPA</button></div>' +
+    '<h2>TRANSFER LUNCH</h2>' +
+    '<div class="date-subtitle"><span class="lab-info">' + labInfo + '</span> — ' + g.nome + ' ' + dataIt + ' — Studenti tot: <b>' + totaleElementi + '</b></div>' +
+    '<div class="grid-container">' + colonneHtml + '</div>' +
+    '</body></html>'
+  );
+  popup.document.close();
 }
 
 /* ============================================================
@@ -751,10 +844,7 @@ function attendiStudenti(callback, maxMs){
 }
 
 caricaStato();
-
-attendiStudenti(function(){
-  render();
-}, 20000);
+attendiStudenti(function(){ render(); }, 20000);
 
 setInterval(function(){
   var g = new Date().getDay();
