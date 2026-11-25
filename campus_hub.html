@@ -98,7 +98,7 @@
     <!-- ── TOOLBAR ────────────────────────────────────────── -->
     <div class="toolbar">
 
-        <!-- Gruppo 1: MODULI + G•A•P -->
+        <!-- Gruppo 1: MODULI + GESTIONE -->
         <div class="toolbar-group">
             <div class="dropdown-moduli">
                  <div class="day-box dropdown-toggle" style="background:#ecb3ec;" tabindex="0">
@@ -114,7 +114,7 @@
                 </div>
             </div>
             <button class="btn-toolbar" style="background:var(--btn-t3);"
-                    onclick="togglePanel()">⚙️ G•A•P</button>
+                    onclick="togglePanel()">⚙️ GESTIONE</button>
         </div>
 
         <div class="toolbar-sep"></div>
@@ -209,14 +209,65 @@
 <div id="sidePanelContent">
 
     <div class="side-panel-header">
-        <h3 style="border:none;padding:0;margin:0;">Gestione Assenze/Permessi</h3>
-        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
-                aria-label="Chiudi pannello gestione permessi"
-                style="width:44px;height:44px;font-size:1.9rem;display:flex;
-                       align-items:center;justify-content:center;border-radius:10px;
-                       background:transparent;border:none;cursor:pointer;
-                       color:var(--text-2);line-height:1;">&times;</button>
+    <div style="flex:1; min-width:0;">
+        <h3 style="border:none;padding:0;margin:0;">GESTIONE</h3>
+
+        <!-- ── PALLINI DI NAVIGAZIONE RAPIDA ── -->
+        <div id="panelQuickNav" role="navigation"
+             aria-label="Navigazione rapida sezioni pannello"
+             style="display:flex; gap:10px; margin-top:12px; align-items:center;">
+
+            <!-- Assenze -->
+            <button type="button" class="nav-dot"
+                    onclick="vaiASezione('boxProgrammate')"
+                    title="Vai ad Assenze"
+                    aria-label="Vai alla sezione Assenze"
+                    style="width:32px;height:32px;border-radius:50%;
+                           border:2px solid #27ae60;background:#e8f5e9;
+                           cursor:pointer;padding:0;
+                           display:flex;align-items:center;justify-content:center;
+                           font-size:16px;line-height:1;
+                           box-shadow:0 1px 3px rgba(0,0,0,.15);">
+                🗓️
+            </button>
+
+            <!-- Permessi Permanenti -->
+            <button type="button" class="nav-dot"
+                    onclick="vaiASezione('boxPermessiPermanenti')"
+                    title="Vai a Permessi Permanenti"
+                    aria-label="Vai alla sezione Permessi Permanenti"
+                    style="width:32px;height:32px;border-radius:50%;
+                           border:2px solid #3498db;background:#e3f2fd;
+                           cursor:pointer;padding:0;
+                           display:flex;align-items:center;justify-content:center;
+                           font-size:16px;line-height:1;
+                           box-shadow:0 1px 3px rgba(0,0,0,.15);">
+                🔒
+            </button>
+
+            <!-- Override Turno Cena -->
+            <button type="button" class="nav-dot"
+                    onclick="vaiASezione('boxOverrideTurni')"
+                    title="Vai a Override Turno Cena"
+                    aria-label="Vai alla sezione Override Turno Cena"
+                    style="width:32px;height:32px;border-radius:50%;
+                           border:2px solid #f39c12;background:#fff3e0;
+                           cursor:pointer;padding:0;
+                           display:flex;align-items:center;justify-content:center;
+                           font-size:16px;line-height:1;
+                           box-shadow:0 1px 3px rgba(0,0,0,.15);">
+                🍽
+            </button>
+        </div>
     </div>
+
+    <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
+            aria-label="Chiudi pannello gestione permessi"
+            style="width:44px;height:44px;font-size:1.9rem;display:flex;
+                   align-items:center;justify-content:center;border-radius:10px;
+                   background:transparent;border:none;cursor:pointer;
+                   color:var(--text-2);line-height:1;">&times;</button>
+</div>
 
     <!-- ── LISTA ASSENZE (details) ── -->
     <details id="boxProgrammate" open>
@@ -227,13 +278,13 @@
             <span style="display:inline-flex; justify-content:space-between;
                          align-items:center; width: calc(100% - 20px);
                          vertical-align: middle; margin-left: 6px;">
-                <span>Assenze</span>
+                <span>Assenze Programmate</span>
                 <button onclick="event.preventDefault(); pulisciAssenzeScadute()"
                         title="Rimuovi definitivamente i periodi già terminati"
                         style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
                                padding:4px 10px;border-radius:6px;cursor:pointer;
                                font-family:var(--font);font-size:0.72rem;font-weight:700;">
-                    🧹 Pulisci scadute
+                    CANC
                 </button>
             </span>
         </summary>
@@ -377,6 +428,23 @@
 </details>
     
 </div>
+    
+    <style>
+    #panelQuickNav .nav-dot {
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    #panelQuickNav .nav-dot:hover {
+        transform: translateY(-2px) scale(1.08);
+        box-shadow: 0 4px 10px rgba(0,0,0,.22);
+    }
+    #panelQuickNav .nav-dot:active {
+        transform: translateY(0) scale(0.96);
+    }
+    #panelQuickNav .nav-dot:focus-visible {
+        outline: 2px solid #111;
+        outline-offset: 3px;
+    }
+</style>
     
 </div>
 
