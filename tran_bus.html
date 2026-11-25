@@ -18,6 +18,8 @@
     --present-color:#1e8449;
     --absent-bg:#fadbd8;
     --absent-color:#a93226;
+    --lab-cell-bg:#fef3c7;
+    --lab-cell-color:#b45309;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
@@ -80,10 +82,12 @@
   .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
   .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
   .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
+  .td-day[data-state="LAB"]{background:var(--lab-cell-bg);color:var(--lab-cell-color);font-size:.72rem;}
 
   .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
   .total-row .total-label{text-align:right;color:#2c3e50;}
   .total-row .total-value{text-align:center;color:#1e8449;font-size:.95rem;font-weight:bold;}
+  .total-row .total-value .lab-count{color:var(--lab-cell-color);font-size:.78rem;display:block;font-weight:normal;}
 
   tr.lab-row td{background-color:var(--lab-bg);}
   tr.lab-row td.td-room{background-color:#f5e6b8;}
@@ -93,7 +97,7 @@
 
   /* ── Scheda Totali ── */
   .turno-selector{
-    display:flex;gap:6px;justify-content:center;margin:10px 0;
+    display:flex;gap:6px;justify-content:center;margin:10px 0;flex-wrap:wrap;
     padding:8px;background:#f0f4f8;border-radius:12px;border:1px solid #d0dae3;
   }
   .turno-selector button{
@@ -103,6 +107,8 @@
   }
   .turno-selector button:hover{background:#eaf2f8;}
   .turno-selector button.active{background:#2c3e50;color:#fff;}
+  .turno-selector button.f-lab{border-color:var(--lab-accent);color:var(--lab-accent);}
+  .turno-selector button.f-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
 
   .totali-lista{
     display:flex;flex-direction:column;gap:4px;
@@ -117,10 +123,11 @@
   .totale-riga .tr-classe{font-weight:bold;font-size:1rem;color:#2c3e50;min-width:48px;}
   .totale-riga .tr-presenti{flex:1;text-align:center;font-weight:bold;color:#1e8449;font-size:1rem;}
   .totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
+  .totale-riga .tr-presenti .lab-count{color:var(--lab-cell-color);font-size:.72rem;display:block;font-weight:normal;}
 
   /* selettore turno per singola classe (nella riga totali) */
   .tr-turno-scelta{
-    display:flex;gap:3px;align-items:center;
+    display:flex;gap:3px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
   }
   .tr-turno-scelta button{
     padding:3px 7px;border:1.5px solid #bbb;border-radius:8px;
@@ -131,6 +138,7 @@
   .tr-turno-scelta button.sel1{background:#16a34a;color:#fff;border-color:#16a34a;}
   .tr-turno-scelta button.sel2{background:#2563eb;color:#fff;border-color:#2563eb;}
   .tr-turno-scelta button.sel3{background:#9333ea;color:#fff;border-color:#9333ea;}
+  .tr-turno-scelta button.selL{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
 
   @page{size:A4 portrait;margin:.5cm .4cm;}
   @media print{
@@ -142,12 +150,14 @@
     .td-day{width:46px;}
     .td-day[data-state="X"]{background:var(--present-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .td-day[data-state="O"]{background:var(--absent-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .td-day[data-state="LAB"]{background:var(--lab-cell-bg) !important;color:var(--lab-cell-color) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .total-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .totale-riga{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .tr-turno-scelta button.sel1,
     .tr-turno-scelta button.sel2,
-    .tr-turno-scelta button.sel3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .tr-turno-scelta button.sel3,
+    .tr-turno-scelta button.selL{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 </style>
 </head>
@@ -229,8 +239,11 @@
 var STORAGE_KEY = "transfer_lunch_appello_v1";
 var STORAGE_TURNI = "transfer_lunch_turni_v1";
 var stato = {};
-var turniClassi = {};       // { "1A": 1, "1B": 2, ... }  scelti da te
-var filtroTurnoTotali = 0;  // 0 = tutti, 1/2/3 = filtro
+var turniClassi = {};       // { "1A": 1|2|3|"LAB", ... }
+var filtroTurnoTotali = 0;  // 0=tutti, 1/2/3, "LAB"
+
+/* Ciclo stati cella: "" → X → O → LAB → "" */
+var CICLO_STATI = ["", "X", "O", "LAB"];
 
 /* ============================================================
    GIORNO CORRENTE
@@ -281,11 +294,13 @@ function getClassiLabOggi(){
 }
 
 /* ============================================================
-   TURNO DI UNA CLASSE — deciso manualmente, default 1
+   TURNO DI UNA CLASSE — 1, 2, 3 o "LAB". Default 1.
    ============================================================ */
 function turnoClasse(nomeClasse){
   var t = turniClassi[nomeClasse];
-  return (t === 1 || t === 2 || t === 3) ? t : 1;
+  if (t === 1 || t === 2 || t === 3) return t;
+  if (t === "LAB") return "LAB";
+  return 1;
 }
 
 function setTurnoClasse(nomeClasse, turno){
@@ -329,6 +344,21 @@ function getStudentiTransfer(){
     return a.cognome.localeCompare(b.cognome);
   });
   return filtrati;
+}
+
+/* ============================================================
+   HELPER: conta X e LAB di una classe per oggi
+   ============================================================ */
+function contaClasse(nomeClasse){
+  var codice = codiceGiorno();
+  var x = 0, lab = 0;
+  for (var k in stato){
+    var parts = k.split("|");
+    if (parts[0] !== nomeClasse || parts[2] !== codice) continue;
+    if (stato[k] === "X") x++;
+    else if (stato[k] === "LAB") lab++;
+  }
+  return { x: x, lab: lab };
 }
 
 /* ============================================================
@@ -379,7 +409,7 @@ function render(){
     titleBar.className = "class-title-bar";
     titleBar.innerHTML =
       "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>" +
-      (isLab ? '<span class="lab-tag">🔬 In laboratorio oggi</span>' : "");
+      (isLab ? '<span class="lab-tag">🍽️ In laboratorio oggi</span>' : "");
     block.appendChild(titleBar);
 
     var table = document.createElement("table");
@@ -438,7 +468,9 @@ function render(){
 
       td.addEventListener("click", function(){
         var cur = stato[k] || "";
-        var next = cur === "" ? "X" : (cur === "X" ? "O" : "");
+        var idxStato = CICLO_STATI.indexOf(cur);
+        if (idxStato === -1) idxStato = 0;
+        var next = CICLO_STATI[(idxStato + 1) % CICLO_STATI.length];
 
         if (next === ""){
           delete stato[k];
@@ -504,18 +536,23 @@ function render(){
   titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
   blockTotali.appendChild(titleTotali);
 
-  // Selettore filtro turno (per nascondere le classi di altri turni)
+  // Selettore filtro turno
   var turnoSel = document.createElement("div");
   turnoSel.className = "turno-selector no-print";
-  [["Tutti", 0], ["1T", 1], ["2T", 2], ["3T", 3]].forEach(function(pair){
-    var label = pair[0], val = pair[1];
+  [
+    { label: "Tutti", val: 0 },
+    { label: "1T", val: 1 },
+    { label: "2T", val: 2 },
+    { label: "3T", val: 3 },
+    { label: "LAB", val: "LAB" }
+  ].forEach(function(item){
     var b = document.createElement("button");
-    b.textContent = label;
-    if (filtroTurnoTotali === val) b.classList.add("active");
+    b.textContent = item.label;
+    if (item.val === "LAB") b.classList.add("f-lab");
+    if (filtroTurnoTotali === item.val) b.classList.add("active");
     b.addEventListener("click", function(){
-      filtroTurnoTotali = val;
+      filtroTurnoTotali = item.val;
       render();
-      // Dopo il re-render, tieni aperta la scheda Totali
       var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
       if (target) target.classList.add("visible");
       var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
@@ -533,33 +570,32 @@ function render(){
     var turnoCl = turnoClasse(nomeClasse);
     if (filtroTurnoTotali !== 0 && turnoCl !== filtroTurnoTotali) return;
 
-    var codice = codiceGiorno();
-    var totX = 0;
-    for (var k in stato){
-      if (stato[k] === "X"){
-        var parts = k.split("|");
-        if (parts[0] === nomeClasse && parts[2] === codice) totX++;
-      }
-    }
-
+    var conteggio = contaClasse(nomeClasse);
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
     var riga = document.createElement("div");
     riga.className = "totale-riga" + (isLab ? " lab" : "");
+
+    var presentiHtml = conteggio.x + '<small>presenti</small>';
+    if (conteggio.lab > 0){
+      presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
+    }
+
     riga.innerHTML =
       '<span class="tr-classe">' + nomeClasse + '</span>' +
-      '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + totX + '<small>presenti</small></span>' +
+      '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
       '<span class="tr-turno-scelta" data-turno-classe="' + nomeClasse + '"></span>';
 
-    // Selettore turno per QUESTA classe (1T / 2T / 3T)
+    // Selettore turno per QUESTA classe (1T / 2T / 3T / LAB)
     var turnoSelRiga = riga.querySelector('.tr-turno-scelta');
-    [1, 2, 3].forEach(function(t){
+    [1, 2, 3, "LAB"].forEach(function(t){
       var tb = document.createElement("button");
-      tb.textContent = t + "T";
-      if (turnoCl === t) tb.classList.add("sel" + t);
+      tb.textContent = (t === "LAB") ? "LAB" : t + "T";
+      var clsSel = (t === "LAB") ? "selL" : "sel" + t;
+      if (turnoCl === t) tb.classList.add(clsSel);
       tb.addEventListener("click", function(){
         setTurnoClasse(nomeClasse, t);
         render();
-        // Riapri Totali dopo re-render
         var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
         if (target) target.classList.add("visible");
         var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
@@ -608,30 +644,24 @@ function render(){
    TOTALI
    ============================================================ */
 function aggiornaTotaleClasse(nomeClasse, tbody){
-  var codice = codiceGiorno();
-  var totale = 0;
-  for (var k in stato){
-    if (stato[k] === "X"){
-      var parts = k.split("|");
-      if (parts[0] === nomeClasse && parts[2] === codice) totale++;
-    }
-  }
+  var c = contaClasse(nomeClasse);
   var cell = tbody.querySelector("[data-total-value]");
-  if (cell) cell.textContent = totale;
+  if (cell){
+    var html = c.x;
+    if (c.lab > 0) html += '<span class="lab-count">' + c.lab + ' lab</span>';
+    cell.innerHTML = html;
+  }
 }
 
 function aggiornaTotaliGlobali(elencoClassi){
-  var codice = codiceGiorno();
   elencoClassi.forEach(function(nomeClasse){
-    var totX = 0;
-    for (var k in stato){
-      if (stato[k] === "X"){
-        var parts = k.split("|");
-        if (parts[0] === nomeClasse && parts[2] === codice) totX++;
-      }
-    }
+    var c = contaClasse(nomeClasse);
     var el = document.querySelector('[data-tot-presenti="' + nomeClasse + '"]');
-    if (el) el.innerHTML = totX + '<small>presenti</small>';
+    if (el){
+      var html = c.x + '<small>presenti</small>';
+      if (c.lab > 0) html += '<span class="lab-count">' + c.lab + ' lab</span>';
+      el.innerHTML = html;
+    }
   });
 }
 
@@ -640,30 +670,34 @@ function aggiornaTotaliGlobali(elencoClassi){
    ============================================================ */
 function aggiornaSottotitolo(){
   var codice = codiceGiorno();
-  var totX = 0, totO = 0;
+  var totX = 0, totO = 0, totLab = 0;
   for (var k in stato){
     if (k.split("|")[2] !== codice) continue;
     if (stato[k] === "X") totX++;
     else if (stato[k] === "O") totO++;
+    else if (stato[k] === "LAB") totLab++;
   }
   var studenti = getStudentiTransfer();
   var classiLab = getClassiLabOggi();
   var g = giornoCorrente();
   var dataIt = new Date().toLocaleDateString("it-IT");
 
-  document.getElementById("subtitle").innerHTML =
+  var html =
     "Transfer Lunch • <b>" + g.nome + "</b> " + dataIt +
     " • Studenti: <b>" + studenti.length + "</b>" +
     " • Presenti oggi: <b>" + totX + "</b>" +
-    " • Assenti oggi: <b>" + totO + "</b>" +
-    (classiLab.length ? " • 🔬 Lab: <b>" + classiLab.join(", ") + "</b>" : "");
+    " • Assenti oggi: <b>" + totO + "</b>";
+  if (totLab > 0) html += " • Lab: <b>" + totLab + "</b>";
+  if (classiLab.length) html += " • 🍽️ Classi: <b>" + classiLab.join(", ") + "</b>";
+
+  document.getElementById("subtitle").innerHTML = html;
 }
 
 /* ============================================================
    AZIONI
    ============================================================ */
 function azzeraTutto(){
-  if (!confirm("Azzerare tutte le X e O di oggi?\n\n(Le scelte dei turni 1T/2T/3T restano invariate)")) return;
+  if (!confirm("Azzerare tutte le X, O e LAB di oggi?\n\n(Le scelte dei turni 1T/2T/3T/LAB restano invariate)")) return;
   var codice = codiceGiorno();
   for (var k in stato){
     if (k.split("|")[2] === codice) delete stato[k];
