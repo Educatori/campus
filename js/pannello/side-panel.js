@@ -315,3 +315,51 @@ function renderListaOverrideAttivi() {
             </div>`;
     }).join('');
 }
+
+// ─────────────────────────────────────────────────────────────
+// NAVIGAZIONE RAPIDA TRA LE SEZIONI DEL PANNELLO
+// ─────────────────────────────────────────────────────────────
+/**
+ * Apre il <details> indicato (se chiuso) e ci porta lo scroll,
+ * con una breve evidenziazione visiva per feedback.
+ *
+ * @param {string} idSezione - id del <details> ("boxProgrammate",
+ *                             "boxPermessiPermanenti", "boxOverrideTurni")
+ */
+function vaiASezione(idSezione) {
+    const details = document.getElementById(idSezione);
+    if (!details) {
+        console.warn('⚠️ Sezione non trovata:', idSezione);
+        return;
+    }
+
+    const eraChiuso = !details.open;
+    if (eraChiuso) details.open = true;
+
+    const eseguiScroll = () => {
+        // Scrolla in cima al details
+        details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Feedback visivo: flash di sfondo
+        const vecchioBg = details.style.backgroundColor;
+        details.style.transition = 'background-color 0.4s ease';
+        details.style.backgroundColor = 'rgba(52, 152, 219, 0.10)';
+        setTimeout(() => {
+            details.style.backgroundColor = vecchioBg;
+        }, 900);
+
+        // Porta anche il focus sulla summary per accessibilità
+        const summary = details.querySelector('summary');
+        if (summary) {
+            summary.setAttribute('tabindex', '-1');
+            summary.focus({ preventScroll: true });
+        }
+    };
+
+    // Se era chiuso aspetta che il browser completi l'espansione
+    if (eraChiuso) {
+        setTimeout(eseguiScroll, 80);
+    } else {
+        eseguiScroll();
+    }
+}
