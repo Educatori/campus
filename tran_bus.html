@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Transfer Lunch – Appello Cliccabile</title>
+<title>Transfer Lunch – Appello Giornaliero Cliccabile</title>
 <link rel="stylesheet" href="css/campus_hub.css">
 <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
 <link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
@@ -117,13 +117,20 @@
   .totale-riga .tr-classe{font-weight:bold;font-size:1rem;color:#2c3e50;min-width:48px;}
   .totale-riga .tr-presenti{flex:1;text-align:center;font-weight:bold;color:#1e8449;font-size:1rem;}
   .totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
-  .totale-riga .tr-turno{
-    font-weight:bold;padding:2px 10px;border-radius:10px;
-    background:#2c3e50;color:#fff;font-size:.72rem;min-width:38px;text-align:center;
+
+  /* selettore turno per singola classe (nella riga totali) */
+  .tr-turno-scelta{
+    display:flex;gap:3px;align-items:center;
   }
-  .totale-riga .tr-turno.t1{background:#16a34a;}
-  .totale-riga .tr-turno.t2{background:#2563eb;}
-  .totale-riga .tr-turno.t3{background:#9333ea;}
+  .tr-turno-scelta button{
+    padding:3px 7px;border:1.5px solid #bbb;border-radius:8px;
+    background:#fff;color:#555;font-weight:bold;font-size:.66rem;cursor:pointer;
+    transition:all .12s;min-width:28px;
+  }
+  .tr-turno-scelta button:hover{background:#eaf2f8;border-color:#2c3e50;}
+  .tr-turno-scelta button.sel1{background:#16a34a;color:#fff;border-color:#16a34a;}
+  .tr-turno-scelta button.sel2{background:#2563eb;color:#fff;border-color:#2563eb;}
+  .tr-turno-scelta button.sel3{background:#9333ea;color:#fff;border-color:#9333ea;}
 
   @page{size:A4 portrait;margin:.5cm .4cm;}
   @media print{
@@ -138,13 +145,16 @@
     tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .total-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .totale-riga{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .tr-turno-scelta button.sel1,
+    .tr-turno-scelta button.sel2,
+    .tr-turno-scelta button.sel3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1><a href="trasportini.html">Appello Cliccabile</a></h1>
+  <h1><a href="trasportini.html">Lunch Cliccabile</a></h1>
 </header>
 
 <div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
@@ -217,7 +227,9 @@
    CONFIGURAZIONE
    ============================================================ */
 var STORAGE_KEY = "transfer_lunch_appello_v1";
+var STORAGE_TURNI = "transfer_lunch_turni_v1";
 var stato = {};
+var turniClassi = {};       // { "1A": 1, "1B": 2, ... }  scelti da te
 var filtroTurnoTotali = 0;  // 0 = tutti, 1/2/3 = filtro
 
 /* ============================================================
@@ -245,9 +257,17 @@ function caricaStato(){
     var raw = localStorage.getItem(STORAGE_KEY);
     if(raw) stato = JSON.parse(raw) || {};
   }catch(e){ stato = {}; }
+
+  try{
+    var rawT = localStorage.getItem(STORAGE_TURNI);
+    if(rawT) turniClassi = JSON.parse(rawT) || {};
+  }catch(e){ turniClassi = {}; }
 }
 function salvaStato(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
+}
+function salvaTurni(){
+  try{ localStorage.setItem(STORAGE_TURNI, JSON.stringify(turniClassi)); }catch(e){}
 }
 function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
 
@@ -261,24 +281,16 @@ function getClassiLabOggi(){
 }
 
 /* ============================================================
-   TURNO DI UNA CLASSE (1, 2 o 3)
+   TURNO DI UNA CLASSE — deciso manualmente, default 1
    ============================================================ */
 function turnoClasse(nomeClasse){
-  var giorno = new Date().getDay();
+  var t = turniClassi[nomeClasse];
+  return (t === 1 || t === 2 || t === 3) ? t : 1;
+}
 
-  // 1. Override di classe
-  var ovr = window.OVERRIDE_TURNI_DINNER_CLASSI || {};
-  if (ovr[nomeClasse] && ovr[nomeClasse][giorno] !== undefined){
-    return Number(ovr[nomeClasse][giorno]);
-  }
-
-  // 2. TURNI_DINNER
-  var td = window.TURNI_DINNER || {};
-  if (td["1"] && td["1"].includes(nomeClasse)) return 1;
-  if (td["2"] && td["2"].includes(nomeClasse)) return 2;
-
-  // 3. fallback
-  return 3;
+function setTurnoClasse(nomeClasse, turno){
+  turniClassi[nomeClasse] = turno;
+  salvaTurni();
 }
 
 /* ============================================================
@@ -342,7 +354,6 @@ function render(){
     return;
   }
 
-  // Raggruppa per classe
   var classi = {};
   studenti.forEach(function(s){
     if (!classi[s.classe]) classi[s.classe] = [];
@@ -374,7 +385,6 @@ function render(){
     var table = document.createElement("table");
     table.className = "students-table";
 
-    // Header
     var thead = document.createElement("thead");
     var headRow = document.createElement("tr");
     ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
@@ -391,7 +401,6 @@ function render(){
     thead.appendChild(headRow);
     table.appendChild(thead);
 
-    // Corpo
     var tbody = document.createElement("tbody");
 
     studentiClasse.forEach(function(s){
@@ -419,7 +428,6 @@ function render(){
       tdDetails.textContent = det || "—";
       tr.appendChild(tdDetails);
 
-      // Cella unica giorno (oggi)
       var td = document.createElement("td");
       td.className = "td-day";
       var k = keyOf(s.classe, s.cognome);
@@ -444,14 +452,13 @@ function render(){
         salvaStato();
         aggiornaTotaleClasse(nomeClasse, tbody);
         aggiornaSottotitolo();
-        aggiornaTotaliGlobali(elencoClassi, classiLab);
+        aggiornaTotaliGlobali(elencoClassi);
       });
 
       tr.appendChild(td);
       tbody.appendChild(tr);
     });
 
-    // Riga totale presenti (solo oggi)
     var totalRow = document.createElement("tr");
     totalRow.className = "total-row";
     totalRow.innerHTML =
@@ -465,7 +472,7 @@ function render(){
 
     aggiornaTotaleClasse(nomeClasse, tbody);
 
-    // Pulsante selettore
+    /* ---------- Pulsante selettore classe ---------- */
     var btn = document.createElement("button");
     btn.textContent = nomeClasse;
     btn.setAttribute("data-classe", nomeClasse);
@@ -485,9 +492,9 @@ function render(){
     selector.appendChild(btn);
   });
 
-  // ════════════════════════════════════════════════════════
-  // SCHEDA TOTALI (dopo l'ultima classe)
-  // ════════════════════════════════════════════════════════
+  /* ============================================================
+     SCHEDA TOTALI (dopo l'ultima classe)
+     ============================================================ */
   var blockTotali = document.createElement("div");
   blockTotali.className = "class-block";
   blockTotali.setAttribute("data-classe", "__TOTALI__");
@@ -497,7 +504,7 @@ function render(){
   titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
   blockTotali.appendChild(titleTotali);
 
-  // Selettore turno
+  // Selettore filtro turno (per nascondere le classi di altri turni)
   var turnoSel = document.createElement("div");
   turnoSel.className = "turno-selector no-print";
   [["Tutti", 0], ["1T", 1], ["2T", 2], ["3T", 3]].forEach(function(pair){
@@ -508,7 +515,7 @@ function render(){
     b.addEventListener("click", function(){
       filtroTurnoTotali = val;
       render();
-      // Dopo il re-render, apri la scheda Totali
+      // Dopo il re-render, tieni aperta la scheda Totali
       var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
       if (target) target.classList.add("visible");
       var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
@@ -521,7 +528,6 @@ function render(){
   // Lista totali
   var listaTot = document.createElement("div");
   listaTot.className = "totali-lista";
-  listaTot.setAttribute("data-totali-lista", "1");
 
   elencoClassi.forEach(function(nomeClasse){
     var turnoCl = turnoClasse(nomeClasse);
@@ -542,7 +548,26 @@ function render(){
     riga.innerHTML =
       '<span class="tr-classe">' + nomeClasse + '</span>' +
       '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + totX + '<small>presenti</small></span>' +
-      '<span class="tr-turno t' + turnoCl + '">' + turnoCl + 'T</span>';
+      '<span class="tr-turno-scelta" data-turno-classe="' + nomeClasse + '"></span>';
+
+    // Selettore turno per QUESTA classe (1T / 2T / 3T)
+    var turnoSelRiga = riga.querySelector('.tr-turno-scelta');
+    [1, 2, 3].forEach(function(t){
+      var tb = document.createElement("button");
+      tb.textContent = t + "T";
+      if (turnoCl === t) tb.classList.add("sel" + t);
+      tb.addEventListener("click", function(){
+        setTurnoClasse(nomeClasse, t);
+        render();
+        // Riapri Totali dopo re-render
+        var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
+        if (target) target.classList.add("visible");
+        var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
+        if (btnTot) btnTot.classList.add("active");
+      });
+      turnoSelRiga.appendChild(tb);
+    });
+
     listaTot.appendChild(riga);
   });
 
@@ -558,7 +583,7 @@ function render(){
   blockTotali.appendChild(listaTot);
   container.appendChild(blockTotali);
 
-  // Pulsante selettore Totali
+  /* ---------- Pulsante selettore Totali ---------- */
   var btnTot = document.createElement("button");
   btnTot.textContent = "📊 Totali";
   btnTot.setAttribute("data-classe", "__TOTALI__");
@@ -595,8 +620,7 @@ function aggiornaTotaleClasse(nomeClasse, tbody){
   if (cell) cell.textContent = totale;
 }
 
-/* Aggiorna solo i numeri della scheda Totali (senza re-render completo) */
-function aggiornaTotaliGlobali(elencoClassi, classiLab){
+function aggiornaTotaliGlobali(elencoClassi){
   var codice = codiceGiorno();
   elencoClassi.forEach(function(nomeClasse){
     var totX = 0;
@@ -607,14 +631,12 @@ function aggiornaTotaliGlobali(elencoClassi, classiLab){
       }
     }
     var el = document.querySelector('[data-tot-presenti="' + nomeClasse + '"]');
-    if (el){
-      el.innerHTML = totX + '<small>presenti</small>';
-    }
+    if (el) el.innerHTML = totX + '<small>presenti</small>';
   });
 }
 
 /* ============================================================
-   SOTTOTITOLO (totali solo oggi)
+   SOTTOTITOLO
    ============================================================ */
 function aggiornaSottotitolo(){
   var codice = codiceGiorno();
@@ -641,7 +663,7 @@ function aggiornaSottotitolo(){
    AZIONI
    ============================================================ */
 function azzeraTutto(){
-  if (!confirm("Azzerare tutte le X e O di oggi?")) return;
+  if (!confirm("Azzerare tutte le X e O di oggi?\n\n(Le scelte dei turni 1T/2T/3T restano invariate)")) return;
   var codice = codiceGiorno();
   for (var k in stato){
     if (k.split("|")[2] === codice) delete stato[k];
@@ -651,7 +673,13 @@ function azzeraTutto(){
 }
 
 function esportaStato(){
-  var json = JSON.stringify(stato, null, 2);
+  var exportObj = {
+    data: new Date().toISOString(),
+    giorno: codiceGiorno(),
+    stato: stato,
+    turniClassi: turniClassi
+  };
+  var json = JSON.stringify(exportObj, null, 2);
   var blob = new Blob([json], { type:"application/json" });
   var url  = URL.createObjectURL(blob);
   var a = document.createElement("a");
@@ -666,7 +694,7 @@ function esportaStato(){
 }
 
 /* ============================================================
-   AVVIO — attende che tuttiStudenti sia popolato
+   AVVIO
    ============================================================ */
 function attendiStudenti(callback, maxMs){
   var start = Date.now();
