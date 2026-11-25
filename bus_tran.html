@@ -216,11 +216,20 @@
    CONFIGURAZIONE
    ============================================================ */
 var STORAGE_KEY = "transfer_lunch_appello_v1";
-var STORAGE_TURNI = "transfer_lunch_turni_v1";
 var stato = {};
-var turniClassi = {};
 var filtroTurnoTotali = 0;
 var CICLO_STATI = ["", "X", "O", "LAB"];
+
+// ════════════════════════════════════════════════════════════
+// TURNI HARDCODED
+// Chiave = giorno della settimana (1=Lun, 2=Mar, 3=Mer, 4=Gio)
+// ════════════════════════════════════════════════════════════
+var TURNI_FISSI = {
+  1: { 1: ["4A"], 2: ["1A", "1B"], 3: ["3B", "4A"] },
+  2: { 1: ["1A", "1B"], 2: ["3A", "5B"], 3: ["4B", "5A"] },
+  3: { 1: ["1B", "3B"], 2: ["3A", "5A"], 3: ["4A", "5B"] },
+  4: { 1: ["1A", "3A"], 2: ["3B", "4B"], 3: ["4A", "5A"] }
+};
 
 /* ============================================================
    GIORNO CORRENTE
@@ -246,16 +255,9 @@ function caricaStato(){
     var raw = localStorage.getItem(STORAGE_KEY);
     if(raw) stato = JSON.parse(raw) || {};
   }catch(e){ stato = {}; }
-  try{
-    var rawT = localStorage.getItem(STORAGE_TURNI);
-    if(rawT) turniClassi = JSON.parse(rawT) || {};
-  }catch(e){ turniClassi = {}; }
 }
 function salvaStato(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
-}
-function salvaTurni(){
-  try{ localStorage.setItem(STORAGE_TURNI, JSON.stringify(turniClassi)); }catch(e){}
 }
 function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
 
@@ -269,17 +271,20 @@ function getClassiLabOggi(){
 }
 
 /* ============================================================
-   TURNO DI UNA CLASSE
+   TURNO DI UNA CLASSE (dai dati hardcoded)
    ============================================================ */
 function turnoClasse(nomeClasse){
-  var t = turniClassi[nomeClasse];
-  if (t === 1 || t === 2 || t === 3) return t;
-  if (t === "LAB") return "LAB";
-  return 1;
-}
-function setTurnoClasse(nomeClasse, turno){
-  turniClassi[nomeClasse] = turno;
-  salvaTurni();
+  var giorno = new Date().getDay();
+  var turniGiorno = TURNI_FISSI[giorno];
+  
+  if (turniGiorno) {
+    for (var t = 1; t <= 3; t++) {
+      if (turniGiorno[t] && turniGiorno[t].includes(nomeClasse)) {
+        return t;
+      }
+    }
+  }
+  return 3; // Fallback di sicurezza
 }
 
 /* ============================================================
@@ -338,18 +343,12 @@ function apriSchedaTotali(){
   var container = document.getElementById("listContainer");
   var selector  = document.getElementById("classSelector");
   
-  // 1. Nascondi tutti i blocchi
-  container.querySelectorAll(".class-block").forEach(function(b){
-    b.classList.remove("visible");
-  });
-  // 2. Togli l'evidenziazione da tutti i pulsanti
-  selector.querySelectorAll("button").forEach(function(b){
-    b.classList.remove("active");
-  });
-  // 3. Mostra solo i Totali
+  container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+  selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+  
   var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
   if (target) target.classList.add("visible");
-  // 4. Evidenzia il pulsante Totali
+  
   var btnTot = selector.querySelector('button[data-classe="__TOTALI__"]');
   if (btnTot) btnTot.classList.add("active");
 }
@@ -515,7 +514,7 @@ function render(){
   });
 
   // ============================================================
-  // SCHEDA TOTALI (creata UNA SOLA VOLTA, fuori dal ciclo)
+  // SCHEDA TOTALI
   // ============================================================
   var blockTotali = document.createElement("div");
   blockTotali.className = "class-block";
@@ -526,6 +525,7 @@ function render(){
   titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
   blockTotali.appendChild(titleTotali);
 
+  // Selettore filtro turno
   var turnoSel = document.createElement("div");
   turnoSel.className = "turno-selector no-print";
   [
@@ -542,7 +542,7 @@ function render(){
     b.addEventListener("click", function(){
       filtroTurnoTotali = item.val;
       render();
-      apriSchedaTotali(); // <--- Usa la funzione helper per aprirla in sicurezza
+      apriSchedaTotali();
     });
     turnoSel.appendChild(b);
   });
@@ -564,24 +564,13 @@ function render(){
     var presentiHtml = conteggio.x + '<small>presenti</small>';
     if (conteggio.lab > 0) presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
 
+    // Invece dei bottoni, ora mostriamo solo il badge del turno fisso
+    var clsSel = "sel" + turnoCl; // diventa 'sel1', 'sel2' o 'sel3'
+    
     riga.innerHTML =
       '<span class="tr-classe">' + nomeClasse + '</span>' +
       '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
-      '<span class="tr-turno-scelta" data-turno-classe="' + nomeClasse + '"></span>';
-
-    var turnoSelRiga = riga.querySelector('.tr-turno-scelta');
-    [1, 2, 3, "LAB"].forEach(function(t){
-      var tb = document.createElement("button");
-      tb.textContent = (t === "LAB") ? "LAB" : t + "T";
-      var clsSel = (t === "LAB") ? "selL" : "sel" + t;
-      if (turnoCl === t) tb.classList.add(clsSel);
-      tb.addEventListener("click", function(){
-        setTurnoClasse(nomeClasse, t);
-        render();
-        apriSchedaTotali(); // <--- Usa la funzione helper per aprirla in sicurezza
-      });
-      turnoSelRiga.appendChild(tb);
-    });
+      '<span class="tr-turno-scelta"><span class="badge-turno ' + clsSel + '">' + turnoCl + 'T</span></span>';
 
     listaTot.appendChild(riga);
   });
@@ -603,7 +592,7 @@ function render(){
   btnTot.setAttribute("data-classe", "__TOTALI__");
   btnTot.classList.add("btn-totali");
   btnTot.addEventListener("click", function(){
-    apriSchedaTotali(); // <--- Usa la funzione helper
+    apriSchedaTotali();
   });
   selector.appendChild(btnTot);
 
@@ -666,7 +655,7 @@ function aggiornaSottotitolo(){
    AZIONI
    ============================================================ */
 function azzeraTutto(){
-  if (!confirm("Azzerare tutte le X, O e LAB di oggi?\n\n(Le scelte dei turni restano invariate)")) return;
+  if (!confirm("Azzerare tutte le X, O e LAB di oggi?")) return;
   var codice = codiceGiorno();
   for (var k in stato){
     if (k.split("|")[2] === codice) delete stato[k];
@@ -678,8 +667,7 @@ function esportaStato(){
   var exportObj = {
     data: new Date().toISOString(),
     giorno: codiceGiorno(),
-    stato: stato,
-    turniClassi: turniClassi
+    stato: stato
   };
   var json = JSON.stringify(exportObj, null, 2);
   var blob = new Blob([json], { type:"application/json" });
@@ -711,7 +699,6 @@ function stampaPDF(){
   var dataIt = new Date().toLocaleDateString("it-IT");
   var ora = new Date().toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
 
-  // Raggruppa per classe
   var classi = {};
   studenti.forEach(function(s){
     if (!classi[s.classe]) classi[s.classe] = [];
@@ -721,7 +708,6 @@ function stampaPDF(){
     return a.localeCompare(b, undefined, {numeric:true});
   });
 
-  // Costruisci blocchi HTML per classe
   var blocchiClassi = elencoClassi.map(function(nomeClasse){
     var lista = classi[nomeClasse];
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
@@ -753,7 +739,6 @@ function stampaPDF(){
     '</div>';
   });
 
-  // Distribuzione in 3 colonne bilanciate (come transfer.js)
   var colonne = ["", "", ""];
   var colIdx = 0;
   var elementiCol = 0;
@@ -770,7 +755,6 @@ function stampaPDF(){
     elementiCol += quanti;
   });
 
-  // Intestazione colonne
   var headerColonna =
     '<div class="fake-header">' +
       '<div class="h-cell h-room">Room</div>' +
@@ -785,10 +769,8 @@ function stampaPDF(){
     return '<div class="colonna">' + headerColonna + htmlDest + '</div>';
   }).join("");
 
-  // Info laboratori per il sottotitolo
   var labInfo = 'LAB [LUN 5A+3A BUS 19-31-47]; [MAR 4A+3B BUS 31-39-42]; [MER 4B+1A BUS 34-43-41]; [GIO 4C+1B BUS 34-37-44]';
 
-  // Apri popup di stampa
   var popup = window.open("", "_blank", "width=1200,height=800");
   popup.document.write(
     '<html lang="it"><head><title>Transfer Lunch - ' + dataIt + '</title><style>' +
