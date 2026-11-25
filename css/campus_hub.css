@@ -964,6 +964,7 @@ header:not(.app-header) h1 {
     transform: translateX(100%);
     transition: transform 0.3s ease;
     pointer-events: none;
+    
 }
 #sidePanel.open { transform: translateX(0); }
 
@@ -989,6 +990,7 @@ header:not(.app-header) h1 {
     display: flex;
     flex-direction: column;
     pointer-events: auto;
+    position: relative; 
 }
 
 #sidePanel h3 {
@@ -1048,7 +1050,18 @@ header:not(.app-header) h1 {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+
+    /* ── STICKY: resta in cima mentre scorri il pannello ── */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg-2);                 /* stesso sfondo del pannello */
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-top: -24px;                       /* compensa il padding-top:24px di #sidePanelContent */
+    padding-top: 24px;                       /* ripristina lo spazio sopra il titolo */
 }
+
 .side-panel-close {
     border: none;
     background: rgba(0,0,0,0.06);
@@ -1066,6 +1079,15 @@ header:not(.app-header) h1 {
 .side-panel-close:hover {
     background: rgba(220,38,38,0.15);
     color: var(--absent);
+}
+
+/* ── Le sezioni non finiscono sotto l'header sticky ──
+   scroll-margin-top = altezza header (misurata in JS) + respiro.
+   Il fallback 110px copre titolo+riga pallini+bordino. */
+#boxProgrammate,
+#boxPermessiPermanenti,
+#boxOverrideTurni {
+    scroll-margin-top: var(--panel-header-h, 110px);
 }
 
 /* Tasto Conferma verde (identico al tasto Importa) */
