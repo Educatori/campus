@@ -221,14 +221,13 @@ var filtroTurnoTotali = 0;
 var CICLO_STATI = ["", "X", "O", "LAB"];
 
 // ════════════════════════════════════════════════════════════
-// TURNI HARDCODED
-// Chiave = giorno della settimana (1=Lun, 2=Mar, 3=Mer, 4=Gio)
+// TURNI HARDCODED (incluso LAB)
 // ════════════════════════════════════════════════════════════
 var TURNI_FISSI = {
-  1: { 1: ["4A"], 2: ["1A", "1B"], 3: ["3B", "4A"] },
-  2: { 1: ["1A", "1B"], 2: ["3A", "5B"], 3: ["4B", "5A"] },
-  3: { 1: ["1B", "3B"], 2: ["3A", "5A"], 3: ["4A", "5B"] },
-  4: { 1: ["1A", "3A"], 2: ["3B", "4B"], 3: ["4A", "5A"] }
+  1: { 1: ["4A"], 2: ["1A", "1B"], 3: ["3B", "4B"], "LAB": ["5A", "3A"] },
+  2: { 1: ["1A", "1B"], 2: ["3A", "5B"], 3: ["4B", "5A"], "LAB": ["4A", "3B"] },
+  3: { 1: ["1B", "3B"], 2: ["3A", "5A"], 3: ["4A", "5B"], "LAB": ["4B", "1A"] },
+  4: { 1: ["1A", "3A"], 2: ["3B", "4B"], 3: ["4A", "5A"], "LAB": ["4C", "1B"] }
 };
 
 /* ============================================================
@@ -271,20 +270,25 @@ function getClassiLabOggi(){
 }
 
 /* ============================================================
-   TURNO DI UNA CLASSE (dai dati hardcoded)
+   TURNO DI UNA CLASSE (dai dati hardcoded, con LAB)
    ============================================================ */
 function turnoClasse(nomeClasse){
   var giorno = new Date().getDay();
   var turniGiorno = TURNI_FISSI[giorno];
   
   if (turniGiorno) {
+    // 1. Controlla 1T, 2T, 3T
     for (var t = 1; t <= 3; t++) {
       if (turniGiorno[t] && turniGiorno[t].includes(nomeClasse)) {
         return t;
       }
     }
+    // 2. Controlla LAB
+    if (turniGiorno["LAB"] && turniGiorno["LAB"].includes(nomeClasse)) {
+      return "LAB";
+    }
   }
-  return 3; // Fallback di sicurezza
+  return 3; // Fallback
 }
 
 /* ============================================================
@@ -525,7 +529,6 @@ function render(){
   titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
   blockTotali.appendChild(titleTotali);
 
-  // Selettore filtro turno
   var turnoSel = document.createElement("div");
   turnoSel.className = "turno-selector no-print";
   [
@@ -564,13 +567,14 @@ function render(){
     var presentiHtml = conteggio.x + '<small>presenti</small>';
     if (conteggio.lab > 0) presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
 
-    // Invece dei bottoni, ora mostriamo solo il badge del turno fisso
-    var clsSel = "sel" + turnoCl; // diventa 'sel1', 'sel2' o 'sel3'
-    
+    // Gestione colore per LAB o numeri
+    var clsSel = (turnoCl === "LAB") ? "selL" : "sel" + turnoCl;
+    var testoBadge = (turnoCl === "LAB") ? "LAB" : turnoCl + "T";
+
     riga.innerHTML =
       '<span class="tr-classe">' + nomeClasse + '</span>' +
       '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
-      '<span class="tr-turno-scelta"><span class="badge-turno ' + clsSel + '">' + turnoCl + 'T</span></span>';
+      '<span class="tr-turno-scelta"><span class="badge-turno ' + clsSel + '">' + testoBadge + '</span></span>';
 
     listaTot.appendChild(riga);
   });
@@ -684,7 +688,7 @@ function esportaStato(){
 }
 
 /* ============================================================
-   STAMPA PDF — layout A4 portrait, 3 colonne come transfer.js
+   STAMPA PDF
    ============================================================ */
 function stampaPDF(){
   var studenti = getStudentiTransfer();
