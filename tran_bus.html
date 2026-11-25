@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Transfer Lunch – Appello Cliccabile</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --border:#000;
+    --head:#2c3e50;
+    --lab-bg:#fff2cc;
+    --lab-accent:#b7950b;
+    --present-bg:#d5f5e3;
+    --present-color:#1e8449;
+    --absent-bg:#fadbd8;
+    --absent-color:#a93226;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;padding:8px;color:#000;line-height:1.1;background:#fff;
+  }
+  header{margin-bottom:12px;padding:10px;text-align:center;}
+  header h1{display:inline-block;margin:0;font-size:1.4rem;}
+  header h1 a{text-decoration:none;color:#2c3e50;}
+
+  .subtitle{text-align:center;font-size:.82rem;margin-bottom:10px;color:#444;}
+  .subtitle .warn{color:#c0392b;font-weight:bold;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
+  .toolbar button{padding:8px 16px;border:none;border-radius:20px;color:#fff;font-weight:bold;font-size:.8rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);}
+  .btn-print{background:#27ae60;}
+  .btn-reset{background:#c0392b;}
+  .btn-export{background:#2980b9;}
+
+  .class-selector{
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    margin-bottom:12px;padding:8px;background:#f8f9fa;border-radius:12px;border:1px solid #ddd;
+  }
+  .class-selector button{
+    padding:7px 14px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.78rem;cursor:pointer;transition:all .15s;
+  }
+  .class-selector button:hover{background:#eaf2f8;}
+  .class-selector button.active{background:#2c3e50;color:#fff;}
+  .class-selector button.has-lab{border-color:var(--lab-accent);color:var(--lab-accent);background:var(--lab-bg);}
+  .class-selector button.has-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+
+  .list-container{max-width:720px;margin:0 auto;}
+
+  .class-block{display:none;}
+  .class-block.visible{display:block;}
+
+  .class-title-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--head);color:#fff;font-weight:bold;font-size:.82rem;
+    padding:6px 10px;border-radius:8px 8px 0 0;border:1px solid var(--border);
+  }
+  .class-title-bar .lab-tag{background:var(--lab-accent);color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;}
+
+  .students-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid var(--border);border-top:none;}
+  .students-table th{background:#eaecee;font-size:.68rem;text-transform:uppercase;padding:4px;border-bottom:1px solid var(--border);border-right:1px solid #ccc;text-align:center;}
+  .students-table th:last-child{border-right:none;}
+  .students-table td{padding:3px 4px;font-size:.78rem;border-bottom:1px solid #ddd;border-right:1px solid #eee;vertical-align:middle;}
+  .students-table td:last-child{border-right:none;}
+  .students-table tr:last-child td{border-bottom:none;}
+
+  .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
+  .td-name{text-transform:uppercase;}
+  .td-details{font-size:.62rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .td-day{width:46px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;transition:background .1s;}
+  .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
+  .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
+
+  .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
+  .total-row .total-label{text-align:right;color:#2c3e50;}
+  .total-row .total-value{text-align:center;color:#1e8449;font-size:.9rem;}
+
+  tr.lab-row td{background-color:var(--lab-bg);}
+  tr.lab-row td.td-room{background-color:#f5e6b8;}
+
+  .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
+
+  @page{size:A4 portrait;margin:.5cm .4cm;}
+  @media print{
+    .no-print{display:none !important;}
+    body{padding:2px;}
+    .class-block{display:block !important;page-break-inside:avoid;}
+    .class-block + .class-block{page-break-before:always;}
+    .students-table td{font-size:.66rem;padding:1px 3px;}
+    .td-day{width:38px;}
+    .td-day[data-state="X"]{background:var(--present-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .td-day[data-state="O"]{background:var(--absent-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .total-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><a href="trasportini.html">LUNCH Cliccabile</a></h1>
+</header>
+
+<div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
+
+<div class="toolbar no-print">
+  <button class="btn-print" onclick="window.print()">• Stampa / PDF</button>
+  <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
+  <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
+</div>
+
+<div class="class-selector no-print" id="classSelector"></div>
+
+<div class="list-container" id="listContainer">
+  <div class="loading">⏳ Caricamento studenti da Firebase…</div>
+</div>
+
+<!-- ============================================================
+     CARICAMENTO CONFIGURAZIONE STATICA (sempre, anche offline)
+     ============================================================ -->
+<script src="js/core/config-static.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+
+<!-- ============================================================
+     RILEVAMENTO AMBIENTE (online/offline)
+     ============================================================ -->
+<script src="js/ambiente.js"></script>
+
+<!-- ============================================================
+     CARICAMENTO DATI DA FIREBASE (solo se online)
+     Il modulo importa firebase-campus_hub-config.js e popola:
+       - window.tuttiStudenti
+       - window.studenticonvittori
+     ============================================================ -->
+<script type="module">
+  if (window.APP_MODE === 'online') {
+    try {
+      await import('./js/core/data-loader.js');
+      console.log('✅ data-loader caricato (online)');
+    } catch (e) {
+      console.error('❌ Errore data-loader online:', e);
+      window._transferLoadError = e;
+    }
+  } else {
+    console.warn('⚠️ Modalità offline: nessun dato caricato');
+    window._transferLoadError = new Error('Modalità offline');
+  }
+</script>
+
+<!-- ============================================================
+     LOGICA DELLA PAGINA
+     Aspetta che window.tuttiStudenti sia popolato, poi renderizza
+     ============================================================ -->
+<script>
+/* ============================================================
+   CONFIGURAZIONE LOCALE
+   ============================================================ */
+var GIORNI = ["LU","MA","ME","GI"];
+var STORAGE_KEY = "transfer_lunch_appello_v1";
+var stato = {};
+
+/* ============================================================
+   STATO (localStorage separato dal convitto)
+   ============================================================ */
+function caricaStato(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) stato = JSON.parse(raw) || {};
+  }catch(e){ stato = {}; }
+}
+function salvaStato(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
+}
+function keyOf(classe,cognome,giorno){ return classe+"|"+cognome+"|"+giorno; }
+
+/* ============================================================
+   CLASSI IN LAB OGGI
+   LAB_PRANZO è definito in config-static.js con chiavi "1".."4"
+   (1=Lunedì, 4=Giovedì). getDay() JS ritorna 1=Lunedì…4=Giovedì.
+   ============================================================ */
+function getClassiLabOggi(){
+  var lab = (typeof window.LAB_PRANZO !== "undefined") ? window.LAB_PRANZO : {};
+  var giorno = new Date().getDay();
+  return lab[giorno] || lab[String(giorno)] || [];
+}
+
+/* ============================================================
+   ESTRAZIONE STUDENTI TRANSFER
+   Filtra con haDirittoAlBusVariante(s, "transfer")
+   ============================================================ */
+function getStudentiTransfer(){
+  var tutti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti : [];
+
+  if (tutti.length === 0) return [];
+
+  var filtrati = [];
+  tutti.forEach(function(s){
+    if (!s || !s.cognome || String(s.cognome).trim() === "") return;
+
+    // Filtro diritto transfer
+    if (typeof window.haDirittoAlBusVariante === "function"){
+      try{
+        if (!window.haDirittoAlBusVariante(s, "transfer")) return;
+      }catch(e){
+        console.warn('Errore haDirittoAlBusVariante:', e);
+      }
+    }
+
+    var nomeClasse = s.classe ? String(s.classe).toUpperCase().trim() : "SENZA CLASSE";
+    filtrati.push({
+      classe: nomeClasse,
+      cognome: String(s.cognome).trim(),
+      nome: (s.nome || "").trim(),
+      room: s.room || "-",
+      percorso: s.percorso || "",
+      gruppo: s.gruppo || ""
+    });
+  });
+
+  filtrati.sort(function(a,b){
+    var c = a.classe.localeCompare(b.classe, undefined, { numeric:true });
+    if (c !== 0) return c;
+    return a.cognome.localeCompare(b.cognome);
+  });
+  return filtrati;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+
+  container.innerHTML = "";
+  selector.innerHTML = "";
+
+  if (studenti.length === 0){
+    var errMsg = window._transferLoadError
+      ? '⚠️ <b>Errore caricamento dati:</b> ' + window._transferLoadError.message
+      : (window.APP_MODE !== 'online'
+          ? '⚠️ <b>Modalità offline:</b> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
+          : '⚠️ <b>Nessuno studente con diritto transfer.</b> Verifica che <code>tuttiStudenti</code> sia popolato.');
+    container.innerHTML = '<div class="loading">' + errMsg + '</div>';
+    document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
+    return;
+  }
+
+  // Raggruppa per classe
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, { numeric:true });
+  });
+
+  elencoClassi.forEach(function(nomeClasse, idx){
+    var studentiClasse = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    /* ---------- Blocco classe ---------- */
+    var block = document.createElement("div");
+    block.className = "class-block" + (idx === 0 ? " visible" : "");
+    block.setAttribute("data-classe", nomeClasse);
+
+    var titleBar = document.createElement("div");
+    titleBar.className = "class-title-bar";
+    titleBar.innerHTML =
+      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti</span>" +
+      (isLab ? '<span class="lab-tag">🔬 In laboratorio oggi</span>' : "");
+    block.appendChild(titleBar);
+
+    var table = document.createElement("table");
+    table.className = "students-table";
+
+    // Header
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    ["Room","Cognome e Nome","Note"].concat(GIORNI).forEach(function(txt){
+      var th = document.createElement("th");
+      th.textContent = txt;
+      if (txt === "Room") th.style.width = "42px";
+      if (GIORNI.indexOf(txt) !== -1) th.style.width = "46px";
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    // Corpo
+    var tbody = document.createElement("tbody");
+
+    studentiClasse.forEach(function(s){
+      var tr = document.createElement("tr");
+      if (isLab) tr.className = "lab-row";
+
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+
+      var tdRoom = document.createElement("td");
+      tdRoom.className = "td-room";
+      tdRoom.textContent = roomInfo;
+      if (!isConvittore) tdRoom.style.borderLeft = "2px dashed #7f8c8d";
+      tr.appendChild(tdRoom);
+
+      var tdName = document.createElement("td");
+      tdName.className = "td-name";
+      tdName.innerHTML = "<b>" + s.cognome + "</b>" + (s.nome ? " " + s.nome : "");
+      tr.appendChild(tdName);
+
+      var tdDetails = document.createElement("td");
+      tdDetails.className = "td-details";
+      var det = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+      tdDetails.textContent = det || "—";
+      tr.appendChild(tdDetails);
+
+      GIORNI.forEach(function(g){
+        var td = document.createElement("td");
+        td.className = "td-day";
+        var k = keyOf(s.classe, s.cognome, g);
+        td.setAttribute("data-key", k);
+        var st = stato[k] || "";
+        td.setAttribute("data-state", st);
+        td.textContent = st;
+
+        td.addEventListener("click", function(){
+          var cur = stato[k] || "";
+          var next = cur === "" ? "X" : (cur === "X" ? "O" : "");
+
+          if (next === ""){
+            delete stato[k];
+            td.setAttribute("data-state","");
+            td.textContent = "";
+          } else {
+            stato[k] = next;
+            td.setAttribute("data-state", next);
+            td.textContent = next;
+          }
+          salvaStato();
+          aggiornaTotaleClasse(nomeClasse, tbody);
+          aggiornaSottotitolo();
+        });
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    // Riga totale presenti
+    var totalRow = document.createElement("tr");
+    totalRow.className = "total-row";
+    totalRow.innerHTML =
+      '<td colspan="3" class="total-label">Totale presenti (X) — ' + nomeClasse + '</td>' +
+      '<td colspan="' + GIORNI.length + '" class="total-value" data-total-value>0</td>';
+    tbody.appendChild(totalRow);
+
+    table.appendChild(tbody);
+    block.appendChild(table);
+    container.appendChild(block);
+
+    aggiornaTotaleClasse(nomeClasse, tbody);
+
+    // Pulsante selettore
+    var btn = document.createElement("button");
+    btn.textContent = nomeClasse;
+    btn.setAttribute("data-classe", nomeClasse);
+    if (isLab) btn.classList.add("has-lab");
+    if (idx === 0) btn.classList.add("active");
+    btn.addEventListener("click", function(){
+      container.querySelectorAll(".class-block").forEach(function(b){
+        b.classList.remove("visible");
+      });
+      selector.querySelectorAll("button").forEach(function(b){
+        b.classList.remove("active");
+      });
+      var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
+      if (target) target.classList.add("visible");
+      btn.classList.add("active");
+    });
+    selector.appendChild(btn);
+  });
+
+  aggiornaSottotitolo();
+}
+
+/* ============================================================
+   TOTALI / SOTTOTITOLO
+   ============================================================ */
+function aggiornaTotaleClasse(nomeClasse, tbody){
+  var totale = 0;
+  for (var k in stato){
+    if (stato[k] === "X"){
+      var parts = k.split("|");
+      if (parts[0] === nomeClasse) totale++;
+    }
+  }
+  var cell = tbody.querySelector("[data-total-value]");
+  if (cell) cell.textContent = totale;
+}
+
+function aggiornaSottotitolo(){
+  var totX = 0, totO = 0;
+  for (var k in stato){
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+  }
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var giornoNome = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][new Date().getDay()];
+
+  document.getElementById("subtitle").innerHTML =
+    "Transfer Lunch • " + giornoNome +
+    " • Studenti: <b>" + studenti.length + "</b>" +
+    " • Presenti: <b>" + totX + "</b>" +
+    " • Assenti: <b>" + totO + "</b>" +
+    (classiLab.length ? " • 🔬 Lab: <b>" + classiLab.join(", ") + "</b>" : "");
+}
+
+/* ============================================================
+   AZIONI
+   ============================================================ */
+function azzeraTutto(){
+  if (!confirm("Azzerare tutte le X e O?")) return;
+  stato = {};
+  salvaStato();
+  render();
+}
+
+function esportaStato(){
+  var json = JSON.stringify(stato, null, 2);
+  var blob = new Blob([json], { type:"application/json" });
+  var url  = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "transfer_lunch_appello.json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+/* ============================================================
+   AVVIO — attende che tuttiStudenti sia popolato
+   ============================================================ */
+function attendiStudenti(callback, maxMs){
+  var start = Date.now();
+  var max = maxMs || 15000; // 15s timeout
+  var tick = function(){
+    var tutti = window.tuttiStudenti;
+    if (Array.isArray(tutti) && tutti.length > 0){
+      console.log('✅ tuttiStudenti pronto:', tutti.length, 'studenti');
+      callback();
+      return;
+    }
+    if (Date.now() - start > max){
+      console.warn('⏱️ Timeout attesa tuttiStudenti');
+      callback(); // renderizza comunque (mostrerà errore)
+      return;
+    }
+    setTimeout(tick, 200);
+  };
+  tick();
+}
+
+caricaStato();
+
+// Aspetta il caricamento dati prima di renderizzare
+attendiStudenti(function(){
+  render();
+}, 15000);
+
+// Se il giorno cambia mentre la pagina è aperta, ri-renderizza
+setInterval(function(){
+  var g = new Date().getDay();
+  if (window._ultimoGiorno !== undefined && window._ultimoGiorno !== g){
+    render();
+  }
+  window._ultimoGiorno = g;
+}, 60000);
+</script>
+
+</body>
+</html>
