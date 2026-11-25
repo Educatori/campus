@@ -29,7 +29,6 @@
   header h1 a{text-decoration:none;color:#2c3e50;}
 
   .subtitle{text-align:center;font-size:.82rem;margin-bottom:10px;color:#444;}
-  .subtitle .warn{color:#c0392b;font-weight:bold;}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
   .toolbar button{padding:8px 16px;border:none;border-radius:20px;color:#fff;font-weight:bold;font-size:.8rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);}
@@ -72,18 +71,19 @@
   .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
   .td-name{text-transform:uppercase;}
   .td-details{font-size:.62rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .td-day{width:46px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;transition:background .1s;}
+  .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
   .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
   .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
 
   .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
   .total-row .total-label{text-align:right;color:#2c3e50;}
-  .total-row .total-value{text-align:center;color:#1e8449;font-size:.9rem;}
+  .total-row .total-value{text-align:center;color:#1e8449;font-size:.95rem;font-weight:bold;}
 
   tr.lab-row td{background-color:var(--lab-bg);}
   tr.lab-row td.td-room{background-color:#f5e6b8;}
 
   .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
+  .loading .err{color:#c0392b;font-weight:bold;}
 
   @page{size:A4 portrait;margin:.5cm .4cm;}
   @media print{
@@ -92,7 +92,7 @@
     .class-block{display:block !important;page-break-inside:avoid;}
     .class-block + .class-block{page-break-before:always;}
     .students-table td{font-size:.66rem;padding:1px 3px;}
-    .td-day{width:38px;}
+    .td-day{width:46px;}
     .td-day[data-state="X"]{background:var(--present-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .td-day[data-state="O"]{background:var(--absent-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -103,7 +103,7 @@
 <body>
 
 <header>
-  <h1><a href="trasportini.html">LUNCH Cliccabile</a></h1>
+  <h1><a href="trasportini.html">Appello Cliccabile</a></h1>
 </header>
 
 <div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
@@ -121,7 +121,7 @@
 </div>
 
 <!-- ============================================================
-     CARICAMENTO CONFIGURAZIONE STATICA (sempre, anche offline)
+     CONFIGURAZIONE STATICA (sempre)
      ============================================================ -->
 <script src="js/core/config-static.js"></script>
 <script src="js/dati/esclusioni-bus.js"></script>
@@ -133,9 +133,7 @@
 
 <!-- ============================================================
      CARICAMENTO DATI DA FIREBASE (solo se online)
-     Il modulo importa firebase-campus_hub-config.js e popola:
-       - window.tuttiStudenti
-       - window.studenticonvittori
+     Importa data-loader.js e chiama caricaDatiFirebase()
      ============================================================ -->
 <script type="module">
   if (window.APP_MODE === 'online') {
@@ -161,7 +159,6 @@
       );
     } else {
       try {
-        // Chiamata esplicita: senza questa, tuttiStudenti resta []
         await window.caricaDatiFirebase();
         console.log('✅ caricaDatiFirebase() completata');
         console.log('📊 tuttiStudenti:', window.tuttiStudenti?.length);
@@ -175,17 +172,30 @@
   }
 </script>
 
-<!-- ============================================================
-     LOGICA DELLA PAGINA
-     Aspetta che window.tuttiStudenti sia popolato, poi renderizza
-     ============================================================ -->
 <script>
 /* ============================================================
-   CONFIGURAZIONE LOCALE
+   CONFIGURAZIONE
    ============================================================ */
-var GIORNI = ["LU","MA","ME","GI"];
 var STORAGE_KEY = "transfer_lunch_appello_v1";
 var stato = {};
+
+/* ============================================================
+   GIORNO CORRENTE
+   ============================================================ */
+function giornoCorrente(){
+  var d = new Date().getDay();
+  return {
+    num: d,
+    sigla: ["D","L","M","M","G","V","S"][d],
+    nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
+  };
+}
+
+/* Codice giorno usato nella chiave di stato (compatibile con lo storage) */
+function codiceGiorno(){
+  var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
+  return sigle[new Date().getDay()];
+}
 
 /* ============================================================
    STATO (localStorage separato dal convitto)
@@ -199,12 +209,10 @@ function caricaStato(){
 function salvaStato(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
 }
-function keyOf(classe,cognome,giorno){ return classe+"|"+cognome+"|"+giorno; }
+function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
 
 /* ============================================================
-   CLASSI IN LAB OGGI
-   LAB_PRANZO è definito in config-static.js con chiavi "1".."4"
-   (1=Lunedì, 4=Giovedì). getDay() JS ritorna 1=Lunedì…4=Giovedì.
+   CLASSI IN LAB OGGI (da LAB_PRANZO in config-static.js)
    ============================================================ */
 function getClassiLabOggi(){
   var lab = (typeof window.LAB_PRANZO !== "undefined") ? window.LAB_PRANZO : {};
@@ -214,18 +222,15 @@ function getClassiLabOggi(){
 
 /* ============================================================
    ESTRAZIONE STUDENTI TRANSFER
-   Filtra con haDirittoAlBusVariante(s, "transfer")
    ============================================================ */
 function getStudentiTransfer(){
   var tutti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti : [];
-
   if (tutti.length === 0) return [];
 
   var filtrati = [];
   tutti.forEach(function(s){
     if (!s || !s.cognome || String(s.cognome).trim() === "") return;
 
-    // Filtro diritto transfer
     if (typeof window.haDirittoAlBusVariante === "function"){
       try{
         if (!window.haDirittoAlBusVariante(s, "transfer")) return;
@@ -267,10 +272,10 @@ function render(){
 
   if (studenti.length === 0){
     var errMsg = window._transferLoadError
-      ? '⚠️ <b>Errore caricamento dati:</b> ' + window._transferLoadError.message
+      ? '<span class="err">⚠️ Errore:</span> ' + window._transferLoadError.message
       : (window.APP_MODE !== 'online'
-          ? '⚠️ <b>Modalità offline:</b> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
-          : '⚠️ <b>Nessuno studente con diritto transfer.</b> Verifica che <code>tuttiStudenti</code> sia popolato.');
+          ? '<span class="err">⚠️ Modalità offline:</span> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
+          : '<span class="err">⚠️ Nessuno studente con diritto transfer.</span> Verifica che <code>tuttiStudenti</code> sia popolato.');
     container.innerHTML = '<div class="loading">' + errMsg + '</div>';
     document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
     return;
@@ -287,6 +292,8 @@ function render(){
     return a.localeCompare(b, undefined, { numeric:true });
   });
 
+  var g = giornoCorrente();
+
   elencoClassi.forEach(function(nomeClasse, idx){
     var studentiClasse = classi[nomeClasse];
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
@@ -299,21 +306,24 @@ function render(){
     var titleBar = document.createElement("div");
     titleBar.className = "class-title-bar";
     titleBar.innerHTML =
-      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti</span>" +
+      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>" +
       (isLab ? '<span class="lab-tag">🔬 In laboratorio oggi</span>' : "");
     block.appendChild(titleBar);
 
     var table = document.createElement("table");
     table.className = "students-table";
 
-    // Header
+    // Header: Room / Cognome e Nome / Note / [sigla giorno]
     var thead = document.createElement("thead");
     var headRow = document.createElement("tr");
-    ["Room","Cognome e Nome","Note"].concat(GIORNI).forEach(function(txt){
+    ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
       var th = document.createElement("th");
       th.textContent = txt;
       if (txt === "Room") th.style.width = "42px";
-      if (GIORNI.indexOf(txt) !== -1) th.style.width = "46px";
+      if (txt === g.sigla){
+        th.style.width = "56px";
+        th.title = g.nome;
+      }
       headRow.appendChild(th);
     });
     thead.appendChild(headRow);
@@ -347,45 +357,43 @@ function render(){
       tdDetails.textContent = det || "—";
       tr.appendChild(tdDetails);
 
-      GIORNI.forEach(function(g){
-        var td = document.createElement("td");
-        td.className = "td-day";
-        var k = keyOf(s.classe, s.cognome, g);
-        td.setAttribute("data-key", k);
-        var st = stato[k] || "";
-        td.setAttribute("data-state", st);
-        td.textContent = st;
+      // Cella unica giorno (oggi)
+      var td = document.createElement("td");
+      td.className = "td-day";
+      var k = keyOf(s.classe, s.cognome);
+      td.setAttribute("data-key", k);
+      var st = stato[k] || "";
+      td.setAttribute("data-state", st);
+      td.textContent = st;
 
-        td.addEventListener("click", function(){
-          var cur = stato[k] || "";
-          var next = cur === "" ? "X" : (cur === "X" ? "O" : "");
+      td.addEventListener("click", function(){
+        var cur = stato[k] || "";
+        var next = cur === "" ? "X" : (cur === "X" ? "O" : "");
 
-          if (next === ""){
-            delete stato[k];
-            td.setAttribute("data-state","");
-            td.textContent = "";
-          } else {
-            stato[k] = next;
-            td.setAttribute("data-state", next);
-            td.textContent = next;
-          }
-          salvaStato();
-          aggiornaTotaleClasse(nomeClasse, tbody);
-          aggiornaSottotitolo();
-        });
-
-        tr.appendChild(td);
+        if (next === ""){
+          delete stato[k];
+          td.setAttribute("data-state","");
+          td.textContent = "";
+        } else {
+          stato[k] = next;
+          td.setAttribute("data-state", next);
+          td.textContent = next;
+        }
+        salvaStato();
+        aggiornaTotaleClasse(nomeClasse, tbody);
+        aggiornaSottotitolo();
       });
 
+      tr.appendChild(td);
       tbody.appendChild(tr);
     });
 
-    // Riga totale presenti
+    // Riga totale presenti (solo oggi)
     var totalRow = document.createElement("tr");
     totalRow.className = "total-row";
     totalRow.innerHTML =
-      '<td colspan="3" class="total-label">Totale presenti (X) — ' + nomeClasse + '</td>' +
-      '<td colspan="' + GIORNI.length + '" class="total-value" data-total-value>0</td>';
+      '<td colspan="3" class="total-label">Presenti oggi (X) — ' + nomeClasse + '</td>' +
+      '<td class="total-value" data-total-value>0</td>';
     tbody.appendChild(totalRow);
 
     table.appendChild(tbody);
@@ -418,35 +426,42 @@ function render(){
 }
 
 /* ============================================================
-   TOTALI / SOTTOTITOLO
+   TOTALI PER CLASSE (solo oggi)
    ============================================================ */
 function aggiornaTotaleClasse(nomeClasse, tbody){
+  var codice = codiceGiorno();
   var totale = 0;
   for (var k in stato){
     if (stato[k] === "X"){
       var parts = k.split("|");
-      if (parts[0] === nomeClasse) totale++;
+      if (parts[0] === nomeClasse && parts[2] === codice) totale++;
     }
   }
   var cell = tbody.querySelector("[data-total-value]");
   if (cell) cell.textContent = totale;
 }
 
+/* ============================================================
+   SOTTOTITOLO (totali solo oggi)
+   ============================================================ */
 function aggiornaSottotitolo(){
+  var codice = codiceGiorno();
   var totX = 0, totO = 0;
   for (var k in stato){
+    if (k.split("|")[2] !== codice) continue;
     if (stato[k] === "X") totX++;
     else if (stato[k] === "O") totO++;
   }
   var studenti = getStudentiTransfer();
   var classiLab = getClassiLabOggi();
-  var giornoNome = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][new Date().getDay()];
+  var g = giornoCorrente();
+  var dataIt = new Date().toLocaleDateString("it-IT");
 
   document.getElementById("subtitle").innerHTML =
-    "Transfer Lunch • " + giornoNome +
+    "Transfer Lunch • <b>" + g.nome + "</b> " + dataIt +
     " • Studenti: <b>" + studenti.length + "</b>" +
-    " • Presenti: <b>" + totX + "</b>" +
-    " • Assenti: <b>" + totO + "</b>" +
+    " • Presenti oggi: <b>" + totX + "</b>" +
+    " • Assenti oggi: <b>" + totO + "</b>" +
     (classiLab.length ? " • 🔬 Lab: <b>" + classiLab.join(", ") + "</b>" : "");
 }
 
@@ -454,8 +469,11 @@ function aggiornaSottotitolo(){
    AZIONI
    ============================================================ */
 function azzeraTutto(){
-  if (!confirm("Azzerare tutte le X e O?")) return;
-  stato = {};
+  if (!confirm("Azzerare tutte le X e O di oggi?")) return;
+  var codice = codiceGiorno();
+  for (var k in stato){
+    if (k.split("|")[2] === codice) delete stato[k];
+  }
   salvaStato();
   render();
 }
@@ -466,7 +484,7 @@ function esportaStato(){
   var url  = URL.createObjectURL(blob);
   var a = document.createElement("a");
   a.href = url;
-  a.download = "transfer_lunch_appello.json";
+  a.download = "transfer_lunch_appello_" + codiceGiorno() + ".json";
   document.body.appendChild(a);
   a.click();
   setTimeout(function(){
@@ -480,7 +498,7 @@ function esportaStato(){
    ============================================================ */
 function attendiStudenti(callback, maxMs){
   var start = Date.now();
-  var max = maxMs || 15000; // 15s timeout
+  var max = maxMs || 20000;
   var tick = function(){
     var tutti = window.tuttiStudenti;
     if (Array.isArray(tutti) && tutti.length > 0){
@@ -490,7 +508,7 @@ function attendiStudenti(callback, maxMs){
     }
     if (Date.now() - start > max){
       console.warn('⏱️ Timeout attesa tuttiStudenti');
-      callback(); // renderizza comunque (mostrerà errore)
+      callback();
       return;
     }
     setTimeout(tick, 200);
@@ -500,12 +518,10 @@ function attendiStudenti(callback, maxMs){
 
 caricaStato();
 
-// Aspetta il caricamento dati prima di renderizzare
 attendiStudenti(function(){
   render();
-}, 15000);
+}, 20000);
 
-// Se il giorno cambia mentre la pagina è aperta, ri-renderizza
 setInterval(function(){
   var g = new Date().getDay();
   if (window._ultimoGiorno !== undefined && window._ultimoGiorno !== g){
