@@ -139,15 +139,38 @@
      ============================================================ -->
 <script type="module">
   if (window.APP_MODE === 'online') {
-    try {
-      await import('./js/data-loader.js');
-      console.log('✅ data-loader caricato (online)');
-    } catch (e) {
-      console.error('❌ Errore data-loader online:', e);
-      window._transferLoadError = e;
+    const percorsi = [
+      './js/core/data-loader.js',
+      './js/data-loader.js',
+      './js/dati/data-loader.js',
+      './data-loader.js'
+    ];
+    let mod = null;
+    for (const p of percorsi) {
+      try {
+        mod = await import(p);
+        console.log('✅ data-loader caricato da:', p);
+        break;
+      } catch (e) {
+        console.warn('❌ Non trovato:', p);
+      }
+    }
+    if (!mod) {
+      window._transferLoadError = new Error(
+        'data-loader.js non trovato in nessuno dei percorsi: ' + percorsi.join(', ')
+      );
+    } else {
+      try {
+        // Chiamata esplicita: senza questa, tuttiStudenti resta []
+        await window.caricaDatiFirebase();
+        console.log('✅ caricaDatiFirebase() completata');
+        console.log('📊 tuttiStudenti:', window.tuttiStudenti?.length);
+      } catch (e) {
+        console.error('❌ Errore caricaDatiFirebase():', e);
+        window._transferLoadError = e;
+      }
     }
   } else {
-    console.warn('⚠️ Modalità offline: nessun dato caricato');
     window._transferLoadError = new Error('Modalità offline');
   }
 </script>
