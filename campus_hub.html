@@ -430,6 +430,16 @@
 </div>
     
     <style>
+        /* Header del pannello sempre visibile durante lo scroll */
+#sidePanelContent .side-panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--surface);      /* opaco, così il contenuto scorre "sotto" */
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
     #panelQuickNav .nav-dot {
         transition: transform .15s ease, box-shadow .15s ease;
     }
