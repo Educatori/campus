@@ -1,1752 +1,875 @@
-/* ============================================================ 
-             CAMPUS HUB — Foglio di stile unificato 
-   ============================================================ */
-
-/* ── Mona Sans (variable: wght, wdth, opsz, ital) ── */
-@font-face {
-    font-family: 'Mona Sans';
-    font-style: normal;
-    font-weight: 200 900;
-    font-stretch: 75% 125%;
-    font-display: swap;
-    src: url('../fonts/mona-sans-variable.woff2') format('woff2-variations');
-}
-
-/* ── Mona Sans Mono (variable: wght) ── */
-@font-face {
-    font-family: 'Mona Sans Mono';
-    font-style: normal;
-    font-weight: 200 900;
-    font-display: swap;
-    src: url('../fonts/mona-sans-mono-variable.woff2') format('woff2-variations');
-}
-
-/* ============================================================
-   1. TOKENS / VARIABILI
-   ============================================================ */
-:root {
-    color-scheme: light only;
-
-    /* Superfici */
-    --bg:         #f0f4f8;
-    --bg-2:       #ffffff;
-    --bg-3:       #e8eef5;
-    --surface:    #ffffff;
-    --surface-2:  #f0f4f8;
-    --surface-3:  #dde5f0;
-    --border:     #00000014;
-    --border-2:   #00000024;
-
-    /* Accenti */
-    --accent:       #2563eb;
-    --accent-dim:   #2563eb1f;
-    --accent-2:     #0d9488;
-    --accent-2-dim: #0d94881a;
-
-    /* Stati semantici */
-    --ok:           #16a34a;
-    --ok-dim:       #16a34a1a;
-    --absent:       #dc2626;
-    --absent-dim:   #dc26261a;
-    --dinner-no:     #0891b2;
-    --dinner-no-dim: #0891b21a;
-    --lab:          #d97706;
-    --lab-dim:      #d977061a;
-    --switched:     #7c3aed;
-    --switched-dim: #7c3aed1a;
-    --pp:           #7c3aed;
-    --pp-dim:       #7c3aed1a;
-
-    /* Bottoni */
-    --btn-t1:        #ff00ac; 
-    --btn-t2:        #7b00ff;
-    --btn-t3:        #7c3aed;
-    --btn-t4:        #475569;
-    --btn-reset:     #dc2626;
-    --btn-inactive:  #e8eef5;
-    --btn-print:     #27ae60;
-
-    /* Testo */
-    --text:       #0f172a;
-    --text-2:     #475569;
-    --text-muted: #64748b;
-    --text-inv:   #ffffff;
-
-    /* Tipografia */
-    --font: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    --font-mono: 'Mona Sans Mono', ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-
-    /* Geometria */
-    --radius-sm: 6px;
-    --radius:    12px;
-    --radius-lg: 18px;
-    --radius-xl: 24px;
-
-    /* Ombre */
-    --shadow-sm: 0 1px 4px rgba(0,0,0,0.08);
-    --shadow:    0 4px 16px rgba(0,0,0,0.10);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
-
-    /* Transizione */
-    --t: 0.2s ease;
-
-    /* Spaziature uniformi */
-    --gap-block: 18px;
-    --pad-block: 12px 16px;
-
-    /* Header gradient (usati altrove) */
-    --header-grad-start: #2563eb;
-    --header-grad-end:   #0d9488;
-}
-
-/* ============================================================
-   2. RESET & BASE
-   ============================================================ */
-*, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-
-body {
-    font-optical-sizing: auto;
-    margin: 0;
-    font-family: var(--font);
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-}
-/* OFFLINE → tinta calda/grigia, coerente con l'header #dddddd */
-body.mode-offline {
-    background: #e8e4dd;                 /* grigio caldo spento */
-    background-image:
-        radial-gradient(ellipse 90% 60% at 50% -10%,
-            rgba(202, 138, 4, 0.06), transparent);
-}
-
-/* ONLINE → tinta fredda/azzurra, coerente con l'header bianco */
-body.mode-online {
-    background: #eaf0f8;                 /* azzurro freddo leggero */
-    background-image:
-        radial-gradient(ellipse 90% 60% at 50% -10%,
-            rgba(37, 99, 235, 0.06), transparent);
-}
-
-h1, h2, h3, h4 {
-    margin: 0;
-    font-family: var(--font);
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-}
-a { color: inherit; text-decoration: none; }
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-2); }
-::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-/* ============================================================
-   3. CONTAINER PRINCIPALE
-   ============================================================ */
-.container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 20px 24px 40px;
-}
-
-/* ============================================================
-   4. HEADER HUB (tag header, NON .app-header)
-   ============================================================ */
-header:not(.app-header) {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 14px 24px;
-    border-radius: var(--radius-xl);
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    margin-bottom: var(--gap-block);
-    box-shadow: var(--shadow-sm);
-    gap: 16px;
-}
-
-/* OFFLINE → grigio chiaro */
-body.mode-offline header:not(.app-header) {
-    background: #e8e4dd;
-    border-color: rgba(202, 138, 4, 0.25);
-}
-/* ONLINE → bianco (come .app-header) */
-body.mode-online header:not(.app-header) {
-    background: var(--bg-2);
-    border-color: var(--border-2);
-}
-header:not(.app-header) > .header-brand { justify-self: start; }
-header:not(.app-header) > #digitalClock { justify-self: center; }
-header:not(.app-header) > .header-actions { justify-self: end; }
-
-body.mode-offline #digitalClock {
-    color: var(--accent-2);
-    text-shadow: 0 0 20px var(--accent-2-dim);
-}
-body.mode-online #digitalClock {
-    color: var(--accent);
-    text-shadow: 0 0 20px var(--accent-dim);
-}
-
-/* Il banner "☁️ FIREBASE" è inutile in modalità online: nascondilo */
-body.mode-online #modeBanner {
-    display: none !important;
-}
-
-
-header:not(.app-header) h1 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.1;
-}
-
-#todayDate {
-    font-size: 0.85rem;
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    margin-top: 4px;
-    text-transform: capitalize;
-    font-style: italic;
-}
-
-#digitalClock {
-    font-family: var(--font-mono);
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 20px var(--accent-dim);
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#connection-status {
-    font-size: 0.68rem;
-    padding: 5px 12px;
-    border-radius: 20px;
-    background: var(--ok-dim);
-    color: var(--ok);
-    border: 1px solid var(--ok-dim);
-    font-weight: 600;
-}
-#connection-status.disconnected {
-    background: var(--absent-dim);
-    color: var(--absent);
-    border-color: rgba(220,38,38,0.45);
-}
-
-/* ============================================================
-   5. HEADER ATTIVITÀ (.app-header) + .subtitle + .header-datetime
-   ============================================================ */
-.app-header {
-    background: var(--bg-2);
-    border: 1px solid var(--border-2);
-    padding: 16px 28px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: var(--radius-xl);
-    margin-bottom: 20px;
-    box-shadow: var(--shadow-sm);
-}
-.app-header h1 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.app-header .subtitle {
-    font-size: 0.78rem;
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    margin-top: 3px;
-    font-style: normal;
-}
-
-.header-datetime {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-}
-.header-datetime #todayDate {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--text-2);
-    letter-spacing: 0.04em;
-    text-transform: capitalize;
-    font-style: normal;
-    margin-top: 0;
-}
-
-/* ============================================================
-   6. STATUS BADGE (login/connection)
-   ============================================================ */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    letter-spacing: 0.03em;
-}
-.status-badge.connected {
-    background: var(--ok-dim);
-    color: var(--ok);
-    border: 1px solid rgba(22,163,74,0.45);
-}
-.status-badge.disconnected {
-    background: var(--absent-dim);
-    color: var(--absent);
-    border: 1px solid rgba(220,38,38,0.45);
-}
-
-/* ============================================================
-   7. NOTE TOOLBAR
-   ============================================================ */
-.note-toolbar-container {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent-2);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--gap-block);
-    padding: var(--pad-block);
-    transition: transform 0.2s;
-}
-.note-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
-.note-icon { font-size: 1.1rem; margin-top: 2px; }
-.note-input {
-    flex: 1;
-    background: #fef9c3;                        /* 🟡 giallo post-it */
-    border: 1px solid rgba(202, 138, 4, 0.35);  /* bordo ambra leggero */
-    border-radius: var(--radius-sm);
-    outline: none;
-    font-family: var(--font);
-    font-size: 0.85rem;
-    color: #422006;                             /* testo "inchiostro" scuro */
-    caret-color: #a16207;
-    padding: 8px 10px;
-    resize: vertical;
-    min-height: 48px;
-    line-height: 1.5;
-    transition: border-color var(--t), box-shadow var(--t);
-}
-.note-input:focus {
-    border-color: #ca8a04;
-    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.25);
-}
-.note-input::placeholder { color: #92702a; }    /* placeholder leggibile sul giallo */
-.clear-note-btn {
-    background: rgba(0,0,0,0.05);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--t);
-    font-weight: bold;
-    flex-shrink: 0;
-    margin-top: 2px;
-    font-size: 0.8rem;
-}
-.clear-note-btn:hover {
-    background: rgba(220,38,38,0.15);
-    color: var(--absent);
-    border-color: var(--absent);
-}
-
-/* ============================================================
-   8. INFO RESET (spostato sopra le note)
-   ============================================================ */
-#info-reset {
-    text-align: right;
-    font-size: 0.7rem;
-    color: var(--absent);
-    font-family: var(--font-mono);
-    margin-bottom: 6px;
-}
-
-/* ============================================================
-   9. TOOLBAR
-   ============================================================ */
-.toolbar {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    padding: var(--pad-block);
-    margin-bottom: var(--gap-block);
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.toolbar-group.grow {
-    flex: 1 1 300px;
-    min-width: 0;
-}
-
-.toolbar-sep {
-    width: 1px;
-    height: 26px;
-    background: var(--border-2);
-    flex-shrink: 0;
-}
-
-.toolbar input[type="text"],
-.toolbar input[type="number"],
-.toolbar input[type="date"],
-.toolbar select {
-    background: var(--bg-3);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius);
-    color: var(--text);
-    padding: 9px 14px;
-    font-family: var(--font);
-    font-size: 0.82rem;
-    outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
-}
-.toolbar input:focus,
-.toolbar select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
-.toolbar input::placeholder { color: var(--text-muted); }
-
-.toolbar input#search { flex: 1 1 160px; min-width: 0; }
-.toolbar input#roomInput { width: 80px; }
-.toolbar input#simulateDate { width: 150px; }
-
-.room-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-/* Bottoni toolbar */
-.btn-toolbar,
-.btn-reset,
-.btn-reset-sim {
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 0.78rem;
-    color: white;
-    padding: 9px 16px;
-    transition: all var(--t);
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.btn-toolbar:hover,
-.btn-reset:hover,
-.btn-reset-sim:hover {
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-.btn-toolbar:active,
-.btn-reset:active,
-.btn-reset-sim:active { transform: translateY(0); }
-
-.btn-reset {
-    background: var(--btn-reset);
-    box-shadow: 0 2px 8px rgba(230,126,34,0.3);
-}
-.btn-reset:hover { background: #d35400; box-shadow: 0 4px 14px rgba(230,126,34,0.45); }
-
-.btn-reset-sim {
-    background: var(--btn-t4);
-    box-shadow: 0 2px 8px rgba(71, 85, 105, 0.3);
-}
-.btn-reset-sim:hover {
-    background: #334155;
-    box-shadow: 0 4px 14px rgba(71, 85, 105, 0.45);
-}
-
-/* Dropdown MODULI */
-.dropdown-moduli { position: relative; display: inline-block; }
-.dropdown-toggle {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.dropdown-content {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    min-width: 220px;
-    background: var(--surface);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
-    z-index: 300;
-    padding: 6px;
-    flex-direction: column;
-    gap: 2px;
-}
-.dropdown-moduli:hover .dropdown-content,
-.dropdown-moduli:focus-within .dropdown-content,
-.dropdown-moduli.open .dropdown-content {
-    display: flex;
-}
-.dropdown-content a {
-    padding: 9px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 0.76rem;
-    font-weight: 600;
-    color: var(--text-2);
-    white-space: nowrap;
-    transition: all var(--t);
-    cursor: pointer;
-}
-.dropdown-content a:hover {
-    background: var(--accent-dim);
-    color: var(--accent);
-}
-
-/* ============================================================
-   10. DAY-BOX (bottoni azione)
-   ============================================================ */
-.day-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    height: auto;  
-    padding: 10px 14px;
-    text-align: center;
-    border-radius: var(--radius);
-    font-size: 0.78rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all var(--t);
-    letter-spacing: 0.03em;
-    color: var(--text-2);
-    border-bottom: 3px solid var(--border);
-    user-select: none;
-    white-space: nowrap;
-}
-.day-box:hover {
-    background: var(--surface-2);
-    color: var(--text);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-}
-.day-box.active {
-    background: var(--accent);
-    color: white;
-    border-bottom-color: var(--accent-2);
-}
-.day-box:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-.day-box.dropdown-toggle:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-#ceneBox .late-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    margin-left: 5px;
-    border-radius: 9px;
-    background: #db2777;
-    color: #fff;
-    font-size: 0.68rem;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    line-height: 1;
-}
-
-#ceneBox.tasto-attivo .late-count {
-    background: #fff;
-    color: #db2777;
-}
-
-/* ============================================================
-   11. AZIONI GRID — categorie
-   ============================================================ */
-.azioni-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
-    margin-bottom: var(--gap-block);
-    align-items: start;
-}
-
-.azioni-categoria {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-}
-.azioni-cat-label {
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    padding-left: 4px;
-}
-.azioni-cat-row {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.azioni-cat-row .day-box {
-    flex: 1 1 auto;
-    min-width: 60px;
-}
-
-.azioni-cat.stampe .day-box { border-bottom-color: var(--ok); }
-.azioni-cat.filtri .day-box { border-bottom-color: var(--accent); }
-.azioni-cat.vista  .day-box { border-bottom-color: var(--text-muted); }
-
-/* ============================================================
-   12. LEGENDA
-   ============================================================ */
-.legenda {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: var(--pad-block);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: var(--gap-block);
-    font-size: 0.72rem;
-    color: var(--text-2);
-    align-items: center;
-}
-.legenda-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 500;
-}
-.legenda-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-.legenda-dot.ok     { background: var(--ok);     box-shadow: 0 0 0 3px var(--ok-dim); }
-.legenda-dot.absent { background: var(--absent); box-shadow: 0 0 0 3px var(--absent-dim); }
-.legenda-dot.dinner { background: var(--dinner-no); box-shadow: 0 0 0 3px var(--dinner-no-dim); }
-.legenda-dot.lab    { background: var(--lab);    box-shadow: 0 0 0 3px var(--lab-dim); }
-.legenda-dot.pp     { background: var(--pp);     box-shadow: 0 0 0 3px var(--pp-dim); }
-
-/* ============================================================
-   13. LISTA STUDENTI
-   ============================================================ */
-#listaStudenti {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
-    animation: fadeIn 0.3s ease;
-}
-
-/* ============================================================
-   14. CARD STUDENTE
-   ============================================================ */
-.student-row {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 5px solid var(--ok);
-    border-radius: var(--radius-lg);
-    padding: 16px 16px 16px 16px;
-    transition: all var(--t);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-}
-.student-row:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-    border-color: var(--border-2);
-}
-
-.student-row::before {
-    content: "";
-    position: absolute;
-    top: 18px;
-    left: 16px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 0 3px var(--ok-dim);
-    transition: all var(--t);
-}
-
-.student-row.dinner-no {
-    border-left-color: var(--dinner-no);
-    background: linear-gradient(to right, var(--dinner-no-dim), transparent 40%);
-}
-.student-row.dinner-no::before {
-    background: var(--dinner-no);
-    box-shadow: 0 0 0 3px var(--dinner-no-dim);
-}
-
-.student-row.assente {
-    border-left-color: var(--absent);
-    background: linear-gradient(to right, var(--absent-dim), transparent 40%);
-    opacity: 0.88;
-}
-.student-row.assente::before {
-    background: var(--absent);
-    box-shadow: 0 0 0 3px var(--absent-dim);
-}
-
-.student-row.highlight-lab {
-    background: linear-gradient(to right, var(--lab-dim), transparent 40%) !important;
-    border-left-color: var(--lab) !important;
-}
-.student-row.highlight-lab::before {
-    background: var(--lab) !important;
-    box-shadow: 0 0 0 3px var(--lab-dim) !important;
-}
-
-.student-row.pp-locked {
-    border-left-color: var(--pp) !important;
-    background: linear-gradient(to right, var(--pp-dim), transparent 50%) !important;
-}
-.student-row.pp-locked::before {
-    background: var(--pp) !important;
-    box-shadow: 0 0 0 3px var(--pp-dim) !important;
-}
-
-.st-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-left: 22px;
-    gap: 8px;
-}
-.st-header > div {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.room-badge {
-    background: var(--surface-2);
-    color: var(--text-2);
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    font-weight: 700;
-    font-size: 0.68rem;
-    font-family: var(--font-mono);
-    letter-spacing: 0.03em;
-}
-.lab-badge {
-    color: var(--lab);
-    font-weight: 700;
-    font-size: 0.68rem;
-    animation: pulse 3s infinite;
-    padding: 2px 6px;
-    background: var(--lab-dim);
-    border-radius: var(--radius-sm);
-}
-.pp-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.62rem;
-    font-weight: 700;
-    color: var(--pp);
-    background: var(--pp-dim);
-    padding: 2px 7px;
-    border-radius: var(--radius-sm);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-.st-turno {
-    font-size: 0.62rem;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    color: var(--text-2);
-    background: var(--surface-2);
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    letter-spacing: 0.03em;
-}
-.st-turno.t1 { color: var(--btn-t1); background: var(--accent-dim); }
-.st-turno.t2 { color: var(--btn-t2); background: var(--accent-dim); }
-
-.student-row .st-name-line {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 2px;
-    padding-left: 22px;
-    line-height: 1.25;
-}
-.student-row .st-name-line b {
-    font-weight: 700;
-    font-size: 1.02rem;
-    letter-spacing: 0.01em;
-    text-transform: uppercase;
-}
-.student-row .st-meta {
-    font-size: 0.72rem;
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    padding-left: 22px;
-    margin-bottom: 10px;
-    letter-spacing: 0.02em;
-}
-
-.inputs {
-    display: flex;
-    gap: 6px;
-    margin: 10px 0;
-    padding-left: 22px;
-}
-.inputs input {
-    width: 50%;
-    padding: 7px 10px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-size: 0.78rem;
-    font-family: var(--font-mono);
-    outline: none;
-    transition: all var(--t);
-    text-align: center;
-    font-weight: 600;
-}
-.inputs input:focus {
-    border-color: var(--accent);
-    background: var(--surface);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
-.inputs input::placeholder {
-    color: var(--text-muted);
-    font-weight: 400;
-}
-
-.btns {
-    display: flex;
-    gap: 6px;
-    padding-left: 22px;
-}
-.btns button {
-    flex: 1;
-    padding: 7px 5px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-2);
-    font-family: var(--font);
-    font-size: 0.7rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--t);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-.btns button:hover {
-    background: var(--surface-3);
-    color: var(--text);
-}
-.active-ass {
-    background: var(--absent) !important;
-    color: white !important;
-    border-color: transparent !important;
-    box-shadow: 0 2px 10px var(--absent-dim) !important;
-}
-.active-din {
-    background: var(--dinner-no) !important;
-    color: white !important;
-    border-color: transparent !important;
-    box-shadow: 0 2px 10px var(--dinner-no-dim) !important;
-}
-
-.btn-switch {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--t);
-    font-size: 0.8rem;
-    color: var(--text-2);
-    padding: 0;
-}
-.btn-switch:hover { background: var(--surface-3); color: var(--text); }
-.btn-switch.modificato {
-    background: var(--switched) !important;
-    border-color: transparent !important;
-    color: white;
-    box-shadow: 0 2px 10px var(--switched-dim) !important;
-}
-
-.permesso-tag {
-    color: var(--pp);
-    font-size: 0.65rem;
-    font-weight: 700;
-}
-
-/* ============================================================
-   15. SIDE PANEL
-   ============================================================ */
-#sidePanel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 340px;
-    height: 100%;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    pointer-events: none;
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Hub — Cruscotto Operativo</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+ <!-- ===== FAVICON ===== -->
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- AMBIENTE: deve essere il PRIMO script. -->
+<script src="js/ambiente.js"></script>
+  <script>
+  // ── Pulizia: deregistra eventuali service worker precedenti ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        reg.unregister();
+        console.log('🗑️ Service worker deregistrato:', reg.scope);
+      });
+    });
+    // Svuota anche le cache lasciate dal vecchio SW
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  }
+</script>  
+</head>
     
-}
-#sidePanel.open { transform: translateX(0); }
+<body>
 
-#sidePanelOverlay {
-    flex: 0 0 280px;
-    background: linear-gradient(180deg,
-        rgba(240,244,248,0.05) 0%,
-        rgba(240,244,248,0.25) 60%,
-        rgba(240,244,248,0.55) 100%);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-    pointer-events: none;
-}
+<!-- ============================================================
+     LOGIN OVERLAY (online)
+     ============================================================ -->
+<div id="loginScreen">
+    <div class="login-container">
+       <h2>LOGIN</h2>
+        <p>Inserisci le credenziali per continuare</p>
+        <input type="email"    id="loginEmail"    placeholder="Email"    autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button id="loginBtn">ACCEDI</button>
+        <div id="loginError" class="error" role="alert"></div>
+    </div>
+</div>
+    
+    
+<!-- ============================================================
+     CONTENUTO APP
+     ============================================================ -->
+<div id="appContent" style="display:none;">
+<div id="modeBanner"></div>
+<div class="container">
 
-#sidePanelContent {
-    flex: 1 1 auto;
-    background: var(--bg-2);
-    border-left: 1px solid var(--border-2);
-    box-shadow: -8px 0 40px rgba(0,0,0,0.15);
-    padding: 24px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    pointer-events: auto;
-    position: relative; 
-}
+    <!-- ── HEADER ─────────────────────────────────────────── -->
+        
+    <header>
+        <div class="header-brand">
+            <h1><a href="index.html">Campus hub</a></h1>
+            <div id="todayDate"><i>giovedì 4 giugno 2026</i></div>
+        </div>
 
-#sidePanel h3 {
-    color: var(--text);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-    font-size: 0.9rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
+        <div id="digitalClock">15:55:38</div>
 
-/* ------------------------------------------------------------
-   UNIFORMAZIONE CAMPI FORM NEL SIDE PANEL
-   Stile identico alla toolbar per coerenza visiva totale.
-   ------------------------------------------------------------ */
-#sidePanel select,
-#sidePanel input[type="text"],
-#sidePanel input[type="date"] {
-    background: var(--bg-3);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius); /* 12px, come in toolbar */
-    color: var(--text);
-    padding: 9px 14px;
-    font-family: var(--font);
-    font-size: 0.82rem;
-    width: 100%;
-    outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
-    box-sizing: border-box;
-    margin-bottom: 10px; /* Spaziatura pulita tra un campo e l'altro */
-}
+       <div class="header-actions">
+    <a id="linkStorico" href="storico.html" target="_blank" rel="noopener"
+       title="Consulta lo storico giornaliero"
+       class="btn-app btn-app-more">
+        📊 Storico
+    </a>
+    <div id="connection-status" class="status-badge connected"
+     role="status" aria-live="polite">🟢 Caricamento…</div>
+    <button type="button" id="btnLogout" class="btn-app btn-app-danger" title="Esci" aria-label="Esci dall'account">
+        ❌ ESCI
+    </button>
+</div>
+    </header>
 
-#sidePanel select:focus,
-#sidePanel input[type="text"]:focus,
-#sidePanel input[type="date"]:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
+    <!-- ── BADGE SIMULAZIONE (nascosto di default) ─────────── -->
+    <div id="simBadge" class="sim-badge"></div>
 
-#sidePanel input::placeholder {
-    color: var(--text-muted);
-}
+    <!-- ── ULTIMO RESET (spostato sopra le note) ───────────── -->
+    <div id="info-reset">Ultimo aggiornamento: MAI</div>
 
-/* Rimuove il margin-bottom dall'ultimo campo per non creare buchi extra */
-#sidePanel input[type="date"]:last-of-type {
-    margin-bottom: 14px; 
-}
+    <!-- ── NOTE ───────────────────────────────────────────── -->
+    <div class="note-toolbar-container">
+        <div class="note-content">
+            <span class="note-icon">📌</span>
+            <textarea id="dailyNotes" placeholder="Note condivise visibili a tutti gli utenti Campus Hub..."
+                      class="note-input" rows="4"></textarea>
+            <button class="clear-note-btn" onclick="cancellaNote()" title="Svuota note" aria-label="Svuota note condivise">✕</button>
+        </div>
+    </div>
 
-#sidePanel hr {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 16px 0;
-}
+   
 
-.side-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+    <!-- ── TOOLBAR ────────────────────────────────────────── -->
+    <div class="toolbar">
 
-    /* ── STICKY: resta in cima mentre scorri il pannello ── */
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--bg-2);                 /* stesso sfondo del pannello */
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-    margin-top: -24px;                       /* compensa il padding-top:24px di #sidePanelContent */
-    padding-top: 24px;                       /* ripristina lo spazio sopra il titolo */
-}
+        <!-- Gruppo 1: MODULI + G•A•P -->
+        <div class="toolbar-group">
+            <div class="dropdown-moduli">
+                 <div class="day-box dropdown-toggle" style="background:#ecb3ec;" tabindex="0">
+                    📋 ▾ MODULI ▾
+                </div>
+                <div class="dropdown-content">
+                    <a onclick="generaPopUpStampaBusPomeriggio(); return false;">BUS POMERIGGIO</a>
+                    <a onclick="generaPopUpStampaTransfer(); return false;">TRANSFER LUNCH</a>
+                    <a onclick="generaPopUpStampaUscite(); return false;">USCITA LIBERA</a>
+                    <a onclick="generaPopUpStampaPresDin(); return false;">APPELLO DINNER</a>
+                    <a onclick="generaPopUpStampaRooming(); return false;">ROOMING LIST</a>                     
+                    <a onclick="generaPopUpStampaSchedaRitardi(); return false;">RITARDI MATTINO</a>
+                </div>
+            </div>
+            <button class="btn-toolbar" style="background:var(--btn-t3);"
+                    onclick="togglePanel()">⚙️ G•A•P</button>
+        </div>
 
-.side-panel-close {
-    border: none;
-    background: rgba(0,0,0,0.06);
-    color: var(--text-2);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--t);
-}
-.side-panel-close:hover {
-    background: rgba(220,38,38,0.15);
-    color: var(--absent);
-}
+        <div class="toolbar-sep"></div>
 
-/* ── Le sezioni non finiscono sotto l'header sticky ──
-   scroll-margin-top = altezza header (misurata in JS) + respiro.
-   Il fallback 110px copre titolo+riga pallini+bordino. */
-#boxProgrammate,
-#boxPermessiPermanenti,
-#boxOverrideTurni {
-    scroll-margin-top: var(--panel-header-h, 110px);
-}
+        <!-- Gruppo 2: RICERCA + FILTRI -->
+        <div class="toolbar-group grow">
+            <input type="text" id="search" placeholder="🔍 Cerca studente..."
+                   onkeyup="applicaFiltri()">
 
-/* Tasto Conferma verde (identico al tasto Importa) */
-.btn-add-assenza.btn-green {
-    background: #27ae60;
-    color: white;
-    transition: background 0.15s, transform 0.1s;
-    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.25);
-}
+            <span class="room-label">ROOM</span>
+            <input type="number" id="roomInput" placeholder="n°" min="101" max="221"
+                   onfocus="this.oldValue=this.value;"
+                   oninput="gestisciSaltoStanze(this); validaERicerca();">
 
-.btn-add-assenza.btn-green:hover {
-    background: #219a52;
-    filter: none; /* Rimuove il brightness di default */
-}
+            <span class="room-label">CLASSE</span>
+            <select id="classeFilter" onchange="filtraPerClasse(this.value)">
+                <option value="">Tutte</option>
+            </select>
+        </div>
 
-.btn-add-assenza.btn-green:active {
-    transform: scale(0.98);
-}
+        <div class="toolbar-sep"></div>
 
-.btn-add-assenza {
-    width: 100%;
-    background: var(--absent);
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 0.85rem;
-    transition: all var(--t);
-}
-.btn-add-assenza:hover { filter: brightness(1.1); }
+        <!-- Gruppo 3: DATA + RESET -->
+        <div class="toolbar-group">
+            <span class="room-label">📅 DATA</span>
+            <input type="date" id="simulateDate" onchange="simulaData(this.value)">
+            <button class="btn-reset-sim"
+        onclick="resetSimulazione()">↺ Oggi</button>
+            <button class="btn-reset" onclick="resetDati('soloManuali')"
+                    title="Reset Giornaliero">🗑️ Reset</button>
+        </div>
+    </div>
 
-.btn-add-assenza-toggle {
-    width: 100%;
-    padding: 10px 14px;
-    margin: 4px 0 10px 0; /* Aggiunto margine inferiore per distanziare dalla lista */
-    background: #dc2626;
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font);
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
-}
+    <!-- ── TASTI AZIONE ───────────────────────────────────── -->
+    <div class="azioni-grid">
 
-.btn-add-assenza-toggle:hover  { background: #b91c1c; }
-.btn-add-assenza-toggle:active { transform: scale(0.98); }
+        <!-- Categoria STAMPE -->
+        <div class="azioni-categoria stampe">
+            <div class="azioni-cat-label">STAMPE</div>
+            <div class="azioni-cat-row">
+                <div class="day-box" onclick="generaPopUpStampaConvitto()">CONVITTO</div>
+                <div class="day-box" onclick="generaPopUpStampaDinner()">DINNER</div>
+                <div class="day-box" onclick="generaPopUpStampaBus()">DOMATTINA</div>
+            </div>
+        </div>
 
-.btn-add-assenza-toggle.aperto {
-    background: #991b1b;
-}
+<!-- Categoria FILTRI -->
+<div class="azioni-categoria filtri">
+    <div class="azioni-cat-label">FILTRI</div>
+    <div class="azioni-cat-row">
+    <div class="day-box" onclick="setTurno(1, event)">1° T</div>
+    <div class="day-box" onclick="setTurno(2, event)">2° T</div>
+    <div class="day-box" onclick="filtraAssenti(event)">ASSENTI</div>
+    <div class="day-box" onclick="filtraNoCena(event)" id="ceneBox"> 
+    CENE <span class="late-count" id="ceneLateCount" style="display:none;">0</span></div>
+<div class="day-box" onclick="mostraTutti(event)">TUTTI</div>
+    </div>
+</div>
 
-/* ============================================================
-   16. LOGIN SCREEN
-   ============================================================ */
-#loginScreen {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12), transparent);
-}
+<!-- Categoria VISTA -->
+<div class="azioni-categoria vista">
+    <div class="azioni-cat-label">VISTA</div>
+    <div class="azioni-cat-row">
+        <div class="day-box" id="btnOrdineAlfabetico"
+             onclick="toggleOrdineLista()">Room/A-Z</div>
+    </div>
+</div>
+</div>
 
-/* Lo stile interno arriva da .login-container */
-#loginScreen .login-container { margin: 0; }
+    <!-- ── LEGENDA ────────────────────────────────────────── -->
+    <div class="legenda">
+        <span class="legenda-item"><span class="legenda-dot ok"></span> Presente</span>
+        <span class="legenda-item"><span class="legenda-dot absent"></span> Assente</span>
+        <span class="legenda-item"><span class="legenda-dot dinner"></span> Non cena</span>
+        <span class="legenda-item"><span class="legenda-dot lab"></span> Laboratorio</span>
+        <span class="legenda-item"><span class="legenda-dot pp"></span> 🔒 Bloccato da PP</span>
+        <span class="legenda-item">🍽 Turno cena</span>
+    </div>
 
+    <!-- ── LISTA STUDENTI ─────────────────────────────────── -->
+    <div id="listaStudenti"></div>
 
-/* ============================================================
-   16b. LOGIN CARD CONDIVISA (.login-container)
-   ============================================================ */
-.login-container {
-    width: 100%;
-    max-width: 380px;
-    margin: 80px auto;
-    background: var(--surface);
-    border: 1px solid var(--border-2);
-    padding: 36px;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-}
+</div><!-- /container -->
 
-.login-container h2 {
-    margin-bottom: 6px;
-    font-size: 1.1rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
+<!-- ============================================================
+     SIDE PANEL — Gestione Permessi
+     ============================================================ -->
+<div id="sidePanel">
 
-.login-container p {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    margin-bottom: 24px;
-}
+    <div id="sidePanelOverlay"></div>
 
-.login-container input {
-    width: 100%;
-    padding: 11px 14px;
-    margin-bottom: 12px;
-    background: var(--bg-3);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 0.85rem;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color var(--t);
-}
-.login-container input:focus      { border-color: var(--accent); }
-.login-container input::placeholder { color: var(--text-muted); }
+<div id="sidePanelContent">
 
-.login-container button {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: var(--text-inv);
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: all var(--t);
-}
-.login-container button:hover:not(:disabled) {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-}
-.login-container button:disabled { opacity: 0.6; cursor: wait; }
+    <div class="side-panel-header">
+        <h3 style="border:none;padding:0;margin:0;">Gestione Assenze/Permessi</h3>
+        <button class="side-panel-close" onclick="togglePanel()" title="Chiudi"
+                aria-label="Chiudi pannello gestione permessi"
+                style="width:44px;height:44px;font-size:1.9rem;display:flex;
+                       align-items:center;justify-content:center;border-radius:10px;
+                       background:transparent;border:none;cursor:pointer;
+                       color:var(--text-2);line-height:1;">&times;</button>
+    </div>
 
-.login-container .error {
-    color: var(--absent);
-    font-size: 0.82rem;
-    margin-top: 12px;
-    min-height: 1em;
-}
+    <!-- ── LISTA ASSENZE (details) ── -->
+    <details id="boxProgrammate" open>
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;
+                        display:list-item; list-style-position: inside;
+                        marker: var(--accent);">
+            <span style="display:inline-flex; justify-content:space-between;
+                         align-items:center; width: calc(100% - 20px);
+                         vertical-align: middle; margin-left: 6px;">
+                <span>Assenze</span>
+                <button onclick="event.preventDefault(); pulisciAssenzeScadute()"
+                        title="Rimuovi definitivamente i periodi già terminati"
+                        style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
+                               padding:4px 10px;border-radius:6px;cursor:pointer;
+                               font-family:var(--font);font-size:0.72rem;font-weight:700;">
+                    🧹 Pulisci scadute
+                </button>
+            </span>
+        </summary>
 
-/* ============================================================
-   16c. BOTTONI APP CONDIVISI (.btn-app)
-   ============================================================ */
-.btn-app {
-    padding: 8px 16px;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-family: var(--font);
-    font-size: 0.78rem;
-    font-weight: 700;
-    transition: all var(--t);
-    letter-spacing: 0.03em;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    white-space: nowrap;
-}
-.btn-app:hover  { filter: brightness(1.12); transform: translateY(-1px); }
-.btn-app:active { transform: translateY(0); }
+        <!-- Lista assenze attive -->
+        <div id="listaAssenze" style="margin-bottom:10px; margin-top:10px;"></div>
 
-.btn-app-primary   { background: var(--btn-print);     color: white; }
-.btn-app-secondary { background: var(--btn-reset);  color: white; }
-.btn-app-danger    { background: var(--absent-dim); color: var(--absent); }
-.btn-app-more      { background: var(--accent-2-dim); color: var(--accent-2); }
+        <!-- Tasto Aggiungi: sotto la lista, sopra la scritta "Nessuna assenza..."
+             quando la lista è vuota -->
+        <button type="button" id="btnApriAggiungi" class="btn-add-assenza-toggle"
+                onclick="toggleBoxAggiungi()"
+                style="margin-top:4px; margin-bottom:8px;">
+            Aggiungi
+        </button>
 
-/* ============================================================
-   17. COMPONENTI STAMPA / BTN GENERICO
-   ============================================================ */
-.btn {
-    padding: 9px 28px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 30px;
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    transition: all var(--t);
-    box-shadow: 0 4px 16px rgba(37,99,235,0.35);
-}
-.btn:hover {
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37,99,235,0.5);
-}
+        <!-- Sotto-pannello di inserimento (nascosto di default) -->
+        <div id="boxAggiungiAssenza" style="display:none; margin-top:12px;">
+    <div style="font-size:0.75rem;color:var(--text-2);font-style:italic; margin-bottom:8px;">
+        Programma un'assenza per uno studente o per un'intera classe
+    </div>
 
-.print-logo { display: none; }
+    <!-- Autocomplete Studente -->
+    <div style="position: relative; margin-bottom: 10px;">
+        <input type="text" id="cercaStudente" placeholder="🔍 Cerca studente..." 
+               autocomplete="off" oninput="suggerisciStudenti(this.value)" onfocus="suggerisciStudenti(this.value)">
+        <!-- Lista suggerimenti -->
+        <div id="listaSuggerimentiStudenti" style="display:none; position:absolute; top:100%; left:0; right:0; 
+                    background:var(--surface); border:1px solid var(--border-2); border-radius:var(--radius); 
+                    box-shadow:var(--shadow-lg); z-index:100; max-height:200px; overflow-y:auto; margin-top:4px;">
+        </div>
+        <!-- Input hidden per memorizzare il cognome esatto selezionato -->
+        <input type="hidden" id="selectStudente" value="">
+    </div>
 
-/* ============================================================
-   18. ATTIVITÀ CAMPUS — griglia giorni, card, attività
-   ============================================================ */
-.day-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    animation: fadeIn 0.3s ease;
-    margin-bottom: 24px;
-}
+    <!-- Select Classe -->
+    <select id="selectClasse" style="margin-bottom:10px;">
+        <option value="">-- Seleziona Classe --</option>
+    </select>
 
-.day-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    border-bottom: 4px solid var(--accent);
-    transition: all var(--t);
-    box-shadow: var(--shadow-sm);
-}
-.day-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-    border-color: var(--border-2);
-}
-.day-card h2 {
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
-}
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Dal</label>
+            <input type="date" id="dataDal" style="width:100%;">
+        </div>
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Al</label>
+            <input type="date" id="dataAl" style="width:100%;">
+        </div>
+    </div>
 
-.activity {
-    padding: 14px 0;
-    border-bottom: 1px dashed var(--border-2);
-}
-.activity:last-child { border-bottom: none; padding-bottom: 0; }
-.activity h3 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-}
-.activity .time {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--text-2);
-    margin-bottom: 6px;
-}
-.activity p {
-    font-size: 0.82rem;
-    color: var(--text-2);
-    line-height: 1.5;
-}
+    <button class="btn-add-assenza btn-green" onclick="aggiungiAssenza()">Conferma</button>
+</div>
+    </details>
 
-.participation {
-    margin-top: 10px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 0.78rem;
-}
-.participation strong {
-    color: var(--text);
-    font-weight: 600;
-}
-.participation .yes {
-    background: var(--ok-dim);
-    color: var(--ok);
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-weight: 600;
-}
-.participation .no {
-    background: var(--absent-dim);
-    color: var(--absent);
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-weight: 600;
-}
+    <!-- ── PERMESSI PERMANENTI (details) ── -->
+    <details id="boxPermessiPermanenti">
+        <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                        color:var(--text);padding:6px 0;user-select:none;">
+        🔒 Permessi Permanenti
+        </summary>
+        <div style="font-size:0.75rem;color:var(--text-2);
+                    margin:6px 0 10px 0;font-style:italic;">
+            Gestire da questo pannello
+        </div>
+        <div id="listaPermessiContent"></div>
+    </details>
 
-/* QR container (base) — gli override inline in attivicampus.html restano validi */
-.qr-container {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    text-align: center;
-    box-shadow: var(--shadow-sm);
-    margin-top: 24px;
-}
-.qr-container h3 {
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    margin-bottom: 8px;
-}
-.qr-container p {
-    font-size: 0.82rem;
-    color: var(--text-2);
-    margin-bottom: 12px;
-}
-.qr-code img {
-    width: 160px;
-    height: 160px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border-2);
-    padding: 6px;
-    background: white;
-}
+    <!-- ── OVERRIDE TURNI CENA (details) ── -->
+<details id="boxOverrideTurni">
+    <summary style="cursor:pointer;font-size:1rem;font-weight:700;
+                    color:var(--text);padding:6px 0;user-select:none;">
+        🍽 Override Turno Cena
+    </summary>
+    <div style="font-size:0.75rem;color:var(--text-2);
+                margin:6px 0 10px 0;font-style:italic;">
+        Forza il turno di cena per un singolo studente in un giorno specifico
+    </div>
 
-/* ============================================================
-   19. FORM CONTAINER / MESSAGE / INPUT GENERICI (subscribe.html)
-   ============================================================ */
-.form-container {
-    max-width: 560px;
-    margin: 40px auto;
-    background: var(--surface);
-    padding: 32px;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border);
-}
-.form-container h1 {
-    font-size: 1.2rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 24px;
-    text-align: center;
-}
-.form-group { margin-bottom: 18px; }
+    <!-- ⚠️ AVVISO: visibile solo offline -->
+<div id="overrideAvvisoOffline" style="
+            background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--radius);
+            padding:10px 12px;margin-bottom:12px;font-size:0.75rem;
+            color:#92400e;line-height:1.5;align-items:flex-start;gap:8px;
+            display:none;">
+    <span style="font-size:1.1rem;flex-shrink:0;line-height:1;">⚠️</span>
+    <span>
+        <b>Valido solo online.</b><br>
+        In modalità offline o demo locale il salvataggio non viene eseguito,
+        ma è necessario modificare manualmente l'archivio.
+    </span>
+</div>
 
-.form-container label,
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-    color: var(--text-2);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-.form-container input,
-.form-container select,
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 11px 14px;
-    background: var(--bg-3);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 0.88rem;
-    outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
-}
-.form-container input:focus,
-.form-container select:focus,
-.form-group input:focus,
-.form-group select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
-.form-container .restricted,
-.restricted {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    margin-top: 6px;
-}
+    <!-- Autocomplete studente -->
+    <div style="position: relative; margin-bottom: 10px;">
+        <input type="text" id="overrideCercaStudente" placeholder="🔍 Cerca studente..."
+               autocomplete="off" oninput="suggerisciStudentiOverride(this.value)">
+        <div id="overrideListaSuggerimenti" style="display:none; position:absolute; top:100%; left:0; right:0;
+                    background:var(--surface); border:1px solid var(--border-2); border-radius:var(--radius);
+                    box-shadow:var(--shadow-lg); z-index:100; max-height:150px; overflow-y:auto; margin-top:4px;">
+        </div>
+        <input type="hidden" id="overrideStudenteSelezionato" value="">
+    </div>
 
-.form-container button[type="submit"],
-button[type="submit"] {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 0.85rem;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    transition: all var(--t);
-    box-shadow: 0 4px 16px rgba(37,99,235,0.25);
-}
-.form-container button[type="submit"]:hover,
-button[type="submit"]:hover {
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37,99,235,0.4);
-}
+    <!-- Giorno e turno -->
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Giorno</label>
+            <select id="overrideGiorno" style="width:100%;">
+                <option value="1">Lunedì</option>
+                <option value="2">Martedì</option>
+                <option value="3">Mercoledì</option>
+                <option value="4">Giovedì</option>
+            </select>
+        </div>
+        <div style="flex:1;">
+            <label style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; display:block;">Turno</label>
+            <select id="overrideTurno" style="width:100%;">
+                <option value="1">1° Turno</option>
+                <option value="2">2° Turno</option>
+            </select>
+        </div>
+    </div>
 
-.message {
-    padding: 14px 18px;
-    border-radius: var(--radius);
-    margin-bottom: 18px;
-    display: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-.message.success {
-    background: var(--ok-dim);
-    color: var(--ok);
-    border: 1px solid rgba(22,163,74,0.25);
-}
-.message.error {
-    background: var(--absent-dim);
-    color: var(--absent);
-    border: 1px solid rgba(220,38,38,0.25);
-}
+    <button class="btn-add-assenza btn-green" onclick="salvaOverrideTurno()">Salva Override</button>
+    <button class="btn-add-assenza" style="background:var(--surface-2);color:var(--text-2);margin-top:6px;"
+            onclick="rimuoviOverrideTurno()">Rimuovi Override</button>
 
-/* Badge modalità simulazione  */
-.sim-badge {
-    display: none;
-    background: var(--switched-dim);
-    border: 1px solid var(--switched);
-    color: var(--switched);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    margin-bottom: var(--gap-block);
-    text-align: center;
-    font-family: var(--font-mono);
-    letter-spacing: 0.03em;
-}
-.sim-badge.visible { display: block; }
+    <!-- Lista override attivi -->
+    <div style="margin-top:16px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-2);
+                    text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+            Override attivi
+        </div>
+        <div id="listaOverrideAttivi" style="
+            max-height:220px; overflow-y:auto;
+            border:1px solid var(--border); border-radius:var(--radius);
+            background:var(--surface-2);
+        ">
+        </div>
+    </div>
+</details>
+    
+</div>
+    
+</div>
 
-/* ============================================================
-   20. ANIMAZIONI
-   ============================================================ */
-@keyframes pulse {
-    0%   { opacity: 1; }
-    50%  { opacity: 0.3; }
-    100% { opacity: 1; }
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes ppFadeIn {
-    from { opacity: 0; transform: translate(-50%, 10px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
-}
+</div><!-- /#appContent -->
 
-/* ============================================================
-   21. RESPONSIVE
-   ============================================================ */
-@media (max-width: 1100px) {
-    header:not(.app-header) {
-        grid-template-columns: 1fr;
-        text-align: center;
-        gap: 10px;
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<!-- dati condivisi (devono precedere ogni consumatore) -->
+<script src="js/dati/cognomi-auto.js"></script>
+<script src="js/dati/note-classi.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+
+<!-- dati offline: SEMPRE, come script classici -->
+<script src="offline/studenti_26_offline.js"></script>
+<script src="offline/permessi_26_offline.js"></script>
+
+<!-- core -->
+<script src="js/core/stato.js"></script>
+<script src="js/core/config-static.js"></script>
+<script src="js/core/a11y.js"></script>        
+<script src="js/core/turni.js"></script>
+<script src="js/core/pp.js"></script>
+<script src="js/core/filtri.js"></script>
+<script src="js/core/persistenza.js"></script>
+
+<!-- pannello -->
+<script src="js/pannello/assenze-programmate.js"></script>
+<script src="js/pannello/side-panel.js"></script>
+<script src="js/pannello/override-turni.js"></script>
+
+<!-- main -->
+<script src="js/campus_hub-script.js"></script>
+
+<!-- stampe -->
+<script src="js/stampe/layout.js"></script>
+<script src="js/stampe/bus-helpers.js"></script>
+<script src="js/stampe/dinner.js"></script>
+<script src="js/stampe/bus.js"></script>
+<script src="js/stampe/transfer.js"></script>
+<script src="js/stampe/uscite-rooming.js"></script>
+<script src="js/stampe/ritardi.js"></script>
+<script src="js/stampe/convitto.js"></script>
+
+<!-- reset -->
+<script src="js/reset/reset-permessi.js"></script>
+<script src="js/banner.js"></script>
+
+<script>
+/* ==============================================================
+   BOOTSTRAP — non più modulo: compatibile con file://
+   ============================================================== */
+document.body.classList.add('mode-' + window.APP_MODE);
+console.log(`🎨 Body class: mode-${window.APP_MODE}`);
+
+/* ---------- MODALITÀ OFFLINE (sincrona, nessun import) ---------- */
+function avviaOffline() {
+    console.log('📴 Bootstrap OFFLINE');
+
+        // ── RIPRISTINO SNAPSHOT DEL GIORNO ──
+    // Se c'è uno snapshot di OGGI in localStorage, usalo al posto
+    // di offline/*.js. Così, se manca la rete dopo le 11:00,
+    // ritrovi esattamente lo stato caricato stamattina da Firebase.
+    try {
+        const raw = localStorage.getItem('snapshotGiorno');
+        if (raw) {
+            const s = JSON.parse(raw);
+            const oggi = new Date();
+            const chiaveOggi = [
+                String(oggi.getDate()).padStart(2, '0'),
+                String(oggi.getMonth() + 1).padStart(2, '0'),
+                oggi.getFullYear()
+            ].join('-');
+
+            if (s.data === chiaveOggi) {
+                if (Array.isArray(s.studenti) && s.studenti.length > 0) {
+                    window.tuttiStudenti = s.studenti;
+                }
+                if (s.orariPP && window.ORARI_PP && typeof window.ORARI_PP === 'object') {
+                    Object.keys(window.ORARI_PP).forEach(k => delete window.ORARI_PP[k]);
+                    Object.assign(window.ORARI_PP, s.orariPP);
+                }
+                if (s.assentiPermesso) {
+                    window.ASSENTI_PERMESSO = s.assentiPermesso;
+                }
+                if (s.overrideTurni && window.OVERRIDE_TURNI_DINNER && typeof window.OVERRIDE_TURNI_DINNER === 'object') {
+                    Object.keys(window.OVERRIDE_TURNI_DINNER).forEach(k => delete window.OVERRIDE_TURNI_DINNER[k]);
+                    Object.assign(window.OVERRIDE_TURNI_DINNER, s.overrideTurni);
+                }
+                if (s.datiGiorno) {
+                    localStorage.setItem('datiConvitto', JSON.stringify(s.datiGiorno));
+                }
+                console.log(`📅 Snapshot di oggi ripristinato (${s.data})`);
+            } else {
+                console.warn(`⚠️ Snapshot vecchio (${s.data}), uso offline/*.js`);
+            }
+        }
+    } catch (e) {
+        console.error('❌ Errore ripristino snapshot:', e);
     }
-    header:not(.app-header) > .header-brand,
-    header:not(.app-header) > #digitalClock,
-    header:not(.app-header) > .header-actions {
-        justify-self: center;
-    }
-    .header-actions { margin-top: 4px; }
+    
+    const NOTE_KEY = 'convitto_note_locali';
 
-    .toolbar-sep { display: none; }
-    .toolbar-group { flex: 1 1 100%; }
-    .toolbar-group.grow { flex: 1 1 100%; }
-}
+    window.salvaNoteFirebase = (testo) => {
+        localStorage.setItem(NOTE_KEY, testo ?? "");
+    };
 
-@media (max-width: 900px) {
-    .azioni-grid {
-        grid-template-columns: 1fr;
-    }
-    .azioni-categoria { min-width: 0; }
-}
+    window.attivaNoteCondivise = function () {
+        const ta = document.getElementById('dailyNotes');
+        if (!ta) return;
+        ta.value = localStorage.getItem(NOTE_KEY) || "";
+        let timer = null;
+        ta.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => window.salvaNoteFirebase(ta.value), 400);
+        });
+        ta.addEventListener('blur', () => window.salvaNoteFirebase(ta.value));
+        console.log('📝 Note locali attive');
+    };
 
-@media (max-width: 700px) {
-    .app-header { flex-direction: column; text-align: center; }
-    .header-datetime { align-items: center; }
-    .day-container { grid-template-columns: 1fr; }
-}
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display  = 'block';
 
-@media (max-width: 600px) {
-    .container { padding: 12px; }
-    header:not(.app-header) { padding: 12px 14px; }
-    header:not(.app-header) h1 { font-size: 1.1rem; }
-    #digitalClock { font-size: 1.1rem; }
+    const btnOut = document.getElementById('btnLogout');
+    if (btnOut) btnOut.style.display = 'none';
 
-    #listaStudenti {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-    .inputs,
-    .btns,
-    .st-name-line,
-    .st-meta,
-    .st-header {
-        padding-left: 14px;
-    }
-    .student-row::before {
-        left: 8px;
-        top: 18px;
-    }
-    #sidePanel { width: 100%; }
-}
-
-@media (max-width: 420px) {
-    #listaStudenti { grid-template-columns: 1fr; }
-}
-
-/* ============================================================
-   PREFERS-REDUCED-MOTION
-   ============================================================ */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration:        0.01ms !important;
-        animation-iteration-count: 1      !important;
-        transition-duration:       0.01ms !important;
-        scroll-behavior:           auto   !important;
+    const badge = document.getElementById('connection-status');
+    if (badge) {
+        badge.textContent = '📴 Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
     }
 
-    .link-card::before {
-        display: none !important;
-    }
+    
+    
+        window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
+    console.log(`🏠 Convittori DEMO: ${window.studenticonvittori.length}`);
 
-    .link-card:hover,
-    .student-row:hover,
-    .student-item:hover,
-    .day-box:hover,
-    .btn-toolbar:hover,
-    .btn-reset:hover,
-    .btn-reset-sim:hover,
-    .btn-app:hover,
-    .modal-btn:hover,
-    .btn:hover,
-    .side-panel-close:hover,
-    .btn-switch:hover {
-        transform: none !important;
-    }
-
-    .link-card:hover svg {
-        transform: none !important;
-        filter:    none !important;
-    }
-
-    .lab-badge {
-        animation: none !important;
+    try {
+        if (typeof init                 === 'function') init();
+        if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+        if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+        if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+        if (typeof attivaNoteCondivise  === 'function') attivaNoteCondivise();
+        console.log('✅ App OFFLINE pronta');
+    } catch (e) {
+        console.error('❌ Errore init offline:', e);
     }
 }
 
-/* ============================================================
-   22. PRINT
-   ============================================================ */
-@media print {
-    .no-print,
-    .print-bar { display: none !important; }
-    body {
-        background: white !important;
-        color: black !important;
+/* ---------- MODALITÀ ONLINE (import dinamici via HTTP) ---------- */
+async function avviaOnline() {
+    console.log('🟢 Bootstrap ONLINE');
+
+    let firebaseMod;
+    try {
+        firebaseMod = await import('./js/firebase-campus_hub-config.js');
+    } catch (err) {
+        console.error('❌ Import firebase-campus_hub-config.js:', err);
+        document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#c00;background:#fff;min-height:100vh;">
+            <h2>❌ Errore di caricamento Firebase</h2>
+            <pre style="background:#f5f5f5;padding:15px;border-radius:6px;overflow:auto;">${err.message}</pre>
+            <p>Apri la console (F12) per i dettagli.</p>
+        </div>`;
+        return;
     }
-    .print-logo {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        height: 44px;
-        width: auto;
-        object-fit: contain;
+
+    const {
+        auth, db, ref, get, update, set, onValue,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged
+    } = firebaseMod;
+
+    // ✅ Espone le API Firebase a window per i moduli esterni
+    // (override-turni.js, reset-permessi.js, ecc.)
+    window.db      = db;
+    window.ref     = ref;
+    window.update  = update;
+    window.set     = set;
+    window.get     = get;
+    window.onValue = onValue;
+
+    /* --- Login / Logout --- */
+    window.effettuaLogin = async function () {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pwd   = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        const btn   = document.getElementById('loginBtn');
+        errEl.textContent = '';
+        if (!email || !pwd) { errEl.textContent = 'Inserisci email e password'; return; }
+        btn.disabled = true; btn.textContent = 'Verifica…';
+        try {
+            await signInWithEmailAndPassword(auth, email, pwd);
+        } catch (e) {
+            const messaggi = {
+                'auth/invalid-email':'Email non valida','auth/user-not-found':'Utente non trovato',
+                'auth/wrong-password':'Password errata','auth/invalid-credential':'Credenziali errate',
+                'auth/too-many-requests':'Troppi tentativi. Riprova più tardi.',
+                'auth/network-request-failed':'Errore di rete'
+            };
+            errEl.textContent = messaggi[e.code] || 'Errore di accesso';
+            btn.disabled = false; btn.textContent = 'ACCEDI';
+        }
+    };
+
+    window.effettuaLogout = async function () {
+        if (!confirm('Vuoi uscire?')) return;
+        try { await signOut(auth); } catch (e) { console.error(e); }
+    };
+
+    document.getElementById('loginBtn').addEventListener('click', () => window.effettuaLogin());
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+        if (e.key === 'Enter') window.effettuaLogin();
+    });
+    document.getElementById('loginEmail').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+    });
+
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) btnLogout.onclick = () => window.effettuaLogout();
+
+    async function isUtenteAutorizzato(uid) {
+        try {
+            const snap = await get(ref(db, `authorizedUsers/${uid}`));
+            return snap.exists() && snap.val() === true;
+        } catch (e) { console.error('Errore verifica autorizzazione:', e); return false; }
+    }
+
+    window.salvaPermessiFirebase = async function (permessi) {
+        if (!db) throw new Error("Firebase DB non inizializzato");
+        if (!permessi || typeof permessi !== "object") throw new Error("Permessi non validi");
+        await update(ref(db, 'permessi_pp'), permessi);
+    };
+
+    window.salvaAssenzeProgrammateFirebase = async function (dati) {
+        try {
+            const daScrivere = (dati && Object.keys(dati).length > 0) ? dati : null;
+            await set(ref(db, 'assenzeProgrammate'), daScrivere);
+        } catch (err) { console.error('❌ Errore salvataggio assenze programmate:', err); }
+    };
+
+    // ── Dichiarazioni singole (rimossi i duplicati) ──
+    let unsubAssProg = null;
+    let appInizializzata = false;
+    let isAuthReady = false; // flag per il primo controllo
+
+    onAuthStateChanged(auth, async (user) => {
+        const loginScreen = document.getElementById('loginScreen');
+        const appContent  = document.getElementById('appContent');
+        const errEl       = document.getElementById('loginError');
+        const btn         = document.getElementById('loginBtn');
+
+        // ── 1. PRIMO CARICAMENTO: nascondi tutto e aspetta Firebase ──
+        if (!isAuthReady) {
+            loginScreen.style.display = 'none';
+            appContent.style.display  = 'none';
+
+            // Dai tempo a Firebase di ripristinare la sessione salvata
+            setTimeout(async () => {
+                isAuthReady = true;
+
+                if (user) {
+                    // Sessione ripristinata: mostra l'app e inizializza
+                    loginScreen.style.display = 'none';
+                    appContent.style.display  = 'block';
+
+                    // Verifica autorizzazione
+                    const autorizzato = await isUtenteAutorizzato(user.uid);
+                    if (!autorizzato) {
+                        console.warn('⛔ Utente non autorizzato:', user.uid);
+                        if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
+                        setTimeout(async () => {
+                            try { await signOut(auth); } catch (e) { console.error(e); }
+                            if (errEl) errEl.textContent = '';
+                            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+                        }, 2000);
+                        return;
+                    }
+
+                    if (appInizializzata) return;
+                    appInizializzata = true;
+
+                    let dl;
+                    try {
+                        dl = await import('./js/data-loader.js');
+                    } catch (err) {
+                        console.error('❌ Impossibile caricare data-loader.js:', err);
+                        alert('Errore di connessione ai moduli. Ricarica la pagina.');
+                        return;
+                    }
+
+                    const badge = document.getElementById('connection-status');
+                    let datiCaricati = false;
+                    if (typeof dl.caricaDatiFirebase === 'function') {
+                        try { datiCaricati = await dl.caricaDatiFirebase(); }
+                        catch (err) { console.error('❌ Errore caricamento Firebase:', err); }
+                    }
+
+                    if (!datiCaricati) {
+                        window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
+                        if (badge) {
+                            badge.textContent = '📴 Locale';
+                            badge.classList.remove('connected');
+                            badge.classList.add('disconnected');
+                        }
+                    } else if (badge) {
+                        badge.textContent = '🟢 Firebase';
+                        badge.classList.add('connected');
+                        badge.classList.remove('disconnected');
+                    }
+
+                    try {
+                        if (typeof init                 === 'function') init();
+                        if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
+                        if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+                        if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+                        if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+                        if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+                    } catch (e) { console.error('❌ Errore inizializzazione:', e); }
+
+                    try {
+                        if (typeof dl.attivaNoteCondivise === 'function') dl.attivaNoteCondivise();
+                        else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
+                    } catch (e) { console.error('❌ Errore note condivise:', e); }
+
+                    try {
+                        if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
+                        else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
+                    } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
+
+                    // Listener assenze programmate
+                    if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
+                    let lastAssProgHash = '';
+                    unsubAssProg = onValue(ref(db, 'assenzeProgrammate'), (snap) => {
+                        const val = snap.val() || {};
+                        const hash = JSON.stringify(val);
+                        if (hash === lastAssProgHash) return;
+                        lastAssProgHash = hash;
+                        if (typeof window.setAssenzeProgrammateFromRemote === 'function') {
+                            window.setAssenzeProgrammateFromRemote(val);
+                        }
+                    });
+                } else {
+                    // Nessuna sessione: mostra login
+                    loginScreen.style.display = 'flex';
+                    appContent.style.display  = 'none';
+                    if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+                    if (errEl) errEl.textContent = '';
+                }
+            }, 500);
+            return;
+        }
+
+        // ── 2. CAMBIAMENTI SUCCESSIVI (login/logout manuale) ──
+        if (!user) {
+            loginScreen.style.display = 'flex';
+            appContent.style.display  = 'none';
+            if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            appInizializzata = false;
+            if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
+            return;
+        }
+
+        // Utente loggato manualmente dopo il primo caricamento
+        console.log('✅ Utente autenticato:', user.email);
+        loginScreen.style.display = 'flex';
+        appContent.style.display  = 'none';
+        if (errEl) errEl.textContent = 'Verifica autorizzazione…';
+        if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
+
+        const autorizzato = await isUtenteAutorizzato(user.uid);
+        if (!autorizzato) {
+            console.warn('⛔ Utente non autorizzato:', user.uid);
+            if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
+            setTimeout(async () => {
+                try { await signOut(auth); } catch (e) { console.error(e); }
+                if (errEl) errEl.textContent = '';
+                if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+            }, 2000);
+            return;
+        }
+
+        loginScreen.style.display = 'none';
+        appContent.style.display  = 'block';
+        if (btn) { btn.disabled = false; btn.textContent = 'ACCEDI'; }
+        if (errEl) errEl.textContent = '';
+
+        if (appInizializzata) return;
+        appInizializzata = true;
+
+        let dl;
+        try {
+            dl = await import('./js/data-loader.js');
+        } catch (err) {
+            console.error('❌ Impossibile caricare data-loader.js:', err);
+            alert('Errore di connessione ai moduli. Ricarica la pagina.');
+            return;
+        }
+
+        const badge = document.getElementById('connection-status');
+        let datiCaricati = false;
+        if (typeof dl.caricaDatiFirebase === 'function') {
+            try { datiCaricati = await dl.caricaDatiFirebase(); }
+            catch (err) { console.error('❌ Errore caricamento Firebase:', err); }
+        }
+
+        if (!datiCaricati) {
+            window.studenticonvittori = window.filtraConvittori(window.tuttiStudenti || []);
+            if (badge) {
+                badge.textContent = '📴 Locale';
+                badge.classList.remove('connected');
+                badge.classList.add('disconnected');
+            }
+        } else if (badge) {
+            badge.textContent = '🟢 Firebase';
+            badge.classList.add('connected');
+            badge.classList.remove('disconnected');
+        }
+
+        try {
+            if (typeof init                 === 'function') init();
+            if (typeof caricaDatiLocale     === 'function') caricaDatiLocale();
+            if (typeof popolaListaPermessi  === 'function') popolaListaPermessi();
+            if (typeof renderListaAssenze   === 'function') renderListaAssenze();
+            if (typeof popolaSelectStudenti === 'function') popolaSelectStudenti();
+            if (typeof popolaSelectClassi   === 'function') popolaSelectClassi();
+        } catch (e) { console.error('❌ Errore inizializzazione:', e); }
+
+        try {
+            if (typeof dl.attivaNoteCondivise === 'function') dl.attivaNoteCondivise();
+            else if (typeof window.attivaNoteCondivise === 'function') window.attivaNoteCondivise();
+        } catch (e) { console.error('❌ Errore note condivise:', e); }
+
+        try {
+            if (typeof dl.attivaUltimoAggiornamento === 'function') dl.attivaUltimoAggiornamento();
+            else if (typeof window.attivaUltimoAggiornamento === 'function') window.attivaUltimoAggiornamento();
+        } catch (e) { console.error('❌ Errore sync ultimo aggiornamento:', e); }
+
+        if (unsubAssProg) { unsubAssProg(); unsubAssProg = null; }
+        let lastAssProgHash = '';
+        unsubAssProg = onValue(ref(db, 'assenzeProgrammate'), (snap) => {
+            const val = snap.val() || {};
+            const hash = JSON.stringify(val);
+            if (hash === lastAssProgHash) return;
+            lastAssProgHash = hash;
+            if (typeof window.setAssenzeProgrammateFromRemote === 'function') {
+                window.setAssenzeProgrammateFromRemote(val);
+            }
+        });
+    });
+}
+
+/* ---------- Dispatch ---------- */
+if (window.APP_MODE === 'offline') {
+    avviaOffline();
+} else if (window.APP_MODE === 'online') {
+    avviaOnline().catch(err => console.error('❌ Bootstrap online:', err));
+}
+ /* ── BADGE OFFLINE / ONLINE ── */
+function aggiornaBadgeConnessione() {
+    const badge = document.getElementById('connection-status');
+    if (!badge) return;
+
+    if (!navigator.onLine) {
+        badge.textContent = '🔴 OFFLINE — dati congelati';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+        return;
+    }
+
+    const origin = window.APP_ORIGIN;
+    if (origin === 'firebase') {
+        badge.textContent = '🟢 Firebase';
+        badge.classList.add('connected');
+        badge.classList.remove('disconnected');
+    } else if (origin === 'locale-reale' || origin === 'localhost-demo') {
+        badge.textContent = '📴 Locale';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
+    } else {
+        badge.textContent = '🎭 Demo';
+        badge.classList.remove('connected');
+        badge.classList.add('disconnected');
     }
 }
 
-#modeBanner {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    padding: 6px 14px;
-    text-align: center;
-    font-family: var(--font);
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    border-bottom: 3px solid #2563eb;
-    background: #dbeafe;
-    color: #1e3a8a;
-    display: none;
-}
-#modeBanner.visible { display: block; }
-/* ─────────────────────────────────────────────────────────────
-   LATE DINNER BUTTON — magenta discreto a riposo, acceso on demand
-   Palette derivata da --late (#db2777) ma con saturazione ridotta
-   nello stato inattivo per non competere con LAB/PP/switched.
-   ───────────────────────────────────────────────────────────── */
-.btn-late {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #f7f5f6;              /* grigio-rosa quasi neutro */
-    color: #8b6472;                   /* magenta desaturato, leggibile ma spento */
-    border: 1px solid #e4dce0;        /* bordo tenue */
-    font-size: 0.68rem;
-    font-weight: 600;                 /* 700 → 600: meno assertivo a riposo */
-    padding: 1px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background .15s, border-color .15s,
-                color .15s, box-shadow .15s;
-    font-family: inherit;
-    line-height: 1.5;
-    letter-spacing: .3px;
-    margin-left: 4px;
-    vertical-align: middle;
-    user-select: none;
-    opacity: .85;                     /* micro-attenuazione globale */
-}
+window.addEventListener('online',  aggiornaBadgeConnessione);
+window.addEventListener('offline', aggiornaBadgeConnessione);
+document.addEventListener('DOMContentLoaded', aggiornaBadgeConnessione);
+    
+</script>
 
-/* Hover: si "sveglia" senza essere ancora acceso */
-.btn-late:hover {
-    background: #fdf2f8;
-    color: #9d174d;
-    border-color: #f9a8d4;
-    opacity: 1;
-}
 
-/* Active: pieno magenta, pieno contrasto */
-.btn-late.active {
-    background: #db2777;
-    color: #fff;
-    border-color: #be185d;
-    box-shadow: 0 0 0 2px rgba(219, 39, 119, .35);
-    font-weight: 700;                 /* torna assertivo quando attivo */
-    opacity: 1;
-}
-.btn-late.active:hover {
-    background: #be185d;
-    border-color: #9d174d;
-}
-
-/* Focus: accessibilità preservata anche a riposo */
-.btn-late:focus-visible {
-    outline: 2px solid #db2777;
-    outline-offset: 2px;
-    opacity: 1;
-}
-
-/* Bordo laterale sulla card quando late dinner è attivo */
-.student-row.late-dinner { border-left: 4px solid #db2777; }
+</body>
+</html>
