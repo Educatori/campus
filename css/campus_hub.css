@@ -1740,7 +1740,7 @@ button[type="submit"]:hover {
     background: #be185d;
     border-color: #9d174d;
 }
-
+ 
 /* Focus: accessibilità preservata anche a riposo */
 .btn-late:focus-visible {
     outline: 2px solid #db2777;
