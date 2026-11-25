@@ -54,9 +54,10 @@ function apriPannello(panel) {
     if (typeof popolaSelectStudenti === "function") popolaSelectStudenti();
     if (typeof renderListaAssenze   === "function") renderListaAssenze();
     if (typeof popolaSelectClassi   === "function") popolaSelectClassi();
-    if (typeof renderListaOverrideAttivi === "function") renderListaOverrideAttivi();  // ← NUOVO
+    if (typeof renderListaOverrideAttivi === "function") renderListaOverrideAttivi(); 
     aggiornaAltezzaOverlay();
     impostaInertBackground(true);
+    setTimeout(aggiornaAltezzaHeaderPannello, 50);
 }
 
 function chiudiPannello(panel) {
@@ -317,15 +318,8 @@ function renderListaOverrideAttivi() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// NAVIGAZIONE RAPIDA TRA LE SEZIONI DEL PANNELLO
+// NAVIGAZIONE RAPIDA TRA LE SEZIONI DEL PANNELLO 
 // ─────────────────────────────────────────────────────────────
-/**
- * Apre il <details> indicato (se chiuso) e ci porta lo scroll,
- * con una breve evidenziazione visiva per feedback.
- *
- * @param {string} idSezione - id del <details> ("boxProgrammate",
- *                             "boxPermessiPermanenti", "boxOverrideTurni")
- */
 function vaiASezione(idSezione) {
     const details = document.getElementById(idSezione);
     if (!details) {
@@ -333,22 +327,21 @@ function vaiASezione(idSezione) {
         return;
     }
 
+    if (typeof aggiornaAltezzaHeaderPannello === 'function') {
+        aggiornaAltezzaHeaderPannello();
+    }
+
     const eraChiuso = !details.open;
     if (eraChiuso) details.open = true;
 
     const eseguiScroll = () => {
-        // Scrolla in cima al details
         details.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // Feedback visivo: flash di sfondo
         const vecchioBg = details.style.backgroundColor;
         details.style.transition = 'background-color 0.4s ease';
         details.style.backgroundColor = 'rgba(52, 152, 219, 0.10)';
-        setTimeout(() => {
-            details.style.backgroundColor = vecchioBg;
-        }, 900);
+        setTimeout(() => { details.style.backgroundColor = vecchioBg; }, 900);
 
-        // Porta anche il focus sulla summary per accessibilità
         const summary = details.querySelector('summary');
         if (summary) {
             summary.setAttribute('tabindex', '-1');
@@ -356,10 +349,26 @@ function vaiASezione(idSezione) {
         }
     };
 
-    // Se era chiuso aspetta che il browser completi l'espansione
     if (eraChiuso) {
         setTimeout(eseguiScroll, 80);
     } else {
         eseguiScroll();
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// ALTEZZA HEADER PANNELLO → CSS var per scroll-margin-top
+// ─────────────────────────────────────────────────────────────
+function aggiornaAltezzaHeaderPannello() {
+    const header  = document.querySelector('#sidePanelContent .side-panel-header');
+    const content = document.getElementById('sidePanelContent');
+    if (!header || !content) return;
+
+    const h = header.offsetHeight + 10;
+    content.style.setProperty('--panel-header-h', h + 'px');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(aggiornaAltezzaHeaderPannello, 100);
+});
+window.addEventListener('resize', aggiornaAltezzaHeaderPannello);
