@@ -291,8 +291,8 @@ function pulisciAssenzeScadute() {
 
     // ── 2. Conferma esplicita (operazione irreversibile) ──
     const ok = confirm(
-        `Verranno rimossi definitivamente ${periodiRimossi} period${periodiRimossi === 1 ? 'o' : 'i'} ` +
-        `già terminat${periodiRimossi === 1 ? 'o' : 'i'}.\n\n` +
+        `Cancellazione definitiva di ${periodiRimossi} assenz${periodiRimossi === 1 ? 'a' : 'e'} ` +
+        `archiviat${periodiRimossi === 1 ? 'a' : 'e'}.\n\n` +
         `L'operazione è sincronizzata su Firebase e non è reversibile.\n\n` +
         `Procedere?`
     );
