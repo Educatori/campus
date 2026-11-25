@@ -48,6 +48,12 @@
   .class-selector button.active{background:#2c3e50;color:#fff;}
   .class-selector button.has-lab{border-color:var(--lab-accent);color:var(--lab-accent);background:var(--lab-bg);}
   .class-selector button.has-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+  .class-selector button.btn-totali{
+    background:#1e3a8a;color:#fff;border-color:#1e3a8a;
+  }
+  .class-selector button.btn-totali.active{
+    background:#0f1f4d;border-color:#0f1f4d;
+  }
 
   .list-container{max-width:720px;margin:0 auto;}
 
@@ -70,7 +76,7 @@
 
   .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
   .td-name{text-transform:uppercase;}
-  .td-details{font-size:.62rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .td-details{width:38px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
   .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
   .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
   .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
@@ -85,6 +91,40 @@
   .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
   .loading .err{color:#c0392b;font-weight:bold;}
 
+  /* ── Scheda Totali ── */
+  .turno-selector{
+    display:flex;gap:6px;justify-content:center;margin:10px 0;
+    padding:8px;background:#f0f4f8;border-radius:12px;border:1px solid #d0dae3;
+  }
+  .turno-selector button{
+    padding:7px 18px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.82rem;cursor:pointer;
+    transition:all .15s;
+  }
+  .turno-selector button:hover{background:#eaf2f8;}
+  .turno-selector button.active{background:#2c3e50;color:#fff;}
+
+  .totali-lista{
+    display:flex;flex-direction:column;gap:4px;
+    margin-top:6px;padding:6px 0;
+  }
+  .totale-riga{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border:1px solid #ccc;border-radius:8px;
+    background:#fafbfc;font-size:.92rem;
+  }
+  .totale-riga.lab{background:var(--lab-bg);border-color:var(--lab-accent);}
+  .totale-riga .tr-classe{font-weight:bold;font-size:1rem;color:#2c3e50;min-width:48px;}
+  .totale-riga .tr-presenti{flex:1;text-align:center;font-weight:bold;color:#1e8449;font-size:1rem;}
+  .totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
+  .totale-riga .tr-turno{
+    font-weight:bold;padding:2px 10px;border-radius:10px;
+    background:#2c3e50;color:#fff;font-size:.72rem;min-width:38px;text-align:center;
+  }
+  .totale-riga .tr-turno.t1{background:#16a34a;}
+  .totale-riga .tr-turno.t2{background:#2563eb;}
+  .totale-riga .tr-turno.t3{background:#9333ea;}
+
   @page{size:A4 portrait;margin:.5cm .4cm;}
   @media print{
     .no-print{display:none !important;}
@@ -97,6 +137,7 @@
     .td-day[data-state="O"]{background:var(--absent-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     tr.lab-row td{background-color:var(--lab-bg) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .total-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .totale-riga{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 </style>
 </head>
@@ -133,7 +174,6 @@
 
 <!-- ============================================================
      CARICAMENTO DATI DA FIREBASE (solo se online)
-     Importa data-loader.js e chiama caricaDatiFirebase()
      ============================================================ -->
 <script type="module">
   if (window.APP_MODE === 'online') {
@@ -178,6 +218,7 @@
    ============================================================ */
 var STORAGE_KEY = "transfer_lunch_appello_v1";
 var stato = {};
+var filtroTurnoTotali = 0;  // 0 = tutti, 1/2/3 = filtro
 
 /* ============================================================
    GIORNO CORRENTE
@@ -186,12 +227,11 @@ function giornoCorrente(){
   var d = new Date().getDay();
   return {
     num: d,
-    sigla: ["D","L","M","M","G","V","S"][d],
+    sigla: ["Do","Lu","Ma","Me","Gi","Ve","Sa"][d],
     nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
   };
 }
 
-/* Codice giorno usato nella chiave di stato (compatibile con lo storage) */
 function codiceGiorno(){
   var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
   return sigle[new Date().getDay()];
@@ -212,12 +252,33 @@ function salvaStato(){
 function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
 
 /* ============================================================
-   CLASSI IN LAB OGGI (da LAB_PRANZO in config-static.js)
+   CLASSI IN LAB OGGI
    ============================================================ */
 function getClassiLabOggi(){
   var lab = (typeof window.LAB_PRANZO !== "undefined") ? window.LAB_PRANZO : {};
   var giorno = new Date().getDay();
   return lab[giorno] || lab[String(giorno)] || [];
+}
+
+/* ============================================================
+   TURNO DI UNA CLASSE (1, 2 o 3)
+   ============================================================ */
+function turnoClasse(nomeClasse){
+  var giorno = new Date().getDay();
+
+  // 1. Override di classe
+  var ovr = window.OVERRIDE_TURNI_DINNER_CLASSI || {};
+  if (ovr[nomeClasse] && ovr[nomeClasse][giorno] !== undefined){
+    return Number(ovr[nomeClasse][giorno]);
+  }
+
+  // 2. TURNI_DINNER
+  var td = window.TURNI_DINNER || {};
+  if (td["1"] && td["1"].includes(nomeClasse)) return 1;
+  if (td["2"] && td["2"].includes(nomeClasse)) return 2;
+
+  // 3. fallback
+  return 3;
 }
 
 /* ============================================================
@@ -313,13 +374,14 @@ function render(){
     var table = document.createElement("table");
     table.className = "students-table";
 
-    // Header: Room / Cognome e Nome / Note / [sigla giorno]
+    // Header
     var thead = document.createElement("thead");
     var headRow = document.createElement("tr");
     ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
       var th = document.createElement("th");
       th.textContent = txt;
       if (txt === "Room") th.style.width = "42px";
+      if (txt === "Note") th.style.width = "38px";
       if (txt === g.sigla){
         th.style.width = "56px";
         th.title = g.nome;
@@ -382,6 +444,7 @@ function render(){
         salvaStato();
         aggiornaTotaleClasse(nomeClasse, tbody);
         aggiornaSottotitolo();
+        aggiornaTotaliGlobali(elencoClassi, classiLab);
       });
 
       tr.appendChild(td);
@@ -422,11 +485,102 @@ function render(){
     selector.appendChild(btn);
   });
 
+  // ════════════════════════════════════════════════════════
+  // SCHEDA TOTALI (dopo l'ultima classe)
+  // ════════════════════════════════════════════════════════
+  var blockTotali = document.createElement("div");
+  blockTotali.className = "class-block";
+  blockTotali.setAttribute("data-classe", "__TOTALI__");
+
+  var titleTotali = document.createElement("div");
+  titleTotali.className = "class-title-bar";
+  titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
+  blockTotali.appendChild(titleTotali);
+
+  // Selettore turno
+  var turnoSel = document.createElement("div");
+  turnoSel.className = "turno-selector no-print";
+  [["Tutti", 0], ["1T", 1], ["2T", 2], ["3T", 3]].forEach(function(pair){
+    var label = pair[0], val = pair[1];
+    var b = document.createElement("button");
+    b.textContent = label;
+    if (filtroTurnoTotali === val) b.classList.add("active");
+    b.addEventListener("click", function(){
+      filtroTurnoTotali = val;
+      render();
+      // Dopo il re-render, apri la scheda Totali
+      var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
+      if (target) target.classList.add("visible");
+      var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
+      if (btnTot) btnTot.classList.add("active");
+    });
+    turnoSel.appendChild(b);
+  });
+  blockTotali.appendChild(turnoSel);
+
+  // Lista totali
+  var listaTot = document.createElement("div");
+  listaTot.className = "totali-lista";
+  listaTot.setAttribute("data-totali-lista", "1");
+
+  elencoClassi.forEach(function(nomeClasse){
+    var turnoCl = turnoClasse(nomeClasse);
+    if (filtroTurnoTotali !== 0 && turnoCl !== filtroTurnoTotali) return;
+
+    var codice = codiceGiorno();
+    var totX = 0;
+    for (var k in stato){
+      if (stato[k] === "X"){
+        var parts = k.split("|");
+        if (parts[0] === nomeClasse && parts[2] === codice) totX++;
+      }
+    }
+
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+    var riga = document.createElement("div");
+    riga.className = "totale-riga" + (isLab ? " lab" : "");
+    riga.innerHTML =
+      '<span class="tr-classe">' + nomeClasse + '</span>' +
+      '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + totX + '<small>presenti</small></span>' +
+      '<span class="tr-turno t' + turnoCl + '">' + turnoCl + 'T</span>';
+    listaTot.appendChild(riga);
+  });
+
+  if (listaTot.children.length === 0){
+    var empty = document.createElement("div");
+    empty.className = "totale-riga";
+    empty.style.textAlign = "center";
+    empty.style.color = "#777";
+    empty.textContent = "Nessuna classe per il turno selezionato";
+    listaTot.appendChild(empty);
+  }
+
+  blockTotali.appendChild(listaTot);
+  container.appendChild(blockTotali);
+
+  // Pulsante selettore Totali
+  var btnTot = document.createElement("button");
+  btnTot.textContent = "📊 Totali";
+  btnTot.setAttribute("data-classe", "__TOTALI__");
+  btnTot.classList.add("btn-totali");
+  btnTot.addEventListener("click", function(){
+    container.querySelectorAll(".class-block").forEach(function(b){
+      b.classList.remove("visible");
+    });
+    selector.querySelectorAll("button").forEach(function(b){
+      b.classList.remove("active");
+    });
+    var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
+    if (target) target.classList.add("visible");
+    btnTot.classList.add("active");
+  });
+  selector.appendChild(btnTot);
+
   aggiornaSottotitolo();
 }
 
 /* ============================================================
-   TOTALI PER CLASSE (solo oggi)
+   TOTALI
    ============================================================ */
 function aggiornaTotaleClasse(nomeClasse, tbody){
   var codice = codiceGiorno();
@@ -439,6 +593,24 @@ function aggiornaTotaleClasse(nomeClasse, tbody){
   }
   var cell = tbody.querySelector("[data-total-value]");
   if (cell) cell.textContent = totale;
+}
+
+/* Aggiorna solo i numeri della scheda Totali (senza re-render completo) */
+function aggiornaTotaliGlobali(elencoClassi, classiLab){
+  var codice = codiceGiorno();
+  elencoClassi.forEach(function(nomeClasse){
+    var totX = 0;
+    for (var k in stato){
+      if (stato[k] === "X"){
+        var parts = k.split("|");
+        if (parts[0] === nomeClasse && parts[2] === codice) totX++;
+      }
+    }
+    var el = document.querySelector('[data-tot-presenti="' + nomeClasse + '"]');
+    if (el){
+      el.innerHTML = totX + '<small>presenti</small>';
+    }
+  });
 }
 
 /* ============================================================
