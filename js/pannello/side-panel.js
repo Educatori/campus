@@ -363,8 +363,10 @@ function aggiornaAltezzaHeaderPannello() {
     const header  = document.querySelector('#sidePanelContent .side-panel-header');
     const content = document.getElementById('sidePanelContent');
     if (!header || !content) return;
-
-    const h = header.offsetHeight + 10;
+    
+    // Prendiamo l'altezza esatta dell'header (che ora include già i padding)
+    const h = header.offsetHeight + 10; // 10px di respiro visivo
+    
     content.style.setProperty('--panel-header-h', h + 'px');
 }
 
