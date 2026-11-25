@@ -332,6 +332,29 @@ function contaClasse(nomeClasse){
 }
 
 /* ============================================================
+   FUNZIONE HELPER: apre i Totali nascondendo tutto il resto
+   ============================================================ */
+function apriSchedaTotali(){
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+  
+  // 1. Nascondi tutti i blocchi
+  container.querySelectorAll(".class-block").forEach(function(b){
+    b.classList.remove("visible");
+  });
+  // 2. Togli l'evidenziazione da tutti i pulsanti
+  selector.querySelectorAll("button").forEach(function(b){
+    b.classList.remove("active");
+  });
+  // 3. Mostra solo i Totali
+  var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
+  if (target) target.classList.add("visible");
+  // 4. Evidenzia il pulsante Totali
+  var btnTot = selector.querySelector('button[data-classe="__TOTALI__"]');
+  if (btnTot) btnTot.classList.add("active");
+}
+
+/* ============================================================
    RENDER
    ============================================================ */
 function render(){
@@ -366,6 +389,9 @@ function render(){
 
   var g = giornoCorrente();
 
+  // ============================================================
+  // CREAZIONE SCHEDE CLASSI
+  // ============================================================
   elencoClassi.forEach(function(nomeClasse, idx){
     var studentiClasse = classi[nomeClasse];
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
@@ -488,9 +514,9 @@ function render(){
     selector.appendChild(btn);
   });
 
-  /* ============================================================
-     SCHEDA TOTALI
-     ============================================================ */
+  // ============================================================
+  // SCHEDA TOTALI (creata UNA SOLA VOLTA, fuori dal ciclo)
+  // ============================================================
   var blockTotali = document.createElement("div");
   blockTotali.className = "class-block";
   blockTotali.setAttribute("data-classe", "__TOTALI__");
@@ -516,10 +542,7 @@ function render(){
     b.addEventListener("click", function(){
       filtroTurnoTotali = item.val;
       render();
-      var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
-      if (target) target.classList.add("visible");
-      var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
-      if (btnTot) btnTot.classList.add("active");
+      apriSchedaTotali(); // <--- Usa la funzione helper per aprirla in sicurezza
     });
     turnoSel.appendChild(b);
   });
@@ -555,10 +578,7 @@ function render(){
       tb.addEventListener("click", function(){
         setTurnoClasse(nomeClasse, t);
         render();
-        var target = document.querySelector('.class-block[data-classe="__TOTALI__"]');
-        if (target) target.classList.add("visible");
-        var btnTot = document.querySelector('.class-selector button[data-classe="__TOTALI__"]');
-        if (btnTot) btnTot.classList.add("active");
+        apriSchedaTotali(); // <--- Usa la funzione helper per aprirla in sicurezza
       });
       turnoSelRiga.appendChild(tb);
     });
@@ -583,11 +603,7 @@ function render(){
   btnTot.setAttribute("data-classe", "__TOTALI__");
   btnTot.classList.add("btn-totali");
   btnTot.addEventListener("click", function(){
-    container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
-    selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
-    var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
-    if (target) target.classList.add("visible");
-    btnTot.classList.add("active");
+    apriSchedaTotali(); // <--- Usa la funzione helper
   });
   selector.appendChild(btnTot);
 
@@ -680,7 +696,7 @@ function esportaStato(){
 }
 
 /* ============================================================
-   STAMPA PDF — layout A4 landscape, 3 colonne come transfer.js
+   STAMPA PDF — layout A4 portrait, 3 colonne come transfer.js
    ============================================================ */
 function stampaPDF(){
   var studenti = getStudentiTransfer();
