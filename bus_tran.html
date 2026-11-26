@@ -137,6 +137,56 @@
   .login-container button:disabled{opacity:0.6;cursor:wait;}
   .error{color:#c0392b;font-size:0.78rem;min-height:1.2em;margin-top:8px;}
 
+  /* ── Scheda Totali ── */
+.class-selector button.btn-totali{
+  background:#1e3a8a;color:#fff;border-color:#1e3a8a;
+}
+.class-selector button.btn-totali.active{
+  background:#0f1f4d;border-color:#0f1f4d;
+}
+
+.turno-selector{
+  display:flex;gap:6px;justify-content:center;margin:10px 0;flex-wrap:wrap;
+  padding:8px;background:#f0f4f8;border-radius:12px;border:1px solid #d0dae3;
+}
+.turno-selector button{
+  padding:7px 18px;border:2px solid #2c3e50;border-radius:18px;
+  background:#fff;color:#2c3e50;font-weight:bold;font-size:.82rem;cursor:pointer;
+  transition:all .15s;
+}
+.turno-selector button:hover{background:#eaf2f8;}
+.turno-selector button.active{background:#2c3e50;color:#fff;}
+.turno-selector button.f-lab{border-color:var(--lab-accent);color:var(--lab-accent);}
+.turno-selector button.f-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+
+.totali-lista{
+  display:flex;flex-direction:column;gap:4px;
+  margin-top:6px;padding:6px 0;
+}
+.totale-riga{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;border:1px solid #ccc;border-radius:8px;
+  background:#fafbfc;font-size:.92rem;
+}
+.totale-riga.lab{background:var(--lab-bg);border-color:var(--lab-accent);}
+.totale-riga .tr-classe{font-weight:bold;font-size:1rem;color:#2c3e50;min-width:48px;}
+.totale-riga .tr-presenti{flex:1;text-align:center;font-weight:bold;color:#1e8449;font-size:1rem;}
+.totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
+.totale-riga .tr-presenti .lab-count{color:var(--lab-cell-color);font-size:.72rem;display:block;font-weight:normal;}
+
+.tr-turno-scelta{
+  display:flex;gap:3px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+}
+.badge-turno{
+  display:inline-block;padding:3px 9px;border-radius:10px;
+  font-size:.68rem;font-weight:bold;color:#fff;
+}
+.badge-turno.sel1{background:#16a34a;}
+.badge-turno.sel2{background:#2563eb;}
+.badge-turno.sel3{background:#9333ea;}
+.badge-turno.selL{background:var(--lab-accent);}
+  
+  
   @media print{
     .no-print{display:none!important;}
     #loginScreen{display:none!important;}
@@ -212,6 +262,27 @@ var unsubscribeReset = null;
 var _utenteCorrente  = null;
 var _classeAttiva    = null;
 
+  /* ── TURNI FISSI (hardcoded) ── */
+var TURNI_FISSI = {
+  1: { 1: ["4A"], 2: ["1A", "1B"], 3: ["3B", "4B"], "LAB": ["5A", "3A"] },
+  2: { 1: ["1A", "1B"], 2: ["3A", "5B"], 3: ["4B", "5A"], "LAB": ["4A", "3B"] },
+  3: { 1: ["1B", "3B"], 2: ["3A", "5A"], 3: ["4A", "5B"], "LAB": ["4B", "1A"] },
+  4: { 1: ["1A", "3A"], 2: ["3B", "4B"], 3: ["4A", "5A"], "LAB": ["4C", "1B"] }
+};
+
+var filtroTurnoTotali = 0;   // 0 = tutti, 1/2/3 = turno, "LAB" = lab
+
+function turnoClasse(nomeClasse){
+  var giorno = new Date().getDay();
+  var turniGiorno = TURNI_FISSI[giorno];
+  if (!turniGiorno) return 3;
+  for (var t = 1; t <= 3; t++){
+    if (turniGiorno[t] && turniGiorno[t].indexOf(nomeClasse) !== -1) return t;
+  }
+  if (turniGiorno["LAB"] && turniGiorno["LAB"].indexOf(nomeClasse) !== -1) return "LAB";
+  return 3;
+}
+  
 /* ═════════════════════════════════════════════════════════════
    UTILITY
    ═════════════════════════════════════════════════════════════ */
@@ -313,6 +384,22 @@ function contaClasse(nomeClasse){
   return { x: x, lab: lab };
 }
 
+  function apriSchedaTotali(){
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+
+  container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+  selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+
+  var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
+  if (target) target.classList.add("visible");
+
+  var btnTot = selector.querySelector('button[data-classe="__TOTALI__"]');
+  if (btnTot) btnTot.classList.add("active");
+
+  _classeAttiva = "__TOTALI__";   // ← così il fix precedente non la nasconde
+}
+  
 /* ═════════════════════════════════════════════════════════════
    RENDER
    ═════════════════════════════════════════════════════════════ */
@@ -460,7 +547,7 @@ btn.addEventListener("click", function(){
   var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
   if (target) target.classList.add("visible");
   btn.classList.add("active");
-  _classeAttiva = nomeClasse;   // ← AGGIUNTO
+  _classeAttiva = nomeClasse;   
 });
 selector.appendChild(btn);
   });
@@ -468,6 +555,90 @@ selector.appendChild(btn);
   aggiornaTuttiTotali();
   aggiornaSottotitolo();
 
+    // ════════════════════════════════════════════════════════
+  // SCHEDA TOTALI
+  // ════════════════════════════════════════════════════════
+  var blockTotali = document.createElement("div");
+  blockTotali.className = "class-block";
+  blockTotali.setAttribute("data-classe", "__TOTALI__");
+
+  var titleTotali = document.createElement("div");
+  titleTotali.className = "class-title-bar";
+  titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
+  blockTotali.appendChild(titleTotali);
+
+  var turnoSel = document.createElement("div");
+  turnoSel.className = "turno-selector no-print";
+  [
+    { label: "Tutti", val: 0 },
+    { label: "1T",    val: 1 },
+    { label: "2T",    val: 2 },
+    { label: "3T",    val: 3 },
+    { label: "LAB",   val: "LAB" }
+  ].forEach(function(item){
+    var b = document.createElement("button");
+    b.textContent = item.label;
+    if (item.val === "LAB") b.classList.add("f-lab");
+    if (filtroTurnoTotali === item.val) b.classList.add("active");
+    b.addEventListener("click", function(){
+      filtroTurnoTotali = item.val;
+      render();
+      apriSchedaTotali();
+    });
+    turnoSel.appendChild(b);
+  });
+  blockTotali.appendChild(turnoSel);
+
+  var listaTot = document.createElement("div");
+  listaTot.className = "totali-lista";
+
+  elencoClassi.forEach(function(nomeClasse){
+    var turnoCl = turnoClasse(nomeClasse);
+    if (filtroTurnoTotali !== 0 && turnoCl !== filtroTurnoTotali) return;
+
+    var conteggio = contaClasse(nomeClasse);
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var riga = document.createElement("div");
+    riga.className = "totale-riga" + (isLab ? " lab" : "");
+
+    var presentiHtml = conteggio.x + '<small>presenti</small>';
+    if (conteggio.lab > 0) presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
+
+    var clsSel = (turnoCl === "LAB") ? "selL" : "sel" + turnoCl;
+    var testoBadge = (turnoCl === "LAB") ? "LAB" : turnoCl + "T";
+
+    riga.innerHTML =
+      '<span class="tr-classe">' + nomeClasse + '</span>' +
+      '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
+      '<span class="tr-turno-scelta"><span class="badge-turno ' + clsSel + '">' + testoBadge + '</span></span>';
+
+    listaTot.appendChild(riga);
+  });
+
+  if (listaTot.children.length === 0){
+    var empty = document.createElement("div");
+    empty.className = "totale-riga";
+    empty.style.textAlign = "center";
+    empty.style.color = "#777";
+    empty.textContent = "Nessuna classe per il turno selezionato";
+    listaTot.appendChild(empty);
+  }
+
+  blockTotali.appendChild(listaTot);
+  container.appendChild(blockTotali);
+
+  // Pulsante "📊 Totali" nel selector
+  var btnTot = document.createElement("button");
+  btnTot.textContent = "📊 Totali";
+  btnTot.setAttribute("data-classe", "__TOTALI__");
+  btnTot.classList.add("btn-totali");
+  btnTot.addEventListener("click", function(){
+    apriSchedaTotali();
+  });
+  selector.appendChild(btnTot);
+  
+  
   // ── Ripristina la classe attiva ──
   container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
   selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
