@@ -7,14 +7,19 @@
  *   • campus_hub-script.js   (ricaricaListaStudenti, badge 🚗)
  *   • js/stampe/bus.js       (Bus mattina, Bus pomeriggio, Bus generico)
  *   • js/stampe/ritardi.js   (Ritardi mattino)
- *   • bus_pom.html           (Bus pomeriggio — appello settimanale)
+*   • bus_pom.html           (Bus pomeriggio — appello settimanale)
+ *   • bus_tran.html            (Appello Lunch)
  *
  * Aggiungi qui un cognome → appare in tutte le stampe.
  * NON duplicare questa lista altrove.
  * ─────────────────────────────────────────────────────────────
  */
 window.COGNOMI_AUTO = [
+  // ── CONVITTORI ──
   "CHESSA", "CHIADÒ CAPONET", "COMIOTTO", "CONTA",
   "DANNA", "DI TRIA", "GIOVANNELLI T", "MENALDINO",
-  "NICOLASI", "RASO", "TAPPELLA"
+  "NICOLASI", "RASO", "TAPPELLA", 
+  // ── SEMICONVITTORI ──
+  "CHEVRERE", "COSTABLOZ Giu", "FORESTIERO", "FREGNANI", "GEMELLO", 
+  "LODATO", "NIZELLI", "ANGIARI", "BADERY"
 ]; 
