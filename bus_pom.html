@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bus Pomeriggio – Appello Giornaliero</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --border:#000;
+    --head:#2c3e50;
+    --present-bg:#d5f5e3;
+    --present-color:#1e8449;
+    --absent-bg:#fadbd8;
+    --absent-color:#a93226;
+    --auto-bg:#fef9e7;
+    --auto-color:#b7950b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;padding:8px;color:#000;line-height:1.1;background:#fff;
+  }
+  header{margin-bottom:12px;padding:10px;text-align:center;}
+  header h1{display:inline-block;margin:0;font-size:1.4rem;}
+  header h1 a{text-decoration:none;color:#2c3e50;}
+
+  .subtitle{text-align:center;font-size:.82rem;margin-bottom:10px;color:#444;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
+  .toolbar button{padding:8px 16px;border:none;border-radius:20px;color:#fff;font-weight:bold;font-size:.8rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);}
+  .btn-print{background:#27ae60;}
+  .btn-reset{background:#c0392b;}
+  .btn-export{background:#2980b9;}
+
+  .class-selector{
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    margin-bottom:12px;padding:8px;background:#f8f9fa;border-radius:12px;border:1px solid #ddd;
+  }
+  .class-selector button{
+    padding:7px 14px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.78rem;cursor:pointer;transition:all .15s;
+  }
+  .class-selector button:hover{background:#eaf2f8;}
+  .class-selector button.active{background:#2c3e50;color:#fff;}
+
+  .list-container{max-width:720px;margin:0 auto;}
+
+  .class-block{display:none;}
+  .class-block.visible{display:block;}
+
+  .class-title-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--head);color:#fff;font-weight:bold;font-size:.82rem;
+    padding:6px 10px;border-radius:8px 8px 0 0;border:1px solid var(--border);
+  }
+
+  .students-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid var(--border);border-top:none;}
+  .students-table th{background:#eaecee;font-size:.68rem;text-transform:uppercase;padding:4px;border-bottom:1px solid var(--border);border-right:1px solid #ccc;text-align:center;}
+  .students-table th:last-child{border-right:none;}
+  .students-table td{padding:3px 4px;font-size:.78rem;border-bottom:1px solid #ddd;border-right:1px solid #eee;vertical-align:middle;}
+  .students-table td:last-child{border-right:none;}
+  .students-table tr:last-child td{border-bottom:none;}
+
+  .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
+  .td-name{text-transform:uppercase;}
+  .td-details{width:90px;font-size:.62rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+  .td-details .auto-badge{color:var(--auto-color);font-weight:bold;font-size:.78rem;}
+  .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
+  .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
+  .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
+
+  .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
+  .total-row .total-label{text-align:right;color:#2c3e50;}
+  .total-row .total-value{text-align:center;color:#1e8449;font-size:.95rem;font-weight:bold;}
+
+  .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
+  .loading .err{color:#c0392b;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><a href="trasportini.html">Bus Pomeriggio Cliccabile</a></h1>
+</header>
+
+<div class="subtitle" id="subtitle">Bus Pomeriggio – Caricamento dati…</div>
+
+<div class="toolbar no-print">
+  <button class="btn-print" onclick="stampaPDF()">• Stampa / PDF</button>
+  <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
+  <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
+</div>
+
+<div class="class-selector no-print" id="classSelector"></div>
+
+<div class="list-container" id="listContainer">
+  <div class="loading">⏳ Caricamento studenti da Firebase…</div>
+</div>
+
+<!-- ============================================================
+     CONFIGURAZIONE STATICA (sempre)
+     ============================================================ -->
+<script src="js/core/config-static.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+<script src="js/dati/cognomi-auto.js"></script>
+
+<!-- ============================================================
+     RILEVAMENTO AMBIENTE (online/offline)
+     ============================================================ -->
+<script src="js/ambiente.js"></script>
+
+<!-- ============================================================
+     CARICAMENTO DATI DA FIREBASE (solo se online)
+     ============================================================ -->
+<script type="module">
+  if (window.APP_MODE === 'online') {
+    const percorsi = [
+      './js/core/data-loader.js',
+      './js/data-loader.js',
+      './js/dati/data-loader.js',
+      './data-loader.js'
+    ];
+    let mod = null;
+    for (const p of percorsi) {
+      try {
+        mod = await import(p);
+        console.log('✅ data-loader caricato da:', p);
+        break;
+      } catch (e) {
+        console.warn('❌ Non trovato:', p);
+      }
+    }
+    if (!mod) {
+      window._busPomLoadError = new Error(
+        'data-loader.js non trovato in nessuno dei percorsi: ' + percorsi.join(', ')
+      );
+    } else {
+      try {
+        await window.caricaDatiFirebase();
+        console.log('✅ caricaDatiFirebase() completata');
+        console.log('📊 tuttiStudenti:', window.tuttiStudenti?.length);
+        console.log('🏠 convittori:', window.studenticonvittori?.length);
+      } catch (e) {
+        console.error('❌ Errore caricaDatiFirebase():', e);
+        window._busPomLoadError = e;
+      }
+    }
+  } else {
+    window._busPomLoadError = new Error('Modalità offline');
+  }
+</script>
+
+<script>
+/* ============================================================
+   CONFIGURAZIONE
+   ============================================================ */
+var STORAGE_KEY = "bus_pomeriggio_appello_v3";
+var stato = {};
+var CICLO_STATI = ["", "X", "O"];
+
+/* ============================================================
+   GIORNO CORRENTE
+   ============================================================ */
+function codiceGiorno(){
+  var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
+  return sigle[new Date().getDay()];
+}
+function giornoCorrente(){
+  var d = new Date().getDay();
+  return {
+    num: d,
+    sigla: ["Do","Lu","Ma","Me","Gi","Ve","Sa"][d],
+    nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
+  };
+}
+
+/* ============================================================
+   STATO
+   ============================================================ */
+function caricaStato(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) stato = JSON.parse(raw) || {};
+  }catch(e){ stato = {}; }
+}
+function salvaStato(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
+}
+function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
+
+/* ============================================================
+   HELPER: 🚗
+   ============================================================ */
+function haAuto(cognome){
+  var lista = window.COGNOMI_AUTO || [];
+  return lista.indexOf(String(cognome || "").toUpperCase().trim()) !== -1;
+}
+
+/* ============================================================
+   ESTRAZIONE STUDENTI POMERIGGIO
+   ============================================================ */
+function getStudentiPomeriggio(){
+  var tutti = Array.isArray(window.studenticonvittori) ? window.studenticonvittori : [];
+  if (tutti.length === 0) return [];
+
+  var filtrati = [];
+  tutti.forEach(function(s){
+    if (!s || !s.cognome || String(s.cognome).trim() === "") return;
+    if (typeof window.haDirittoAlBusVariante === "function"){
+      try{
+        if (!window.haDirittoAlBusVariante(s, "pomeriggio")) return;
+      }catch(e){}
+    }
+    var nomeClasse = s.classe ? String(s.classe).toUpperCase().trim() : "SENZA CLASSE";
+    filtrati.push({
+      classe: nomeClasse,
+      cognome: String(s.cognome).trim(),
+      nome: (s.nome || "").trim(),
+      room: s.room || "-",
+      percorso: s.percorso || "",
+      gruppo: s.gruppo || ""
+    });
+  });
+
+  filtrati.sort(function(a,b){
+    var c = a.classe.localeCompare(b.classe, undefined, { numeric:true });
+    if (c !== 0) return c;
+    return a.cognome.localeCompare(b.cognome);
+  });
+  return filtrati;
+}
+
+/* ============================================================
+   CONTEGGIO PER CLASSE
+   ============================================================ */
+function contaClasse(nomeClasse){
+  var codice = codiceGiorno();
+  var x = 0, o = 0;
+  for (var k in stato){
+    var parts = k.split("|");
+    if (parts[0] !== nomeClasse || parts[2] !== codice) continue;
+    if (stato[k] === "X") x++;
+    else if (stato[k] === "O") o++;
+  }
+  return { x: x, o: o };
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  var studenti = getStudentiPomeriggio();
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+
+  container.innerHTML = "";
+  selector.innerHTML = "";
+
+  if (studenti.length === 0){
+    var errMsg = window._busPomLoadError
+      ? '<span class="err">⚠️ Errore:</span> ' + window._busPomLoadError.message
+      : (window.APP_MODE !== 'online'
+          ? '<span class="err">⚠️ Modalità offline:</span> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
+          : '<span class="err">⚠️ Nessuno studente con diritto bus pomeriggio.</span>');
+    container.innerHTML = '<div class="loading">' + errMsg + '</div>';
+    document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
+    return;
+  }
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, { numeric:true });
+  });
+
+  var g = giornoCorrente();
+
+  elencoClassi.forEach(function(nomeClasse, idx){
+    var studentiClasse = classi[nomeClasse];
+
+    var block = document.createElement("div");
+    block.className = "class-block" + (idx === 0 ? " visible" : "");
+    block.setAttribute("data-classe", nomeClasse);
+
+    var titleBar = document.createElement("div");
+    titleBar.className = "class-title-bar";
+    titleBar.innerHTML =
+      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>";
+    block.appendChild(titleBar);
+
+    var table = document.createElement("table");
+    table.className = "students-table";
+
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
+      var th = document.createElement("th");
+      th.textContent = txt;
+      if (txt === "Room") th.style.width = "42px";
+      if (txt === "Note") th.style.width = "90px";
+      if (txt === g.sigla){
+        th.style.width = "56px";
+        th.title = g.nome;
+      }
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+
+    studentiClasse.forEach(function(s){
+      var tr = document.createElement("tr");
+
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+
+      var tdRoom = document.createElement("td");
+      tdRoom.className = "td-room";
+      tdRoom.textContent = roomInfo;
+      if (!isConvittore) tdRoom.style.borderLeft = "2px dashed #7f8c8d";
+      tr.appendChild(tdRoom);
+
+      var tdName = document.createElement("td");
+      tdName.className = "td-name";
+      tdName.innerHTML = "<b>" + s.cognome + "</b>" + (s.nome ? " " + s.nome : "");
+      tr.appendChild(tdName);
+
+      var tdDetails = document.createElement("td");
+      tdDetails.className = "td-details";
+      var parts = [];
+      if (s.percorso) parts.push(s.percorso);
+      if (s.gruppo)   parts.push("• " + s.gruppo);
+      var det = parts.join(" ");
+      if (haAuto(s.cognome)) det += (det ? " " : "") + '<span class="auto-badge">🚗</span>';
+      tdDetails.innerHTML = det || "—";
+      tr.appendChild(tdDetails);
+
+      var td = document.createElement("td");
+      td.className = "td-day";
+      var k = keyOf(s.classe, s.cognome);
+      td.setAttribute("data-key", k);
+      var st = stato[k] || "";
+      td.setAttribute("data-state", st);
+      td.textContent = st;
+
+      td.addEventListener("click", function(){
+        var cur = stato[k] || "";
+        var idxStato = CICLO_STATI.indexOf(cur);
+        if (idxStato === -1) idxStato = 0;
+        var next = CICLO_STATI[(idxStato + 1) % CICLO_STATI.length];
+
+        if (next === ""){
+          delete stato[k];
+          td.setAttribute("data-state","");
+          td.textContent = "";
+        } else {
+          stato[k] = next;
+          td.setAttribute("data-state", next);
+          td.textContent = next;
+        }
+        salvaStato();
+        aggiornaTotaleClasse(nomeClasse, tbody);
+        aggiornaSottotitolo();
+      });
+
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+
+    var totalRow = document.createElement("tr");
+    totalRow.className = "total-row";
+    totalRow.innerHTML =
+      '<td colspan="3" class="total-label">Presenti oggi — ' + nomeClasse + '</td>' +
+      '<td class="total-value" data-total-value>0</td>';
+    tbody.appendChild(totalRow);
+
+    table.appendChild(tbody);
+    block.appendChild(table);
+    container.appendChild(block);
+
+    aggiornaTotaleClasse(nomeClasse, tbody);
+
+    var btn = document.createElement("button");
+    btn.textContent = nomeClasse;
+    btn.setAttribute("data-classe", nomeClasse);
+    if (idx === 0) btn.classList.add("active");
+    btn.addEventListener("click", function(){
+      container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+      selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+      var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
+      if (target) target.classList.add("visible");
+      btn.classList.add("active");
+    });
+    selector.appendChild(btn);
+  });
+
+  aggiornaSottotitolo();
+}
+
+/* ============================================================
+   TOTALI
+   ============================================================ */
+function aggiornaTotaleClasse(nomeClasse, tbody){
+  var c = contaClasse(nomeClasse);
+  var cell = tbody.querySelector("[data-total-value]");
+  if (cell) cell.textContent = c.x;
+}
+
+/* ============================================================
+   SOTTOTITOLO (unico punto di totali globali)
+   ============================================================ */
+function aggiornaSottotitolo(){
+  var codice = codiceGiorno();
+  var totX = 0, totO = 0;
+  for (var k in stato){
+    if (k.split("|")[2] !== codice) continue;
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+  }
+  var studenti = getStudentiPomeriggio();
+  var g = giornoCorrente();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+
+  document.getElementById("subtitle").innerHTML =
+    "Bus Pomeriggio • <b>" + g.nome + "</b> " + dataIt +
+    " • Studenti: <b>" + studenti.length + "</b>" +
+    " • Presenti oggi: <b>" + totX + "</b>" +
+    " • Assenti oggi: <b>" + totO + "</b>";
+}
+
+/* ============================================================
+   AZIONI
+   ============================================================ */
+function azzeraTutto(){
+  if (!confirm("Azzerare tutte le X e O di oggi?")) return;
+  var codice = codiceGiorno();
+  for (var k in stato){
+    if (k.split("|")[2] === codice) delete stato[k];
+  }
+  salvaStato();
+  render();
+}
+
+function esportaStato(){
+  var exportObj = {
+    data: new Date().toISOString(),
+    giorno: codiceGiorno(),
+    stato: stato
+  };
+  var json = JSON.stringify(exportObj, null, 2);
+  var blob = new Blob([json], { type:"application/json" });
+  var url  = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "bus_pomeriggio_appello_" + codiceGiorno() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+/* ============================================================
+   STAMPA PDF — A4 portrait, 1 colonna (stile bus_tran)
+   ============================================================ */
+function stampaPDF(){
+  var studenti = getStudentiPomeriggio();
+  if (studenti.length === 0){
+    alert("Nessuno studente da stampare.");
+    return;
+  }
+
+  var g = giornoCorrente();
+  var codice = codiceGiorno();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+  var ora = new Date().toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+
+  var blocchiClassi = elencoClassi.map(function(nomeClasse){
+    var lista = classi[nomeClasse];
+
+    var righeHtml = lista.map(function(s){
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+      var dettagli = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+      var autoHtml = haAuto(s.cognome) ? ' <span class="auto-badge">🚗</span>' : "";
+      var k = keyOf(s.classe, s.cognome);
+      var st = stato[k] || "";
+
+      var esternoClass = !isConvittore ? "esterno" : "";
+
+      return '<tr class="' + esternoClass + '">' +
+        '<td class="t-cell t-room">' + roomInfo + '</td>' +
+        '<td class="t-cell t-name"><b>' + s.cognome + '</b>&nbsp;' + (s.nome || "") + '</td>' +
+        '<td class="t-cell t-details">' + (dettagli || "") + autoHtml + '</td>' +
+        '<td class="t-cell t-pres" data-state="' + st + '">' + st + '</td>' +
+        '</tr>';
+    }).join("");
+
+    return '<div class="blocco-classe">' +
+      '<div class="blocco-title">Classe ' + nomeClasse + ' — ' + lista.length + ' studenti</div>' +
+      '<table><tbody>' + righeHtml + '</tbody></table>' +
+    '</div>';
+  }).join("");
+
+  var headerColonna =
+    '<div class="fake-header">' +
+      '<div class="h-cell h-room">Room</div>' +
+      '<div class="h-cell h-name">Cognome e Nome</div>' +
+      '<div class="h-cell h-notes">Note</div>' +
+      '<div class="h-cell h-pres">Pres.</div>' +
+    '</div>';
+
+  // Contatori globali
+  var totX = 0, totO = 0;
+  for (var k in stato){
+    if (k.split("|")[2] !== codice) continue;
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+  }
+
+  var popup = window.open("", "_blank", "width=900,height=800");
+  popup.document.write(
+    '<html lang="it"><head><title>Bus Pomeriggio - ' + dataIt + '</title><style>' +
+    '@page{size:A4 portrait;margin:0.4cm 0.3cm 0.3cm 0.3cm;}' +
+    '*,*::before,*::after{box-sizing:border-box;}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:0;color:#000;line-height:1;}' +
+    '.timestamp{position:absolute;top:4px;right:10px;font-size:0.55rem;color:#777;}' +
+    '.no-print{display:flex;justify-content:center;margin-bottom:6px;}' +
+    '.no-print button{padding:6px 26px;color:white;background:#27ae60;font-weight:bold;border-radius:20px;border:none;cursor:pointer;font-size:0.85rem;}' +
+    'h2{text-align:center;text-transform:uppercase;margin:0 0 2px 0;font-size:0.95rem;}' +
+    '.date-subtitle{text-align:center;font-size:0.7rem;margin-bottom:8px;color:#444;}' +
+    '.blocco-classe{page-break-inside:avoid!important;break-inside:avoid-page!important;margin-bottom:6px;width:100%;}' +
+    '.blocco-title{background:#2c3e50;color:#fff;font-weight:bold;font-size:0.62rem;padding:2px 6px;border:1.2px solid #000;border-bottom:none;text-transform:uppercase;letter-spacing:.03em;}' +
+    '.fake-header{display:flex;background:#2c3e50;color:white;font-weight:bold;font-size:0.5rem;text-transform:uppercase;height:14px;box-sizing:border-box;border:1.2px solid #000;margin-bottom:2px;}' +
+    '.h-cell{padding:2px 2px;display:flex;align-items:center;justify-content:center;height:100%;box-sizing:border-box;border-right:1px solid #000;}' +
+    '.h-cell:last-child{border-right:none;}' +
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.2px solid #000;}' +
+    'tr{height:15px!important;box-sizing:border-box;}' +
+    '.t-cell{padding:0 2px;font-size:0.6rem;border-right:1px solid #000;border-bottom:1px solid #ddd;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;height:15px!important;line-height:14px;box-sizing:border-box;}' +
+    'tr:last-child .t-cell{border-bottom:none;}' +
+    '.t-cell:last-child{border-right:none;}' +
+    'tr.esterno td.t-room{border-left:2px dashed #7f8c8d;}' +
+    '.t-room,.h-room{width:32px;text-align:center;}' +
+    '.t-room{font-weight:bold;background:#f5f5f5;}' +
+    '.t-name,.h-name{width:130px;text-transform:uppercase;}' +
+    '.t-details,.h-notes{flex-grow:1;}' +
+    '.t-details{font-size:0.52rem;color:#444;}' +
+    '.t-pres,.h-pres{width:38px;text-align:center;font-weight:bold;font-size:0.72rem;}' +
+    '.t-pres[data-state="X"]{background:#d5f5e3;color:#1e8449;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="O"]{background:#fadbd8;color:#a93226;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.auto-badge{font-size:0.7rem;}' +
+    '@media print{.no-print{display:none!important;}}' +
+    '</style></head><body>' +
+    '<div class="timestamp">Generato il ' + dataIt + ' alle ' + ora + '</div>' +
+    '<div class="no-print"><button onclick="window.print()">•STAMPA</button></div>' +
+    '<h2>BUS POMERIGGIO</h2>' +
+    '<div class="date-subtitle">' + g.nome + ' ' + dataIt +
+    ' — Studenti tot: <b>' + studenti.length + '</b>' +
+    ' — Presenti: <b>' + totX + '</b>' +
+    ' — Assenti: <b>' + totO + '</b></div>' +
+    headerColonna +
+    '<div class="grid-container">' + blocchiClassi + '</div>' +
+    '</body></html>'
+  );
+  popup.document.close();
+}
+
+/* ============================================================
+   AVVIO
+   ============================================================ */
+function attendiStudenti(callback, maxMs){
+  var start = Date.now();
+  var max = maxMs || 20000;
+  var tick = function(){
+    var tutti = window.studenticonvittori;
+    if (Array.isArray(tutti) && tutti.length > 0){
+      console.log('✅ studenticonvittori pronto:', tutti.length, 'studenti');
+      callback();
+      return;
+    }
+    if (Date.now() - start > max){
+      console.warn('⏱️ Timeout attesa studenticonvittori');
+      callback();
+      return;
+    }
+    setTimeout(tick, 200);
+  };
+  tick();
+}
+
+caricaStato();
+attendiStudenti(function(){ render(); }, 20000);
+
+setInterval(function(){
+  var g = new Date().getDay();
+  if (window._ultimoGiorno !== undefined && window._ultimoGiorno !== g){
+    render();
+  }
+  window._ultimoGiorno = g;
+}, 60000);
+</script>
+
+</body>
+</html>

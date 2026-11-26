@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Transfer Lunch – Appello Giornaliero Cliccabile</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --border:#000;
+    --head:#2c3e50;
+    --lab-bg:#fff2cc;
+    --lab-accent:#b7950b;
+    --present-bg:#d5f5e3;
+    --present-color:#1e8449;
+    --absent-bg:#fadbd8;
+    --absent-color:#a93226;
+    --lab-cell-bg:#fef3c7;
+    --lab-cell-color:#b45309;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;padding:8px;color:#000;line-height:1.1;background:#fff;
+  }
+  header{margin-bottom:12px;padding:10px;text-align:center;}
+  header h1{display:inline-block;margin:0;font-size:1.4rem;}
+  header h1 a{text-decoration:none;color:#2c3e50;}
+
+  .subtitle{text-align:center;font-size:.82rem;margin-bottom:10px;color:#444;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
+  .toolbar button{padding:8px 16px;border:none;border-radius:20px;color:#fff;font-weight:bold;font-size:.8rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);}
+  .btn-print{background:#27ae60;}
+  .btn-reset{background:#c0392b;}
+  .btn-export{background:#2980b9;}
+
+  .class-selector{
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    margin-bottom:12px;padding:8px;background:#f8f9fa;border-radius:12px;border:1px solid #ddd;
+  }
+  .class-selector button{
+    padding:7px 14px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.78rem;cursor:pointer;transition:all .15s;
+  }
+  .class-selector button:hover{background:#eaf2f8;}
+  .class-selector button.active{background:#2c3e50;color:#fff;}
+  .class-selector button.has-lab{border-color:var(--lab-accent);color:var(--lab-accent);background:var(--lab-bg);}
+  .class-selector button.has-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+  .class-selector button.btn-totali{
+    background:#1e3a8a;color:#fff;border-color:#1e3a8a;
+  }
+  .class-selector button.btn-totali.active{
+    background:#0f1f4d;border-color:#0f1f4d;
+  }
+
+  .list-container{max-width:720px;margin:0 auto;}
+
+  .class-block{display:none;}
+  .class-block.visible{display:block;}
+
+  .class-title-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--head);color:#fff;font-weight:bold;font-size:.82rem;
+    padding:6px 10px;border-radius:8px 8px 0 0;border:1px solid var(--border);
+  }
+  .class-title-bar .lab-tag{background:var(--lab-accent);color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;}
+
+  .students-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid var(--border);border-top:none;}
+  .students-table th{background:#eaecee;font-size:.68rem;text-transform:uppercase;padding:4px;border-bottom:1px solid var(--border);border-right:1px solid #ccc;text-align:center;}
+  .students-table th:last-child{border-right:none;}
+  .students-table td{padding:3px 4px;font-size:.78rem;border-bottom:1px solid #ddd;border-right:1px solid #eee;vertical-align:middle;}
+  .students-table td:last-child{border-right:none;}
+  .students-table tr:last-child td{border-bottom:none;}
+
+  .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
+  .td-name{text-transform:uppercase;}
+  .td-details {width:70px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+  .td-details .auto-badge{color:#b7950b;font-weight:bold;font-size:.78rem;}
+  .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
+  .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
+  .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
+  .td-day[data-state="LAB"]{background:var(--lab-cell-bg);color:var(--lab-cell-color);font-size:.72rem;}
+
+  .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
+  .total-row .total-label{text-align:right;color:#2c3e50;}
+  .total-row .total-value{text-align:center;color:#1e8449;font-size:.95rem;font-weight:bold;}
+  .total-row .total-value .lab-count{color:var(--lab-cell-color);font-size:.78rem;display:block;font-weight:normal;}
+
+  tr.lab-row td{background-color:var(--lab-bg);}
+  tr.lab-row td.td-room{background-color:#f5e6b8;}
+
+  .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
+  .loading .err{color:#c0392b;font-weight:bold;}
+
+  /* ── Scheda Totali ── */
+  .turno-selector{
+    display:flex;gap:6px;justify-content:center;margin:10px 0;flex-wrap:wrap;
+    padding:8px;background:#f0f4f8;border-radius:12px;border:1px solid #d0dae3;
+  }
+  .turno-selector button{
+    padding:7px 18px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.82rem;cursor:pointer;
+    transition:all .15s;
+  }
+  .turno-selector button:hover{background:#eaf2f8;}
+  .turno-selector button.active{background:#2c3e50;color:#fff;}
+  .turno-selector button.f-lab{border-color:var(--lab-accent);color:var(--lab-accent);}
+  .turno-selector button.f-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+
+  .totali-lista{
+    display:flex;flex-direction:column;gap:4px;
+    margin-top:6px;padding:6px 0;
+  }
+  .totale-riga{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border:1px solid #ccc;border-radius:8px;
+    background:#fafbfc;font-size:.92rem;
+  }
+  .totale-riga.lab{background:var(--lab-bg);border-color:var(--lab-accent);}
+  .totale-riga .tr-classe{font-weight:bold;font-size:1rem;color:#2c3e50;min-width:48px;}
+  .totale-riga .tr-presenti{flex:1;text-align:center;font-weight:bold;color:#1e8449;font-size:1rem;}
+  .totale-riga .tr-presenti small{display:block;color:#777;font-size:.62rem;font-weight:normal;}
+  .totale-riga .tr-presenti .lab-count{color:var(--lab-cell-color);font-size:.72rem;display:block;font-weight:normal;}
+
+  .tr-turno-scelta{
+    display:flex;gap:3px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+  }
+  .tr-turno-scelta button{
+    padding:3px 7px;border:1.5px solid #bbb;border-radius:8px;
+    background:#fff;color:#555;font-weight:bold;font-size:.66rem;cursor:pointer;
+    transition:all .12s;min-width:28px;
+  }
+  .tr-turno-scelta button:hover{background:#eaf2f8;border-color:#2c3e50;}
+  .tr-turno-scelta button.sel1{background:#16a34a;color:#fff;border-color:#16a34a;}
+  .tr-turno-scelta button.sel2{background:#2563eb;color:#fff;border-color:#2563eb;}
+  .tr-turno-scelta button.sel3{background:#9333ea;color:#fff;border-color:#9333ea;}
+  .tr-turno-scelta button.selL{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><a href="trasportini.html">Lunch Cliccabile</a></h1>
+</header>
+
+<div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
+
+<div class="toolbar no-print">
+  <button class="btn-print" onclick="stampaPDF()">• Stampa / PDF</button>
+  <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
+  <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
+</div>
+
+<div class="class-selector no-print" id="classSelector"></div>
+
+<div class="list-container" id="listContainer">
+  <div class="loading">⏳ Caricamento studenti da Firebase…</div>
+</div>
+
+<!-- ============================================================
+     CONFIGURAZIONE STATICA (sempre)
+     ============================================================ -->
+<script src="js/core/config-static.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+  <script src="js/dati/cognomi-auto.js"></script>   
+<script src="js/ambiente.js"></script>
+<!-- ============================================================
+     RILEVAMENTO AMBIENTE (online/offline)
+     ============================================================ -->
+<script src="js/ambiente.js"></script>
+
+<!-- ============================================================
+     CARICAMENTO DATI DA FIREBASE (solo se online)
+     ============================================================ -->
+<script type="module">
+  if (window.APP_MODE === 'online') {
+    const percorsi = [
+      './js/core/data-loader.js',
+      './js/data-loader.js',
+      './js/dati/data-loader.js',
+      './data-loader.js'
+    ];
+    let mod = null;
+    for (const p of percorsi) {
+      try {
+        mod = await import(p);
+        console.log('✅ data-loader caricato da:', p);
+        break;
+      } catch (e) {
+        console.warn('❌ Non trovato:', p);
+      }
+    }
+    if (!mod) {
+      window._transferLoadError = new Error(
+        'data-loader.js non trovato in nessuno dei percorsi: ' + percorsi.join(', ')
+      );
+    } else {
+      try {
+        await window.caricaDatiFirebase();
+        console.log('✅ caricaDatiFirebase() completata');
+        console.log('📊 tuttiStudenti:', window.tuttiStudenti?.length);
+      } catch (e) {
+        console.error('❌ Errore caricaDatiFirebase():', e);
+        window._transferLoadError = e;
+      }
+    }
+  } else {
+    window._transferLoadError = new Error('Modalità offline');
+  }
+</script>
+
+<script>
+/* ============================================================
+   CONFIGURAZIONE
+   ============================================================ */
+var STORAGE_KEY = "transfer_lunch_appello_v1";
+var stato = {};
+var filtroTurnoTotali = 0;
+var CICLO_STATI = ["", "X", "O", "LAB"];
+ /* ============================================================
+   FILTRO AUTO 🚗
+   ============================================================ */ 
+  function haAuto(cognome){
+  var lista = window.COGNOMI_AUTO || [];
+  return lista.indexOf(String(cognome || "").toUpperCase().trim()) !== -1;
+}
+
+// ════════════════════════════════════════════════════════════
+// TURNI HARDCODED (incluso LAB)
+// ════════════════════════════════════════════════════════════
+var TURNI_FISSI = {
+  1: { 1: ["4A"], 2: ["1A", "1B"], 3: ["3B", "4B"], "LAB": ["5A", "3A"] },
+  2: { 1: ["1A", "1B"], 2: ["3A", "5B"], 3: ["4B", "5A"], "LAB": ["4A", "3B"] },
+  3: { 1: ["1B", "3B"], 2: ["3A", "5A"], 3: ["4A", "5B"], "LAB": ["4B", "1A"] },
+  4: { 1: ["1A", "3A"], 2: ["3B", "4B"], 3: ["4A", "5A"], "LAB": ["4C", "1B"] }
+};
+
+/* ============================================================
+   GIORNO CORRENTE
+   ============================================================ */
+function giornoCorrente(){
+  var d = new Date().getDay();
+  return {
+    num: d,
+    sigla: ["Do","Lu","Ma","Me","Gi","Ve","Sa"][d],
+    nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
+  };
+}
+function codiceGiorno(){
+  var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
+  return sigle[new Date().getDay()];
+}
+
+/* ============================================================
+   STATO
+   ============================================================ */
+function caricaStato(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) stato = JSON.parse(raw) || {};
+  }catch(e){ stato = {}; }
+}
+function salvaStato(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(stato)); }catch(e){}
+}
+function keyOf(classe, cognome){ return classe+"|"+cognome+"|"+codiceGiorno(); }
+
+/* ============================================================
+   CLASSI IN LAB OGGI
+   ============================================================ */
+function getClassiLabOggi(){
+  var lab = (typeof window.LAB_PRANZO !== "undefined") ? window.LAB_PRANZO : {};
+  var giorno = new Date().getDay();
+  return lab[giorno] || lab[String(giorno)] || [];
+}
+
+/* ============================================================
+   TURNO DI UNA CLASSE (dai dati hardcoded, con LAB)
+   ============================================================ */
+function turnoClasse(nomeClasse){
+  var giorno = new Date().getDay();
+  var turniGiorno = TURNI_FISSI[giorno];
+  
+  if (turniGiorno) {
+    // 1. Controlla 1T, 2T, 3T
+    for (var t = 1; t <= 3; t++) {
+      if (turniGiorno[t] && turniGiorno[t].includes(nomeClasse)) {
+        return t;
+      }
+    }
+    // 2. Controlla LAB
+    if (turniGiorno["LAB"] && turniGiorno["LAB"].includes(nomeClasse)) {
+      return "LAB";
+    }
+  }
+  return 3; // Fallback
+}
+
+/* ============================================================
+   ESTRAZIONE STUDENTI TRANSFER
+   ============================================================ */
+function getStudentiTransfer(){
+  var tutti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti : [];
+  if (tutti.length === 0) return [];
+
+  var filtrati = [];
+  tutti.forEach(function(s){
+    if (!s || !s.cognome || String(s.cognome).trim() === "") return;
+    if (typeof window.haDirittoAlBusVariante === "function"){
+      try{
+        if (!window.haDirittoAlBusVariante(s, "transfer")) return;
+      }catch(e){}
+    }
+    var nomeClasse = s.classe ? String(s.classe).toUpperCase().trim() : "SENZA CLASSE";
+    filtrati.push({
+      classe: nomeClasse,
+      cognome: String(s.cognome).trim(),
+      nome: (s.nome || "").trim(),
+      room: s.room || "-",
+      percorso: s.percorso || "",
+      gruppo: s.gruppo || ""
+    });
+  });
+
+  filtrati.sort(function(a,b){
+    var c = a.classe.localeCompare(b.classe, undefined, { numeric:true });
+    if (c !== 0) return c;
+    return a.cognome.localeCompare(b.cognome);
+  });
+  return filtrati;
+}
+
+/* ============================================================
+   CONTEGGIO PER CLASSE
+   ============================================================ */
+function contaClasse(nomeClasse){
+  var codice = codiceGiorno();
+  var x = 0, lab = 0;
+  for (var k in stato){
+    var parts = k.split("|");
+    if (parts[0] !== nomeClasse || parts[2] !== codice) continue;
+    if (stato[k] === "X") x++;
+    else if (stato[k] === "LAB") lab++;
+  }
+  return { x: x, lab: lab };
+}
+
+/* ============================================================
+   FUNZIONE HELPER: apre i Totali nascondendo tutto il resto
+   ============================================================ */
+function apriSchedaTotali(){
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+  
+  container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+  selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+  
+  var target = container.querySelector('.class-block[data-classe="__TOTALI__"]');
+  if (target) target.classList.add("visible");
+  
+  var btnTot = selector.querySelector('button[data-classe="__TOTALI__"]');
+  if (btnTot) btnTot.classList.add("active");
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+
+  container.innerHTML = "";
+  selector.innerHTML = "";
+
+  if (studenti.length === 0){
+    var errMsg = window._transferLoadError
+      ? '<span class="err">⚠️ Errore:</span> ' + window._transferLoadError.message
+      : (window.APP_MODE !== 'online'
+          ? '<span class="err">⚠️ Modalità offline:</span> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
+          : '<span class="err">⚠️ Nessuno studente con diritto transfer.</span>');
+    container.innerHTML = '<div class="loading">' + errMsg + '</div>';
+    document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
+    return;
+  }
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, { numeric:true });
+  });
+
+  var g = giornoCorrente();
+
+  // ============================================================
+  // CREAZIONE SCHEDE CLASSI
+  // ============================================================
+  elencoClassi.forEach(function(nomeClasse, idx){
+    var studentiClasse = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var block = document.createElement("div");
+    block.className = "class-block" + (idx === 0 ? " visible" : "");
+    block.setAttribute("data-classe", nomeClasse);
+
+    var titleBar = document.createElement("div");
+    titleBar.className = "class-title-bar";
+    titleBar.innerHTML =
+      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>" +
+      (isLab ? '<span class="lab-tag">In laboratorio oggi</span>' : "");
+    block.appendChild(titleBar);
+
+    var table = document.createElement("table");
+    table.className = "students-table";
+
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
+      var th = document.createElement("th");
+      th.textContent = txt;
+      if (txt === "Room") th.style.width = "42px";
+      if (txt === "Note") th.style.width = "70px";
+      if (txt === g.sigla){
+        th.style.width = "56px";
+        th.title = g.nome;
+      }
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+
+    studentiClasse.forEach(function(s){
+      var tr = document.createElement("tr");
+      if (isLab) tr.className = "lab-row";
+
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+
+      var tdRoom = document.createElement("td");
+      tdRoom.className = "td-room";
+      tdRoom.textContent = roomInfo;
+      if (!isConvittore) tdRoom.style.borderLeft = "2px dashed #7f8c8d";
+      tr.appendChild(tdRoom);
+
+      var tdName = document.createElement("td");
+      tdName.className = "td-name";
+      tdName.innerHTML = "<b>" + s.cognome + "</b>" + (s.nome ? " " + s.nome : "");
+      tr.appendChild(tdName);
+
+     
+      var tdDetails = document.createElement("td");
+      tdDetails.className = "td-details";
+      var det = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+      if (haAuto(s.cognome)) det += (det ? " " : "") + '<span class="auto-badge">🚗</span>';
+      tdDetails.innerHTML = det || "—";
+      tr.appendChild(tdDetails);
+
+      var td = document.createElement("td");
+      td.className = "td-day";
+      var k = keyOf(s.classe, s.cognome);
+      td.setAttribute("data-key", k);
+      var st = stato[k] || "";
+      td.setAttribute("data-state", st);
+      td.textContent = st;
+
+      td.addEventListener("click", function(){
+        var cur = stato[k] || "";
+        var idxStato = CICLO_STATI.indexOf(cur);
+        if (idxStato === -1) idxStato = 0;
+        var next = CICLO_STATI[(idxStato + 1) % CICLO_STATI.length];
+
+        if (next === ""){
+          delete stato[k];
+          td.setAttribute("data-state","");
+          td.textContent = "";
+        } else {
+          stato[k] = next;
+          td.setAttribute("data-state", next);
+          td.textContent = next;
+        }
+        salvaStato();
+        aggiornaTotaleClasse(nomeClasse, tbody);
+        aggiornaSottotitolo();
+        aggiornaTotaliGlobali(elencoClassi);
+      });
+
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+
+    var totalRow = document.createElement("tr");
+    totalRow.className = "total-row";
+    totalRow.innerHTML =
+      '<td colspan="3" class="total-label">Presenti oggi — ' + nomeClasse + '</td>' +
+      '<td class="total-value" data-total-value>0</td>';
+    tbody.appendChild(totalRow);
+
+    table.appendChild(tbody);
+    block.appendChild(table);
+    container.appendChild(block);
+
+    aggiornaTotaleClasse(nomeClasse, tbody);
+
+    var btn = document.createElement("button");
+    btn.textContent = nomeClasse;
+    btn.setAttribute("data-classe", nomeClasse);
+    if (isLab) btn.classList.add("has-lab");
+    if (idx === 0) btn.classList.add("active");
+    btn.addEventListener("click", function(){
+      container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+      selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+      var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
+      if (target) target.classList.add("visible");
+      btn.classList.add("active");
+    });
+    selector.appendChild(btn);
+  });
+
+  // ============================================================
+  // SCHEDA TOTALI
+  // ============================================================
+  var blockTotali = document.createElement("div");
+  blockTotali.className = "class-block";
+  blockTotali.setAttribute("data-classe", "__TOTALI__");
+
+  var titleTotali = document.createElement("div");
+  titleTotali.className = "class-title-bar";
+  titleTotali.innerHTML = "<span>📊 Totali del giorno — " + g.nome + "</span>";
+  blockTotali.appendChild(titleTotali);
+
+  var turnoSel = document.createElement("div");
+  turnoSel.className = "turno-selector no-print";
+  [
+    { label: "Tutti", val: 0 },
+    { label: "1T", val: 1 },
+    { label: "2T", val: 2 },
+    { label: "3T", val: 3 },
+    { label: "LAB", val: "LAB" }
+  ].forEach(function(item){
+    var b = document.createElement("button");
+    b.textContent = item.label;
+    if (item.val === "LAB") b.classList.add("f-lab");
+    if (filtroTurnoTotali === item.val) b.classList.add("active");
+    b.addEventListener("click", function(){
+      filtroTurnoTotali = item.val;
+      render();
+      apriSchedaTotali();
+    });
+    turnoSel.appendChild(b);
+  });
+  blockTotali.appendChild(turnoSel);
+
+  var listaTot = document.createElement("div");
+  listaTot.className = "totali-lista";
+
+  elencoClassi.forEach(function(nomeClasse){
+    var turnoCl = turnoClasse(nomeClasse);
+    if (filtroTurnoTotali !== 0 && turnoCl !== filtroTurnoTotali) return;
+
+    var conteggio = contaClasse(nomeClasse);
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var riga = document.createElement("div");
+    riga.className = "totale-riga" + (isLab ? " lab" : "");
+
+    var presentiHtml = conteggio.x + '<small>presenti</small>';
+    if (conteggio.lab > 0) presentiHtml += '<span class="lab-count">' + conteggio.lab + ' lab</span>';
+
+    // Gestione colore per LAB o numeri
+    var clsSel = (turnoCl === "LAB") ? "selL" : "sel" + turnoCl;
+    var testoBadge = (turnoCl === "LAB") ? "LAB" : turnoCl + "T";
+
+    riga.innerHTML =
+      '<span class="tr-classe">' + nomeClasse + '</span>' +
+      '<span class="tr-presenti" data-tot-presenti="' + nomeClasse + '">' + presentiHtml + '</span>' +
+      '<span class="tr-turno-scelta"><span class="badge-turno ' + clsSel + '">' + testoBadge + '</span></span>';
+
+    listaTot.appendChild(riga);
+  });
+
+  if (listaTot.children.length === 0){
+    var empty = document.createElement("div");
+    empty.className = "totale-riga";
+    empty.style.textAlign = "center";
+    empty.style.color = "#777";
+    empty.textContent = "Nessuna classe per il turno selezionato";
+    listaTot.appendChild(empty);
+  }
+
+  blockTotali.appendChild(listaTot);
+  container.appendChild(blockTotali);
+
+  var btnTot = document.createElement("button");
+  btnTot.textContent = "📊 Totali";
+  btnTot.setAttribute("data-classe", "__TOTALI__");
+  btnTot.classList.add("btn-totali");
+  btnTot.addEventListener("click", function(){
+    apriSchedaTotali();
+  });
+  selector.appendChild(btnTot);
+
+  aggiornaSottotitolo();
+}
+
+/* ============================================================
+   TOTALI
+   ============================================================ */
+function aggiornaTotaleClasse(nomeClasse, tbody){
+  var c = contaClasse(nomeClasse);
+  var cell = tbody.querySelector("[data-total-value]");
+  if (cell){
+    var html = c.x;
+    if (c.lab > 0) html += '<span class="lab-count">' + c.lab + ' lab</span>';
+    cell.innerHTML = html;
+  }
+}
+function aggiornaTotaliGlobali(elencoClassi){
+  elencoClassi.forEach(function(nomeClasse){
+    var c = contaClasse(nomeClasse);
+    var el = document.querySelector('[data-tot-presenti="' + nomeClasse + '"]');
+    if (el){
+      var html = c.x + '<small>presenti</small>';
+      if (c.lab > 0) html += '<span class="lab-count">' + c.lab + ' lab</span>';
+      el.innerHTML = html;
+    }
+  });
+}
+
+/* ============================================================
+   SOTTOTITOLO
+   ============================================================ */
+function aggiornaSottotitolo(){
+  var codice = codiceGiorno();
+  var totX = 0, totO = 0, totLab = 0;
+  for (var k in stato){
+    if (k.split("|")[2] !== codice) continue;
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+    else if (stato[k] === "LAB") totLab++;
+  }
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var g = giornoCorrente();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+
+  var html =
+    "Transfer Lunch • <b>" + g.nome + "</b> " + dataIt +
+    " • Studenti: <b>" + studenti.length + "</b>" +
+    " • Presenti oggi: <b>" + totX + "</b>" +
+    " • Assenti oggi: <b>" + totO + "</b>";
+  if (totLab > 0) html += " • Lab: <b>" + totLab + "</b>";
+  if (classiLab.length) html += " • LAB Classi: <b>" + classiLab.join(", ") + "</b>";
+
+  document.getElementById("subtitle").innerHTML = html;
+}
+
+/* ============================================================
+   AZIONI
+   ============================================================ */
+function azzeraTutto(){
+  if (!confirm("Azzerare tutte le X, O e LAB di oggi?")) return;
+  var codice = codiceGiorno();
+  for (var k in stato){
+    if (k.split("|")[2] === codice) delete stato[k];
+  }
+  salvaStato();
+  render();
+}
+function esportaStato(){
+  var exportObj = {
+    data: new Date().toISOString(),
+    giorno: codiceGiorno(),
+    stato: stato
+  };
+  var json = JSON.stringify(exportObj, null, 2);
+  var blob = new Blob([json], { type:"application/json" });
+  var url  = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "transfer_lunch_appello_" + codiceGiorno() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+/* ============================================================
+   STAMPA PDF
+   ============================================================ */
+function stampaPDF(){
+  var studenti = getStudentiTransfer();
+  if (studenti.length === 0){
+    alert("Nessuno studente da stampare.");
+    return;
+  }
+
+  var classiLab = getClassiLabOggi();
+  var g = giornoCorrente();
+  var codice = codiceGiorno();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+  var ora = new Date().toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+
+  var blocchiClassi = elencoClassi.map(function(nomeClasse){
+    var lista = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var righeHtml = lista.map(function(s){
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+      var dettagli = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+var autoHtml = haAuto(s.cognome) ? ' <span class="auto-badge">🚗</span>' : "";
+      var k = keyOf(s.classe, s.cognome);
+      var st = stato[k] || "";
+
+      var classeBadge = isLab ? '<b>' + nomeClasse + '</b> <span class="lab-badge">(LAB)</span>' : '<b>' + nomeClasse + '</b>';
+      var esternoClass = !isConvittore ? "esterno" : "";
+
+      return '<tr class="' + esternoClass + '">' +
+        '<td class="t-cell t-room">' + roomInfo + '</td>' +
+        '<td class="t-cell t-name"><b>' + s.cognome + '</b>&nbsp;' + (s.nome || "") + '</td>' +
+        '<td class="t-cell t-class">' + classeBadge + '</td>' +
+      '<td class="t-cell t-details">' + (dettagli || "") + autoHtml + '</td>' +
+        '<td class="t-cell t-pres" data-state="' + st + '">' + (st === "LAB" ? "LAB" : st) + '</td>' +
+        '</tr>';
+    }).join("");
+
+    return '<div class="blocco-classe">' +
+      '<table>' +
+        '<tbody>' + righeHtml + '</tbody>' +
+      '</table>' +
+    '</div>';
+  });
+
+  var colonne = ["", "", ""];
+  var colIdx = 0;
+  var elementiCol = 0;
+  var totaleElementi = studenti.length;
+  var targetPerColonna = Math.ceil(totaleElementi / 3);
+
+  elencoClassi.forEach(function(nomeClasse){
+    var quanti = classi[nomeClasse].length;
+    if (elementiCol > 0 && elementiCol + quanti / 1.5 > targetPerColonna && colIdx < 2){
+      colIdx++;
+      elementiCol = 0;
+    }
+    colonne[colIdx] += blocchiClassi[elencoClassi.indexOf(nomeClasse)];
+    elementiCol += quanti;
+  });
+
+  var headerColonna =
+    '<div class="fake-header">' +
+      '<div class="h-cell h-room">Room</div>' +
+      '<div class="h-cell h-name">Cognome e Nome</div>' +
+      '<div class="h-cell h-class">Classe</div>' +
+      '<div class="h-cell h-notes">Note</div>' +
+      '<div class="h-cell h-pres">Pres.</div>' +
+    '</div>';
+
+  var colonneHtml = colonne.map(function(htmlDest){
+    if (!htmlDest.trim()) return "";
+    return '<div class="colonna">' + headerColonna + htmlDest + '</div>';
+  }).join("");
+
+  var labInfo = 'LAB [LUN 5A+3A BUS 19-31-47]; [MAR 4A+3B BUS 31-39-42]; [MER 4B+1A BUS 34-43-41]; [GIO 4C+1B BUS 34-37-44]';
+
+  var popup = window.open("", "_blank", "width=1200,height=800");
+  popup.document.write(
+    '<html lang="it"><head><title>Transfer Lunch - ' + dataIt + '</title><style>' +
+    '@page{size:A4 portrait;margin:0.4cm 0.3cm 0.3cm 0.3cm;}' +
+    '*,*::before,*::after{box-sizing:border-box;}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:0;color:#000;line-height:1;}' +
+    '.timestamp{position:absolute;top:4px;right:10px;font-size:0.55rem;color:#777;}' +
+    '.no-print{display:flex;justify-content:center;margin-bottom:6px;}' +
+    '.no-print button{padding:6px 26px;color:white;background:#27ae60;font-weight:bold;border-radius:20px;border:none;cursor:pointer;font-size:0.85rem;}' +
+    'h2{text-align:center;text-transform:uppercase;margin:0 0 2px 0;font-size:0.95rem;}' +
+    '.date-subtitle{text-align:center;font-size:0.65rem;margin-bottom:6px;color:#444;}' +
+    '.lab-info{font-size:0.7rem;font-weight:bold;color:#b7950b;}' +
+    '.grid-container{display:flex;gap:6px;justify-content:space-between;align-items:flex-start;}' +
+    '.colonna{width:33.1%;display:flex;flex-direction:column;}' +
+    '.fake-header{display:flex;background:#2c3e50;color:white;font-weight:bold;font-size:0.5rem;text-transform:uppercase;height:14px;box-sizing:border-box;border:1.2px solid #000;margin-bottom:2px;}' +
+    '.h-cell{padding:2px 2px;display:flex;align-items:center;justify-content:center;height:100%;box-sizing:border-box;border-right:1px solid #000;}' +
+    '.h-cell:last-child{border-right:none;}' +
+    '.blocco-classe{page-break-inside:avoid!important;break-inside:avoid-page!important;margin-bottom:4px;width:100%;}' +
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.2px solid #000;}' +
+    'tr{height:15px!important;box-sizing:border-box;}' +
+    '.t-cell{padding:0 2px;font-size:0.52rem;border-right:1px solid #000;border-bottom:1px solid #ddd;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;height:13px!important;line-height:12px;box-sizing:border-box;}' +
+    'tr:last-child .t-cell{border-bottom:none;}' +
+    '.t-cell:last-child{border-right:none;}' +
+    'tr.esterno td.t-room{border-left:2px dashed #7f8c8d;}' +
+    '.t-room,.h-room{width:22px;text-align:center;}' +
+    '.t-room{font-weight:bold;background:#f5f5f5;}' +
+    '.t-name,.h-name{width:100px;text-transform:uppercase;}' +
+    '.t-class,.h-class{width:48px;text-align:center;}' +
+    '.t-details,.h-notes{flex-grow:1;}' +
+    '.t-details{font-size:0.48rem;color:#444;}' +
+    '.t-pres,.h-pres{width:34px;text-align:center;font-weight:bold;}' +
+    '.t-pres[data-state="X"]{background:#d5f5e3;color:#1e8449;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="O"]{background:#fadbd8;color:#a93226;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="LAB"]{background:#fef3c7;color:#b45309;font-size:0.42rem;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.lab-badge{font-size:0.42rem;color:#b7950b;font-weight:bold;}' +
+    '.auto-badge{font-size:0.7rem;}' +
+    '@media print{.no-print{display:none!important;}}' +
+    '</style></head><body>' +
+    '<div class="timestamp">Generato il ' + dataIt + ' alle ' + ora + '</div>' +
+    '<div class="no-print"><button onclick="window.print()">•STAMPA</button></div>' +
+    '<h2>TRANSFER LUNCH</h2>' +
+    '<div class="date-subtitle"><span class="lab-info">' + labInfo + '</span> — ' + g.nome + ' ' + dataIt + ' — Studenti tot: <b>' + totaleElementi + '</b></div>' +
+    '<div class="grid-container">' + colonneHtml + '</div>' +
+    '</body></html>'
+  );
+  popup.document.close();
+}
+
+/* ============================================================
+   AVVIO
+   ============================================================ */
+function attendiStudenti(callback, maxMs){
+  var start = Date.now();
+  var max = maxMs || 20000;
+  var tick = function(){
+    var tutti = window.tuttiStudenti;
+    if (Array.isArray(tutti) && tutti.length > 0){
+      console.log('✅ tuttiStudenti pronto:', tutti.length, 'studenti');
+      callback();
+      return;
+    }
+    if (Date.now() - start > max){
+      console.warn('⏱️ Timeout attesa tuttiStudenti');
+      callback();
+      return;
+    }
+    setTimeout(tick, 200);
+  };
+  tick();
+}
+
+caricaStato();
+attendiStudenti(function(){ render(); }, 20000);
+
+setInterval(function(){
+  var g = new Date().getDay();
+  if (window._ultimoGiorno !== undefined && window._ultimoGiorno !== g){
+    render();
+  }
+  window._ultimoGiorno = g;
+}, 60000);
+</script>
+
+</body>
+</html>
