@@ -210,6 +210,7 @@ var stato = {};
 var unsubscribeStato = null;
 var unsubscribeReset = null;
 var _utenteCorrente  = null;
+var _classeAttiva    = null;
 
 /* ═════════════════════════════════════════════════════════════
    UTILITY
@@ -316,6 +317,12 @@ function contaClasse(nomeClasse){
    RENDER
    ═════════════════════════════════════════════════════════════ */
 function render(){
+  // Cattura la classe attiva PRIMA di ricostruire il DOM
+  var attivaEl = document.querySelector(".class-block.visible");
+  if (attivaEl) {
+    _classeAttiva = attivaEl.getAttribute("data-classe");
+  }
+
   var studenti = getStudentiTransfer();
   var classiLab = getClassiLabOggi();
   var container = document.getElementById("listContainer");
@@ -352,8 +359,8 @@ function render(){
     var isLab = classiLab.indexOf(nomeClasse) !== -1;
 
     var block = document.createElement("div");
-    block.className = "class-block" + (idx === 0 ? " visible" : "");
-    block.setAttribute("data-classe", nomeClasse);
+block.className = "class-block";
+block.setAttribute("data-classe", nomeClasse);
 
     var titleBar = document.createElement("div");
     titleBar.className = "class-title-bar";
@@ -444,22 +451,39 @@ function render(){
     container.appendChild(block);
 
     var btn = document.createElement("button");
-    btn.textContent = nomeClasse;
-    btn.setAttribute("data-classe", nomeClasse);
-    if (isLab) btn.classList.add("has-lab");
-    if (idx === 0) btn.classList.add("active");
-    btn.addEventListener("click", function(){
-      container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
-      selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
-      var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
-      if (target) target.classList.add("visible");
-      btn.classList.add("active");
-    });
-    selector.appendChild(btn);
+btn.textContent = nomeClasse;
+btn.setAttribute("data-classe", nomeClasse);
+if (isLab) btn.classList.add("has-lab");
+btn.addEventListener("click", function(){
+  container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+  selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+  var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
+  if (target) target.classList.add("visible");
+  btn.classList.add("active");
+  _classeAttiva = nomeClasse;   // ← AGGIUNTO
+});
+selector.appendChild(btn);
   });
 
   aggiornaTuttiTotali();
   aggiornaSottotitolo();
+
+  // ── Ripristina la classe attiva ──
+  container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+  selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+
+  var target = _classeAttiva
+    ? container.querySelector('.class-block[data-classe="' + _classeAttiva + '"]')
+    : null;
+
+  if (!target) target = container.querySelector(".class-block");
+
+  if (target) {
+    target.classList.add("visible");
+    var nomeTarget = target.getAttribute("data-classe");
+    var btnTarget = selector.querySelector('button[data-classe="' + nomeTarget + '"]');
+    if (btnTarget) btnTarget.classList.add("active");
+  }
 }
 
 function aggiornaTuttiTotali(){
