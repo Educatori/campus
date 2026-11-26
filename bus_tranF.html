@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Transfer Lunch – Appello Condiviso</title>
+<link rel="stylesheet" href="css/campus_hub.css">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any" type="image/x-icon">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- AMBIENTE: deve essere il PRIMO script -->
+<script src="js/ambiente.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){ reg.unregister(); });
+    });
+    if ('caches' in window) {
+      caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --border:#000;
+    --head:#2c3e50;
+    --lab-bg:#fff2cc;
+    --lab-accent:#b7950b;
+    --present-bg:#d5f5e3;
+    --present-color:#1e8449;
+    --absent-bg:#fadbd8;
+    --absent-color:#a93226;
+    --lab-cell-bg:#fef3c7;
+    --lab-cell-color:#b45309;
+    --auto-color:#b7950b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;padding:8px;color:#000;line-height:1.1;background:#fff;
+  }
+
+  header{margin-bottom:12px;padding:10px;text-align:center;}
+  header h1{display:inline-block;margin:0;font-size:1.4rem;}
+  header h1 a{text-decoration:none;color:#2c3e50;}
+
+  .header-row{
+    display:flex;justify-content:space-between;align-items:center;
+    flex-wrap:wrap;gap:10px;margin-bottom:12px;padding:10px;
+  }
+  .header-row h1{font-size:1.3rem;margin:0;}
+  .header-row h1 a{text-decoration:none;color:#2c3e50;}
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .status-badge{font-size:0.72rem;padding:4px 10px;border-radius:12px;font-weight:bold;letter-spacing:0.03em;}
+  .status-badge.connected{background:#d5f5e3;color:#1e8449;}
+  .status-badge.disconnected{background:#fadbd8;color:#a93226;}
+  .btn-logout{padding:6px 14px;background:#c0392b;color:#fff;border:none;border-radius:16px;font-weight:bold;font-size:0.75rem;cursor:pointer;}
+  #lastResetDate{font-size:0.72rem;color:#888;}
+
+  .subtitle{text-align:center;font-size:.82rem;margin-bottom:10px;color:#444;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
+  .toolbar button{padding:8px 16px;border:none;border-radius:20px;color:#fff;font-weight:bold;font-size:.8rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15);}
+  .btn-print{background:#27ae60;}
+  .btn-reset{background:#c0392b;}
+  .btn-export{background:#2980b9;}
+
+  .class-selector{
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    margin-bottom:12px;padding:8px;background:#f8f9fa;border-radius:12px;border:1px solid #ddd;
+  }
+  .class-selector button{
+    padding:7px 14px;border:2px solid #2c3e50;border-radius:18px;
+    background:#fff;color:#2c3e50;font-weight:bold;font-size:.78rem;cursor:pointer;transition:all .15s;
+  }
+  .class-selector button:hover{background:#eaf2f8;}
+  .class-selector button.active{background:#2c3e50;color:#fff;}
+  .class-selector button.has-lab{border-color:var(--lab-accent);color:var(--lab-accent);background:var(--lab-bg);}
+  .class-selector button.has-lab.active{background:var(--lab-accent);color:#fff;border-color:var(--lab-accent);}
+
+  .list-container{max-width:720px;margin:0 auto;}
+
+  .class-block{display:none;}
+  .class-block.visible{display:block;}
+
+  .class-title-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--head);color:#fff;font-weight:bold;font-size:.82rem;
+    padding:6px 10px;border-radius:8px 8px 0 0;border:1px solid var(--border);
+  }
+  .class-title-bar .lab-tag{background:var(--lab-accent);color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;}
+
+  .students-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid var(--border);border-top:none;}
+  .students-table th{background:#eaecee;font-size:.68rem;text-transform:uppercase;padding:4px;border-bottom:1px solid var(--border);border-right:1px solid #ccc;text-align:center;}
+  .students-table th:last-child{border-right:none;}
+  .students-table td{padding:3px 4px;font-size:.78rem;border-bottom:1px solid #ddd;border-right:1px solid #eee;vertical-align:middle;}
+  .students-table td:last-child{border-right:none;}
+  .students-table tr:last-child td{border-bottom:none;}
+
+  .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
+  .td-name{text-transform:uppercase;}
+  .td-details{width:90px;font-size:.62rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+  .td-details .auto-badge{color:var(--auto-color);font-weight:bold;font-size:.78rem;}
+  .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
+  .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
+  .td-day[data-state="O"]{background:var(--absent-bg);color:var(--absent-color);}
+  .td-day[data-state="LAB"]{background:var(--lab-cell-bg);color:var(--lab-cell-color);font-size:.72rem;}
+
+  .total-row td{background:#eaf2f8;font-weight:bold;font-size:.78rem;padding:6px 4px;border-top:2px solid var(--border);}
+  .total-row .total-label{text-align:right;color:#2c3e50;}
+  .total-row .total-value{text-align:center;color:#1e8449;font-size:.95rem;font-weight:bold;}
+  .total-row .total-value .lab-count{color:var(--lab-cell-color);font-size:.78rem;display:block;font-weight:normal;}
+
+  tr.lab-row td{background-color:var(--lab-bg);}
+  tr.lab-row td.td-room{background-color:#f5e6b8;}
+
+  .loading{padding:24px;text-align:center;color:#555;font-style:italic;}
+  .loading .err{color:#c0392b;font-weight:bold;}
+
+  #loginScreen{
+    display:none;position:fixed;inset:0;z-index:1000;
+    background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);
+    justify-content:center;align-items:center;
+  }
+  .login-container{
+    background:#fff;padding:28px 24px;border-radius:16px;
+    max-width:340px;width:90%;text-align:center;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+  .login-container h2{margin:0 0 8px 0;font-size:1.1rem;letter-spacing:0.05em;text-transform:uppercase;}
+  .login-container p{margin:0 0 16px 0;font-size:0.82rem;color:#555;}
+  .login-container input{width:100%;padding:9px 12px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px;font-size:0.85rem;}
+  .login-container button{width:100%;padding:10px;background:#2c3e50;color:#fff;border:none;border-radius:8px;font-weight:bold;font-size:0.85rem;cursor:pointer;letter-spacing:0.05em;}
+  .login-container button:disabled{opacity:0.6;cursor:wait;}
+  .error{color:#c0392b;font-size:0.78rem;min-height:1.2em;margin-top:8px;}
+
+  @media print{
+    .no-print{display:none!important;}
+    #loginScreen{display:none!important;}
+    .header-actions{display:none!important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN
+     ═══════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-container">
+    <h2>LOGIN</h2>
+    <p>Transfer Lunch — accesso riservato</p>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn">ACCEDI</button>
+    <div id="loginError" class="error" role="alert"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     APP
+     ═══════════════════════════════════════════════════════ -->
+<div id="appContent" style="display:none;">
+
+  <div class="header-row no-print">
+    <h1><a href="trasportini.html">Transfer Lunch</a></h1>
+    <div class="header-actions">
+      <span id="lastResetDate"></span>
+      <div id="connection-status" class="status-badge" role="status" aria-live="polite">🟢 Caricamento…</div>
+      <button id="btnLogout" class="btn-logout" title="Esci">❌ ESCI</button>
+    </div>
+  </div>
+
+  <div class="subtitle" id="subtitle">Transfer Lunch – Caricamento dati…</div>
+
+  <div class="toolbar no-print">
+    <button class="btn-print" onclick="stampaPDF()">• Stampa / PDF</button>
+    <button class="btn-export" onclick="esportaStato()">• Esporta stato</button>
+    <button class="btn-reset" onclick="azzeraTutto()">• Azzera tutto</button>
+  </div>
+
+  <div class="class-selector no-print" id="classSelector"></div>
+
+  <div class="list-container" id="listContainer">
+    <div class="loading">⏳ Caricamento studenti…</div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CONFIGURAZIONE STATICA
+     ═══════════════════════════════════════════════════════ -->
+<script src="js/core/config-static.js"></script>
+<script src="js/dati/esclusioni-bus.js"></script>
+<script src="js/dati/cognomi-auto.js"></script>
+
+<script>
+/* ═════════════════════════════════════════════════════════════
+   COSTANTI
+   ═════════════════════════════════════════════════════════════ */
+var CICLO_STATI = ["", "X", "O", "LAB"];
+var NODO_STATO  = "bus_transfer";
+var NODO_RESET  = "bus_meta/ultimoReset_transfer";
+var CACHE_PREFIX = "bus_tran_cache_";
+
+var stato = {};
+var unsubscribeStato = null;
+var unsubscribeReset = null;
+var _utenteCorrente  = null;
+
+/* ═════════════════════════════════════════════════════════════
+   UTILITY
+   ═════════════════════════════════════════════════════════════ */
+function codiceGiorno(){
+  var sigle = ["DO","LU","MA","ME","GI","VE","SA"];
+  return sigle[new Date().getDay()];
+}
+function giornoCorrente(){
+  var d = new Date().getDay();
+  return {
+    num: d,
+    sigla: ["Do","Lu","Ma","Me","Gi","Ve","Sa"][d],
+    nome:  ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"][d]
+  };
+}
+function dataKeyOggi(){
+  var d = new Date();
+  return String(d.getDate()).padStart(2,'0') + '-' +
+         String(d.getMonth()+1).padStart(2,'0') + '-' +
+         d.getFullYear();
+}
+function chiaveFirebase(cognome){
+  return String(cognome || "").toUpperCase().trim()
+    .replace(/[.#$\[\]\/]/g, "_");
+}
+function haAuto(cognome){
+  var lista = window.COGNOMI_AUTO || [];
+  return lista.indexOf(String(cognome || "").toUpperCase().trim()) !== -1;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   CACHE LOCALE
+   ═════════════════════════════════════════════════════════════ */
+function salvaCacheLocale(){
+  try{ localStorage.setItem(CACHE_PREFIX + dataKeyOggi(), JSON.stringify(stato)); }catch(e){}
+}
+function caricaCacheLocale(){
+  try{
+    var raw = localStorage.getItem(CACHE_PREFIX + dataKeyOggi());
+    if(raw) return JSON.parse(raw) || {};
+  }catch(e){}
+  return {};
+}
+
+/* ═════════════════════════════════════════════════════════════
+   CLASSI IN LAB OGGI (per evidenziazione)
+   ═════════════════════════════════════════════════════════════ */
+function getClassiLabOggi(){
+  var lab = (typeof window.LAB_PRANZO !== "undefined") ? window.LAB_PRANZO : {};
+  var giorno = new Date().getDay();
+  return lab[giorno] || lab[String(giorno)] || [];
+}
+
+/* ═════════════════════════════════════════════════════════════
+   ESTRAZIONE STUDENTI TRANSFER
+   ═════════════════════════════════════════════════════════════ */
+function getStudentiTransfer(){
+  var tutti = Array.isArray(window.tuttiStudenti) ? window.tuttiStudenti : [];
+  if (tutti.length === 0) return [];
+
+  var filtrati = [];
+  tutti.forEach(function(s){
+    if (!s || !s.cognome || String(s.cognome).trim() === "") return;
+    if (typeof window.haDirittoAlBusVariante === "function"){
+      try{
+        if (!window.haDirittoAlBusVariante(s, "transfer")) return;
+      }catch(e){}
+    }
+    filtrati.push({
+      classe: String(s.classe || "SENZA CLASSE").toUpperCase().trim(),
+      cognome: String(s.cognome).trim(),
+      nome: (s.nome || "").trim(),
+      room: s.room || "-",
+      percorso: s.percorso || "",
+      gruppo: s.gruppo || ""
+    });
+  });
+
+  filtrati.sort(function(a,b){
+    var c = a.classe.localeCompare(b.classe, undefined, { numeric:true });
+    if (c !== 0) return c;
+    return a.cognome.localeCompare(b.cognome);
+  });
+  return filtrati;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   CONTEGGIO
+   ═════════════════════════════════════════════════════════════ */
+function contaClasse(nomeClasse){
+  var studenti = getStudentiTransfer();
+  var x = 0, lab = 0;
+  studenti.forEach(function(s){
+    if (s.classe !== nomeClasse) return;
+    var k = chiaveFirebase(s.cognome);
+    if (stato[k] === "X") x++;
+    else if (stato[k] === "LAB") lab++;
+  });
+  return { x: x, lab: lab };
+}
+
+/* ═════════════════════════════════════════════════════════════
+   RENDER
+   ═════════════════════════════════════════════════════════════ */
+function render(){
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var container = document.getElementById("listContainer");
+  var selector  = document.getElementById("classSelector");
+
+  container.innerHTML = "";
+  selector.innerHTML = "";
+
+  if (studenti.length === 0){
+    var errMsg = window._busTranLoadError
+      ? '<span class="err">⚠️ Errore:</span> ' + window._busTranLoadError.message
+      : (window.APP_MODE !== 'online'
+          ? '<span class="err">⚠️ Modalità offline:</span> apri la pagina da GitHub Pages o da server locale per caricare i dati da Firebase.'
+          : '<span class="err">⚠️ Nessuno studente con diritto transfer.</span>');
+    container.innerHTML = '<div class="loading">' + errMsg + '</div>';
+    document.getElementById("subtitle").innerHTML = '⚠️ Nessun dato';
+    return;
+  }
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, { numeric:true });
+  });
+
+  var g = giornoCorrente();
+
+  elencoClassi.forEach(function(nomeClasse, idx){
+    var studentiClasse = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var block = document.createElement("div");
+    block.className = "class-block" + (idx === 0 ? " visible" : "");
+    block.setAttribute("data-classe", nomeClasse);
+
+    var titleBar = document.createElement("div");
+    titleBar.className = "class-title-bar";
+    titleBar.innerHTML =
+      "<span>Classe " + nomeClasse + " — " + studentiClasse.length + " studenti • " + g.nome + "</span>" +
+      (isLab ? '<span class="lab-tag">In laboratorio oggi</span>' : "");
+    block.appendChild(titleBar);
+
+    var table = document.createElement("table");
+    table.className = "students-table";
+
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    ["Room","Cognome e Nome","Note", g.sigla].forEach(function(txt){
+      var th = document.createElement("th");
+      th.textContent = txt;
+      if (txt === "Room") th.style.width = "42px";
+      if (txt === "Note") th.style.width = "90px";
+      if (txt === g.sigla){
+        th.style.width = "56px";
+        th.title = g.nome;
+      }
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+
+    studentiClasse.forEach(function(s){
+      var tr = document.createElement("tr");
+      if (isLab) tr.className = "lab-row";
+
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+
+      var tdRoom = document.createElement("td");
+      tdRoom.className = "td-room";
+      tdRoom.textContent = roomInfo;
+      if (!isConvittore) tdRoom.style.borderLeft = "2px dashed #7f8c8d";
+      tr.appendChild(tdRoom);
+
+      var tdName = document.createElement("td");
+      tdName.className = "td-name";
+      tdName.innerHTML = "<b>" + s.cognome + "</b>" + (s.nome ? " " + s.nome : "");
+      tr.appendChild(tdName);
+
+      var tdDetails = document.createElement("td");
+      tdDetails.className = "td-details";
+      var parts = [];
+      if (s.percorso) parts.push(s.percorso);
+      if (s.gruppo)   parts.push("• " + s.gruppo);
+      var det = parts.join(" ");
+      if (haAuto(s.cognome)) det += (det ? " " : "") + '<span class="auto-badge">🚗</span>';
+      tdDetails.innerHTML = det || "—";
+      tr.appendChild(tdDetails);
+
+      var td = document.createElement("td");
+      td.className = "td-day";
+      var k = chiaveFirebase(s.cognome);
+      var st = stato[k] || "";
+      td.setAttribute("data-key", k);
+      td.setAttribute("data-state", st);
+      td.textContent = st;
+
+      td.addEventListener("click", function(){
+        var cur = stato[k] || "";
+        var idxStato = CICLO_STATI.indexOf(cur);
+        if (idxStato === -1) idxStato = 0;
+        var next = CICLO_STATI[(idxStato + 1) % CICLO_STATI.length];
+        salvaStato(s.cognome, next);
+      });
+
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+
+    var totalRow = document.createElement("tr");
+    totalRow.className = "total-row";
+    totalRow.innerHTML =
+      '<td colspan="3" class="total-label">Presenti oggi — ' + nomeClasse + '</td>' +
+      '<td class="total-value" data-total-value="' + nomeClasse + '">0</td>';
+    tbody.appendChild(totalRow);
+
+    table.appendChild(tbody);
+    block.appendChild(table);
+    container.appendChild(block);
+
+    var btn = document.createElement("button");
+    btn.textContent = nomeClasse;
+    btn.setAttribute("data-classe", nomeClasse);
+    if (isLab) btn.classList.add("has-lab");
+    if (idx === 0) btn.classList.add("active");
+    btn.addEventListener("click", function(){
+      container.querySelectorAll(".class-block").forEach(function(b){ b.classList.remove("visible"); });
+      selector.querySelectorAll("button").forEach(function(b){ b.classList.remove("active"); });
+      var target = container.querySelector('.class-block[data-classe="' + nomeClasse + '"]');
+      if (target) target.classList.add("visible");
+      btn.classList.add("active");
+    });
+    selector.appendChild(btn);
+  });
+
+  aggiornaTuttiTotali();
+  aggiornaSottotitolo();
+}
+
+function aggiornaTuttiTotali(){
+  document.querySelectorAll("[data-total-value]").forEach(function(cell){
+    var nomeClasse = cell.getAttribute("data-total-value");
+    var c = contaClasse(nomeClasse);
+    var html = c.x;
+    if (c.lab > 0) html += '<span class="lab-count">' + c.lab + ' lab</span>';
+    cell.innerHTML = html;
+  });
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SOTTOTITOLO
+   ═════════════════════════════════════════════════════════════ */
+function aggiornaSottotitolo(){
+  var totX = 0, totO = 0, totLab = 0;
+  Object.keys(stato).forEach(function(k){
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+    else if (stato[k] === "LAB") totLab++;
+  });
+  var studenti = getStudentiTransfer();
+  var classiLab = getClassiLabOggi();
+  var g = giornoCorrente();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+
+  var html =
+    "Transfer Lunch • <b>" + g.nome + "</b> " + dataIt +
+    " • Studenti: <b>" + studenti.length + "</b>" +
+    " • Presenti oggi: <b>" + totX + "</b>" +
+    " • Assenti oggi: <b>" + totO + "</b>";
+  if (totLab > 0) html += " • Lab: <b>" + totLab + "</b>";
+  if (classiLab.length) html += " • LAB Classi: <b>" + classiLab.join(", ") + "</b>";
+
+  document.getElementById("subtitle").innerHTML = html;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   SALVATAGGIO
+   ═════════════════════════════════════════════════════════════ */
+function salvaStato(cognome, nuovoStato){
+  var chiave = chiaveFirebase(cognome);
+
+  if (nuovoStato === "") delete stato[chiave];
+  else stato[chiave] = nuovoStato;
+  salvaCacheLocale();
+  aggiornaCellaVisiva(chiave, nuovoStato);
+  aggiornaTuttiTotali();
+  aggiornaSottotitolo();
+
+  if (!navigator.onLine || !window.db){
+    console.warn('⚠️ Offline: modifica non sincronizzata');
+    return;
+  }
+
+  var payload = {
+    stato: nuovoStato,
+    utente: _utenteCorrente ? _utenteCorrente.email : 'anonimo',
+    ts: Date.now()
+  };
+
+  window.set(
+    window.ref(window.db, NODO_STATO + '/' + dataKeyOggi() + '/' + chiave),
+    payload
+  ).catch(function(e){
+    console.error('❌ Errore salvataggio Firebase:', e);
+  });
+}
+
+function aggiornaCellaVisiva(chiave, nuovoStato){
+  var cella = document.querySelector('.td-day[data-key="' + CSS.escape(chiave) + '"]');
+  if (!cella) return;
+  cella.setAttribute("data-state", nuovoStato);
+  cella.textContent = nuovoStato;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   LISTENER
+   ═════════════════════════════════════════════════════════════ */
+function attivaListenerStato(){
+  if (unsubscribeStato) unsubscribeStato();
+  var dataKey = dataKeyOggi();
+  unsubscribeStato = window.onValue(
+    window.ref(window.db, NODO_STATO + '/' + dataKey),
+    function(snap){
+      var remoto = snap.val() || {};
+      stato = {};
+      Object.keys(remoto).forEach(function(cognome){
+        var info = remoto[cognome];
+        if (info && info.stato) stato[cognome] = info.stato;
+      });
+      salvaCacheLocale();
+      render();
+    }
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════
+   AZIONI
+   ═════════════════════════════════════════════════════════════ */
+function azzeraTutto(){
+  if (!confirm("Azzerare tutte le X, O e LAB di oggi?")) return;
+
+  if (!window.db){
+    alert("Offline: impossibile azzerare.");
+    return;
+  }
+
+  window.set(
+    window.ref(window.db, NODO_STATO + '/' + dataKeyOggi()),
+    null
+  ).then(function(){
+    return window.set(
+      window.ref(window.db, NODO_RESET),
+      new Date().toISOString()
+    );
+  }).catch(function(e){
+    console.error('❌ Errore reset:', e);
+    alert("Errore durante l'azzeramento.");
+  });
+}
+
+function esportaStato(){
+  var exportObj = {
+    data: new Date().toISOString(),
+    giorno: codiceGiorno(),
+    utente: _utenteCorrente ? _utenteCorrente.email : 'anonimo',
+    stato: stato
+  };
+  var json = JSON.stringify(exportObj, null, 2);
+  var blob = new Blob([json], { type:"application/json" });
+  var url  = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "bus_transfer_" + dataKeyOggi() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   STAMPA PDF
+   ═════════════════════════════════════════════════════════════ */
+function stampaPDF(){
+  var studenti = getStudentiTransfer();
+  if (studenti.length === 0){
+    alert("Nessuno studente da stampare.");
+    return;
+  }
+
+  var classiLab = getClassiLabOggi();
+  var g = giornoCorrente();
+  var dataIt = new Date().toLocaleDateString("it-IT");
+  var ora = new Date().toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
+  var utente = _utenteCorrente ? _utenteCorrente.email : '—';
+
+  var classi = {};
+  studenti.forEach(function(s){
+    if (!classi[s.classe]) classi[s.classe] = [];
+    classi[s.classe].push(s);
+  });
+  var elencoClassi = Object.keys(classi).sort(function(a,b){
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+
+  var blocchiClassi = elencoClassi.map(function(nomeClasse){
+    var lista = classi[nomeClasse];
+    var isLab = classiLab.indexOf(nomeClasse) !== -1;
+
+    var righeHtml = lista.map(function(s){
+      var roomNum = parseInt(s.room, 10);
+      var isConvittore = !isNaN(roomNum) && roomNum >= 101 && roomNum <= 221;
+      var roomInfo = (s.room && s.room !== "-") ? s.room : "-";
+      var dettagli = [s.percorso || "", s.gruppo ? "• " + s.gruppo : ""].filter(Boolean).join(" ");
+      var autoHtml = haAuto(s.cognome) ? ' <span class="auto-badge">🚗</span>' : "";
+      var k = chiaveFirebase(s.cognome);
+      var st = stato[k] || "";
+      var esternoClass = !isConvittore ? "esterno" : "";
+
+      return '<tr class="' + esternoClass + '">' +
+        '<td class="t-cell t-room">' + roomInfo + '</td>' +
+        '<td class="t-cell t-name"><b>' + s.cognome + '</b>&nbsp;' + (s.nome || "") + '</td>' +
+        '<td class="t-cell t-details">' + (dettagli || "") + autoHtml + '</td>' +
+        '<td class="t-cell t-pres" data-state="' + st + '">' + (st === "LAB" ? "LAB" : st) + '</td>' +
+        '</tr>';
+    }).join("");
+
+    return '<div class="blocco-classe">' +
+      '<div class="blocco-title">Classe ' + nomeClasse + ' — ' + lista.length + ' studenti' +
+      (isLab ? ' <span class="lab-badge">(LAB)</span>' : '') + '</div>' +
+      '<table><tbody>' + righeHtml + '</tbody></table>' +
+    '</div>';
+  }).join("");
+
+  var headerColonna =
+    '<div class="fake-header">' +
+      '<div class="h-cell h-room">Room</div>' +
+      '<div class="h-cell h-name">Cognome e Nome</div>' +
+      '<div class="h-cell h-notes">Note</div>' +
+      '<div class="h-cell h-pres">Pres.</div>' +
+    '</div>';
+
+  var totX = 0, totO = 0, totLab = 0;
+  Object.keys(stato).forEach(function(k){
+    if (stato[k] === "X") totX++;
+    else if (stato[k] === "O") totO++;
+    else if (stato[k] === "LAB") totLab++;
+  });
+
+  var labInfo = 'LAB [LUN 5A+3A]; [MAR 4A+3B]; [MER 4B+1A]; [GIO 4C+1B]';
+
+  var popup = window.open("", "_blank", "width=900,height=800");
+  popup.document.write(
+    '<html lang="it"><head><title>Transfer Lunch - ' + dataIt + '</title><style>' +
+    '@page{size:A4 portrait;margin:0.4cm 0.3cm 0.3cm 0.3cm;}' +
+    '*,*::before,*::after{box-sizing:border-box;}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:0;color:#000;line-height:1;}' +
+    '.timestamp{position:absolute;top:4px;right:10px;font-size:0.55rem;color:#777;}' +
+    '.no-print{display:flex;justify-content:center;margin-bottom:6px;}' +
+    '.no-print button{padding:6px 26px;color:white;background:#27ae60;font-weight:bold;border-radius:20px;border:none;cursor:pointer;font-size:0.85rem;}' +
+    'h2{text-align:center;text-transform:uppercase;margin:0 0 2px 0;font-size:0.95rem;}' +
+    '.date-subtitle{text-align:center;font-size:0.7rem;margin-bottom:8px;color:#444;}' +
+    '.lab-info{font-size:0.7rem;font-weight:bold;color:#b7950b;}' +
+    '.blocco-classe{page-break-inside:avoid!important;break-inside:avoid-page!important;margin-bottom:6px;width:100%;}' +
+    '.blocco-title{background:#2c3e50;color:#fff;font-weight:bold;font-size:0.62rem;padding:2px 6px;border:1.2px solid #000;border-bottom:none;text-transform:uppercase;letter-spacing:.03em;}' +
+    '.fake-header{display:flex;background:#2c3e50;color:white;font-weight:bold;font-size:0.5rem;text-transform:uppercase;height:14px;box-sizing:border-box;border:1.2px solid #000;margin-bottom:2px;}' +
+    '.h-cell{padding:2px 2px;display:flex;align-items:center;justify-content:center;height:100%;box-sizing:border-box;border-right:1px solid #000;}' +
+    '.h-cell:last-child{border-right:none;}' +
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.2px solid #000;}' +
+    'tr{height:15px!important;box-sizing:border-box;}' +
+    '.t-cell{padding:0 2px;font-size:0.6rem;border-right:1px solid #000;border-bottom:1px solid #ddd;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;height:15px!important;line-height:14px;box-sizing:border-box;}' +
+    'tr:last-child .t-cell{border-bottom:none;}' +
+    '.t-cell:last-child{border-right:none;}' +
+    'tr.esterno td.t-room{border-left:2px dashed #7f8c8d;}' +
+    '.t-room,.h-room{width:32px;text-align:center;}' +
+    '.t-room{font-weight:bold;background:#f5f5f5;}' +
+    '.t-name,.h-name{width:130px;text-transform:uppercase;}' +
+    '.t-details,.h-notes{flex-grow:1;}' +
+    '.t-details{font-size:0.52rem;color:#444;}' +
+    '.t-pres,.h-pres{width:38px;text-align:center;font-weight:bold;font-size:0.72rem;}' +
+    '.t-pres[data-state="X"]{background:#d5f5e3;color:#1e8449;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="O"]{background:#fadbd8;color:#a93226;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.t-pres[data-state="LAB"]{background:#fef3c7;color:#b45309;font-size:0.5rem;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+    '.auto-badge{font-size:0.7rem;}' +
+    '.lab-badge{font-size:0.5rem;color:#b7950b;font-weight:bold;}' +
+    '@media print{.no-print{display:none!important;}}' +
+    '</style></head><body>' +
+    '<div class="timestamp">Generato il ' + dataIt + ' alle ' + ora + '</div>' +
+    '<div class="no-print"><button onclick="window.print()">•STAMPA</button></div>' +
+    '<h2>TRANSFER LUNCH</h2>' +
+    '<div class="date-subtitle"><span class="lab-info">' + labInfo + '</span><br>' +
+    g.nome + ' ' + dataIt +
+    ' — Studenti tot: <b>' + studenti.length + '</b>' +
+    ' — Presenti: <b>' + totX + '</b>' +
+    ' — Assenti: <b>' + totO + '</b>' +
+    (totLab > 0 ? ' — Lab: <b>' + totLab + '</b>' : '') +
+    '<br>Compilato da: <b>' + utente + '</b></div>' +
+    headerColonna +
+    '<div class="grid-container">' + blocchiClassi + '</div>' +
+    '</body></html>'
+  );
+  popup.document.close();
+}
+
+/* ═════════════════════════════════════════════════════════════
+   BADGE
+   ═════════════════════════════════════════════════════════════ */
+function aggiornaBadgeConnessione(){
+  var badge = document.getElementById('connection-status');
+  if (!badge) return;
+  if (!navigator.onLine){
+    badge.textContent = '🔴 OFFLINE — dati congelati';
+    badge.classList.remove('connected');
+    badge.classList.add('disconnected');
+    return;
+  }
+  if (window.db){
+    badge.textContent = '🟢 Firebase';
+    badge.classList.add('connected');
+    badge.classList.remove('disconnected');
+  } else {
+    badge.textContent = '📴 Locale';
+    badge.classList.remove('connected');
+    badge.classList.add('disconnected');
+  }
+}
+window.addEventListener('online',  aggiornaBadgeConnessione);
+window.addEventListener('offline', aggiornaBadgeConnessione);
+
+/* ═════════════════════════════════════════════════════════════
+   BOOTSTRAP OFFLINE
+   ═════════════════════════════════════════════════════════════ */
+function avviaOffline(){
+  console.log('📴 Bootstrap OFFLINE');
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContent').style.display  = 'block';
+  var btnOut = document.getElementById('btnLogout');
+  if (btnOut) btnOut.style.display = 'none';
+
+  window.studenticonvittori = window.filtraConvittori
+    ? window.filtraConvittori(window.tuttiStudenti || [])
+    : [];
+
+  stato = caricaCacheLocale();
+  aggiornaBadgeConnessione();
+  render();
+}
+
+/* ═════════════════════════════════════════════════════════════
+   BOOTSTRAP ONLINE
+   ═════════════════════════════════════════════════════════════ */
+async function avviaOnline(){
+  console.log('🟢 Bootstrap ONLINE');
+
+  var firebaseMod;
+  try {
+    firebaseMod = await import('./js/firebase-campus_hub-config.js');
+  } catch (err){
+    console.error('❌ Import firebase:', err);
+    document.body.innerHTML = '<div style="padding:40px;font-family:monospace;color:#c00;">' +
+      '<h2>❌ Errore di caricamento Firebase</h2>' +
+      '<pre>' + err.message + '</pre></div>';
+    return;
+  }
+
+  var { auth, db, ref, get, set, onValue,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged } = firebaseMod;
+
+  window.db = db; window.ref = ref; window.get = get;
+  window.set = set; window.onValue = onValue;
+
+  window.effettuaLogin = async function(){
+    var email = document.getElementById('loginEmail').value.trim();
+    var pwd   = document.getElementById('loginPassword').value;
+    var errEl = document.getElementById('loginError');
+    var btn   = document.getElementById('loginBtn');
+
+    errEl.textContent = '';
+    if (!email || !pwd){ errEl.textContent = 'Inserisci email e password'; return; }
+
+    btn.disabled = true; btn.textContent = 'Verifica…';
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (e){
+      var messaggi = {
+        'auth/invalid-email':       'Email non valida',
+        'auth/user-not-found':      'Utente non trovato',
+        'auth/wrong-password':      'Password errata',
+        'auth/invalid-credential':  'Credenziali errate',
+        'auth/too-many-requests':   'Troppi tentativi. Riprova più tardi.',
+        'auth/network-request-failed': 'Errore di rete'
+      };
+      errEl.textContent = messaggi[e.code] || 'Errore di accesso';
+      btn.disabled = false; btn.textContent = 'ACCEDI';
+    }
+  };
+
+  window.effettuaLogout = async function(){
+    if (!confirm('Vuoi uscire?')) return;
+    try { await signOut(auth); } catch(e){ console.error(e); }
+  };
+
+  document.getElementById('loginBtn').addEventListener('click', function(){ window.effettuaLogin(); });
+  document.getElementById('loginPassword').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') window.effettuaLogin();
+  });
+  document.getElementById('loginEmail').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+  });
+  document.getElementById('btnLogout').onclick = function(){ window.effettuaLogout(); };
+
+  async function isUtenteAutorizzato(uid){
+    try {
+      var snap = await get(ref(db, 'authorizedUsers/' + uid));
+      return snap.exists() && snap.val() === true;
+    } catch(e){ return false; }
+  }
+
+  onAuthStateChanged(auth, async function(user){
+    var loginScreen = document.getElementById('loginScreen');
+    var appContent  = document.getElementById('appContent');
+
+    if (!user){
+      loginScreen.style.display = 'flex';
+      appContent.style.display  = 'none';
+      _utenteCorrente = null;
+      if (unsubscribeStato) { unsubscribeStato(); unsubscribeStato = null; }
+      if (unsubscribeReset) { unsubscribeReset(); unsubscribeReset = null; }
+      return;
+    }
+
+    var autorizzato = await isUtenteAutorizzato(user.uid);
+    if (!autorizzato){
+      var errEl = document.getElementById('loginError');
+      if (errEl) errEl.textContent = "Utente non autorizzato. Contatta l'amministratore.";
+      await signOut(auth);
+      return;
+    }
+
+    _utenteCorrente = user;
+    loginScreen.style.display = 'none';
+    appContent.style.display  = 'block';
+
+    try {
+      var dl = await import('./js/data-loader.js');
+      if (typeof dl.caricaDatiFirebase === 'function'){
+        await dl.caricaDatiFirebase();
+      }
+    } catch (err){
+      console.error('❌ data-loader:', err);
+      window._busTranLoadError = err;
+    }
+
+    attivaListenerStato();
+
+    if (unsubscribeReset) unsubscribeReset();
+    unsubscribeReset = onValue(
+      ref(db, NODO_RESET),
+      function(snap){
+        var el = document.getElementById('lastResetDate');
+        if (!el) return;
+        if (snap.exists()){
+          var d = new Date(snap.val());
+          el.textContent = '| Ultimo reset: ' +
+            d.toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'}) +
+            ' ' + d.toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'});
+        } else {
+          el.textContent = '| Ultimo reset: —';
+        }
+      }
+    );
+
+    aggiornaBadgeConnessione();
+  });
+
+  aggiornaBadgeConnessione();
+}
+
+/* ═════════════════════════════════════════════════════════════
+   DISPATCH
+   ═════════════════════════════════════════════════════════════ */
+if (window.APP_MODE === 'offline') avviaOffline();
+else avviaOnline().catch(function(err){ console.error('❌ Bootstrap online:', err); });
+</script>
+
+</body>
+</html>
