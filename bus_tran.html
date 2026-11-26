@@ -78,7 +78,7 @@
 
   .td-room{width:42px;text-align:center;font-weight:bold;background:#f5f5f5;}
   .td-name{text-transform:uppercase;}
-  .td-details {width:70px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+  .td-details {width:150px;font-size:.6rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
   .td-details .auto-badge{color:#b7950b;font-weight:bold;font-size:.78rem;}
   .td-day{width:56px;text-align:center;cursor:pointer;user-select:none;font-weight:bold;font-size:.92rem;transition:background .1s;}
   .td-day[data-state="X"]{background:var(--present-bg);color:var(--present-color);}
@@ -428,7 +428,7 @@ function render(){
       var th = document.createElement("th");
       th.textContent = txt;
       if (txt === "Room") th.style.width = "42px";
-      if (txt === "Note") th.style.width = "70px";
+      if (txt === "Note") th.style.width = "150px";
       if (txt === g.sigla){
         th.style.width = "56px";
         th.title = g.nome;
